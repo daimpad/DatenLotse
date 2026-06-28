@@ -318,6 +318,42 @@ document.getElementById('btn-export-csv')?.addEventListener('click', () => {
   downloadBlob(buildInventoryCSV(), 'datenlotse-inventar.csv', 'text/csv');
 });
 
+/* ── UI: Seitenleiste + Modals (FAQ / CTA) ────────────────────── */
+function openSidebar() {
+  document.getElementById('app-sidebar')?.classList.remove('collapsed');
+  document.getElementById('sidebar-overlay')?.classList.add('show');
+}
+function closeSidebar() {
+  document.getElementById('app-sidebar')?.classList.add('collapsed');
+  document.getElementById('sidebar-overlay')?.classList.remove('show');
+}
+document.getElementById('sidebar-toggle-btn')?.addEventListener('click', openSidebar);
+document.getElementById('sidebar-close-btn')?.addEventListener('click', closeSidebar);
+document.getElementById('sidebar-overlay')?.addEventListener('click', closeSidebar);
+document.querySelectorAll('.app-sidebar-nav a').forEach(a => a.addEventListener('click', closeSidebar));
+
+function showModal(id, show) {
+  document.getElementById(id)?.classList.toggle('hidden', !show);
+}
+document.getElementById('faq-btn')?.addEventListener('click', () => showModal('faq-backdrop', true));
+document.getElementById('faq-close-btn')?.addEventListener('click', () => showModal('faq-backdrop', false));
+document.getElementById('cta-btn')?.addEventListener('click', () => showModal('cta-backdrop', true));
+document.getElementById('cta-close-btn')?.addEventListener('click', () => showModal('cta-backdrop', false));
+
+// Klick auf den Backdrop (außerhalb des Dialogs) schließt das Modal
+['faq-backdrop', 'cta-backdrop'].forEach(id => {
+  const el = document.getElementById(id);
+  el?.addEventListener('click', e => { if (e.target === el) el.classList.add('hidden'); });
+});
+
+// Escape schließt offene Modals und die Seitenleiste
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  showModal('faq-backdrop', false);
+  showModal('cta-backdrop', false);
+  closeSidebar();
+});
+
 /* ──────────────────────────────────────────────────────────────
    ROADMAP / BAUAUFTRÄGE
    ────────────────────────────────────────────────────────────── */
