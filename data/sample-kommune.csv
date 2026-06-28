@@ -1,0 +1,13 @@
+Quelle,QuelleAbteilung,QuelleBereich,QuelleOrganisation,QuelleRolle,Beziehung,Ziel,Datentyp,Häufigkeit,Format,Schutzbedarf,Erfassungsart,Anmerkungen,Ansprechpartner
+Melderegister,Bürgeramt,Einwohnerwesen,Stadt Musterstadt,Sachbearbeiter,übergibt,Statistikstelle,Einwohnermeldedaten,täglich,CSV,DSGVO-relevant,automatisiert,Meldedaten der Einwohnerinnen und Einwohner,Frau Meier (buergeramt@musterstadt.de)
+Haushaltssystem,Kämmerei,Finanzen,Stadt Musterstadt,Sachbearbeiter,erstellt,Ratsinformationssystem,Haushaltsplan,jährlich,PDF,Öffentlich,manuell,Beschlossener Haushaltsplan zur Veröffentlichung,Herr Schulz
+Geoinformationssystem,Stadtplanungsamt,Geodaten,Stadt Musterstadt,GIS-Koordinator,erstellt,Open-Data-Portal,Bebauungspläne,monatlich,GeoJSON,Öffentlich,automatisiert,Rechtskräftige Bebauungspläne,Frau Wagner
+Geoinformationssystem,Grünflächenamt,Geodaten,Stadt Musterstadt,GIS-Koordinator,erstellt,Open-Data-Portal,Baumkataster,vierteljährlich,GeoJSON,Öffentlich,automatisiert,Standorte und Zustand städtischer Bäume,Frau Wagner
+Kita-Verwaltung,Jugendamt,Soziales,Stadt Musterstadt,Sachbearbeiter,verarbeitet,Sozialplanung,Betreuungsplätze,wöchentlich,XLSX,Intern,manuell,Belegung und Wartelisten der Kitas,Herr Krause
+Abfallwirtschaft,Eigenbetrieb Stadtreinigung,Entsorgung,Stadt Musterstadt,Disponent,erstellt,Open-Data-Portal,Abfuhrtermine,jährlich,JSON,Öffentlich,automatisiert,Abfuhrkalender für alle Bezirke,Herr Lang
+Ratsinformationssystem,Ratsbüro,Gremien,Stadt Musterstadt,Schriftführer,erstellt,Open-Data-Portal,Ratsbeschlüsse,laufend,XML,Öffentlich,manuell,Beschlüsse und Vorlagen des Stadtrats,Frau Bauer
+Personalsystem,Personalamt,Interne Verwaltung,Stadt Musterstadt,Administrator,verarbeitet,Lohnstelle,Personalstammdaten,monatlich,XLSX,DSGVO-relevant,manuell,Enthält teils Gesundheits- und Sozialdaten,Frau Braun
+Bibliothekssystem,Stadtbibliothek,Kultur,Stadt Musterstadt,Bibliothekar,erstellt,Statistikstelle,Ausleihstatistik,monatlich,CSV,Intern,automatisiert,Aggregierte Ausleihzahlen je Medienart,Herr Vogel
+Standesamt,Bürgeramt,Einwohnerwesen,Stadt Musterstadt,Sachbearbeiter,verarbeitet,Statistikstelle,Eheschließungen,monatlich,CSV,DSGVO-relevant,manuell,Personenstandsdaten,Frau Meier
+Verkehrsbetrieb,Stadtwerke Musterstadt,Mobilität,Stadtwerke Musterstadt,Analyst,erstellt,Open-Data-Portal,Fahrgastzahlen,täglich,CSV,Öffentlich,automatisiert,Aggregierte Fahrgastzahlen je Linie,Herr Hoffmann
+Sozialamt,Amt für Soziales,Soziales,Stadt Musterstadt,Sachbearbeiter,verarbeitet,Sozialplanung,Leistungsbescheide,laufend,PDF,DSGVO-relevant,manuell,"Bescheide mit Namen, Adressen und Aktenzeichen",Frau Schmidt

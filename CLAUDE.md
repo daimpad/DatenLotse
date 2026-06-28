@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v9` (Script-Tag: `<script src="js/app.js?v=9">`)
+- **Aktuelle Version:** `v10` (Script-Tag: `<script src="js/app.js?v=10">`)
 
 ---
 
@@ -184,7 +184,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 
 | Feature | Schlüsselfunktionen | Schlüssel-IDs |
 |---|---|---|
-| CSV-Import (DatenGraf-Brücke) | `importGrafCSV(text)`, `pickAndImport()`, `parseCSV(text)`, `splitCSVLine(line)` | `#btn-import-graf`, `#btn-import-again` |
+| CSV-Import (DatenGraf-Brücke) | `importGrafCSV(text)`, `pickAndImport()`, `loadSampleData(file)`, `parseCSV(text)`, `splitCSVLine(line)` | `#btn-import-graf`, `#btn-import-again`, `[data-sample]` |
 | Inventar-Ableitung | `deriveInventory(rows)`, `mapSchutzToAccess(schutz)`, `mapHaeufigkeit(h)`, `slug(s)` | — |
 | Inventar-Rendering | `renderInventory()`, `completeness(d)`, `optionsHTML(opts, sel)` | `#inventory-view`, `#inventory-body`, `.inv-card`, `[data-field]` |
 | DCAT-Export | `buildDcatJSON()`, `buildInventoryCSV()`, `csvCell(v)`, `downloadBlob()` | `#btn-export-json`, `#btn-export-csv` |
@@ -221,3 +221,4 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v7 | Modul 3a – Risiko-Clearing: zweiter Tab in der Inventar-View; pro Datensatz ein deterministischer Rot/Gelb/Grün-Entscheidungsbaum (`evaluateClearing`) mit Schutzbedarf-Vorbelegung, progressivem Fragebogen, Begründung/Empfehlung je Eintrag und Gesamtübersicht („x grün · y gelb · z rot"); Ampel-Spalten im CSV-Export ergänzt |
 | v8 | Modul 3b – Client-Side-Pseudonymisierung: eigene View „Textbereinigung" mit Regex-Pack für DE-Verwaltung (Name, Adresse, PLZ+Ort, Aktenzeichen, IBAN, E-Mail, Telefon, kontextgebundenes Geburtsdatum), strukturerhaltende & deterministische Platzhalter (Longest-match-wins, keine Doppel-Ersetzung), hervorgehobene Ausgabe + Mapping-Tabelle + Download + sichtbare Grenzen-Liste; `showView`/`navTo`-Routing (3 Views), Topbar-Brand → Start, Modul-3-Button + Sidebar-Link |
 | v9 | Modul 1 – Governance & Rollen: eigene View mit 8-Fragen-Reifegrad-Check (gewichtet, 0–100, Ampel) und RACI-Matrix (Domänen aus Inventar abgeleitet, festes Rollen-Template, DSB abhängig von DSGVO-Relevanz, Lücken-Markierung aus dem Fragebogen); Export als RACI-CSV und PDF/Druck-Bericht; vierte View im `showView`-Routing |
+| v10 | Schritt 4 (1/n) – Beispieldaten: `data/sample-kommune.csv` (12 Datensätze einer fiktiven Stadtverwaltung, gemischter Schutzbedarf) + `data/template.csv`; „Beispiel laden"-Buttons (`[data-sample]` → `loadSampleData()` via `fetch`) auf der Modul-2-Karte und im Governance-Empty-State – speist Inventar, Clearing & Governance zugleich |
