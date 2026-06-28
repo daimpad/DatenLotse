@@ -32,6 +32,11 @@ a { color: var(--c-accent); }
   z-index: 10;
 }
 .topbar-brand { display: flex; align-items: center; gap: 10px; }
+.topbar-logo {
+  height: 36px;
+  width: auto;
+  flex-shrink: 0;
+}
 .topbar-brand-text {
   font-size: 18px;
   font-weight: 800;
@@ -78,6 +83,15 @@ a { color: var(--c-accent); }
   margin: 0 auto;
   padding: 48px 24px 24px;
   text-align: center;
+}
+.hero-logo {
+  display: block;
+  width: 140px;
+  height: auto;
+  margin: 0 auto 22px;
+  border-radius: 220px;
+  border: 2px solid rgba(66, 0, 147, 0.15);
+  box-shadow: var(--shadow-md);
 }
 .hero-headline {
   font-size: 34px;
@@ -274,6 +288,7 @@ a { color: var(--c-accent); }
 .site-footer a:hover { color: var(--c-accent); }
 
 @media (max-width: 600px) {
+  .hero-logo { width: 110px; }
   .hero-headline { font-size: 26px; }
   .module-grid { padding: 0 16px 48px; }
 }
