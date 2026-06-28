@@ -626,7 +626,7 @@ function showModal(id, show) {
     modalOpener = null;
   }
 }
-const MODALS = ['faq-backdrop', 'cta-backdrop', 'inventory-backdrop'];
+const MODALS = ['faq-backdrop', 'cta-backdrop', 'inventory-backdrop', 'phase3-backdrop'];
 document.getElementById('faq-btn')?.addEventListener('click', () => showModal('faq-backdrop', true));
 document.getElementById('faq-close-btn')?.addEventListener('click', () => showModal('faq-backdrop', false));
 document.getElementById('cta-btn')?.addEventListener('click', () => showModal('cta-backdrop', true));
@@ -638,6 +638,101 @@ document.getElementById('open-inventory-btn')?.addEventListener('click', openInv
 document.getElementById('inventory-close-btn')?.addEventListener('click', () => showModal('inventory-backdrop', false));
 document.getElementById('inv-modal-import')?.addEventListener('click', () => { showModal('inventory-backdrop', false); pickAndImport(); });
 document.getElementById('inv-modal-sample')?.addEventListener('click', () => { showModal('inventory-backdrop', false); loadSampleData('data/sample-kommune.csv'); });
+
+/* ── Phase-3-Prozess-Wizard (Modal-Stepper mit Checks) ────────── */
+const PHASE3_TITLES = ['Worum geht es?', 'Der Ablauf', 'Bereitschafts-Check', 'Nächste Schritte'];
+const P3_CHECKS = [
+  { id: 'inventory',  label: 'Ein Dateninventar liegt vor (Datensätze sind erfasst).' },
+  { id: 'classified', label: 'Die Datensätze sind im Risiko-Clearing bewertet (Ampel gesetzt).' },
+  { id: 'legal',      label: 'Für personenbezogene Daten ist die Rechtsgrundlage geprüft.' },
+  { id: 'freitexte',  label: 'Es gibt personenbezogene Freitexte, die bereinigt werden müssen.' },
+  { id: 'review',     label: 'Eine fachliche/juristische Endkontrolle vor der Veröffentlichung ist eingeplant.' },
+];
+let phase3Index = 0;
+const phase3Checks = {};
+
+function openClearing() {
+  if (inventory.length) { renderInventory(); showInventoryTab('clearing'); }
+  else openInventoryModal();
+}
+
+function openPhase3Wizard() {
+  phase3Index = 0;
+  phase3Checks.inventory = inventory.length > 0;
+  phase3Checks.classified = inventory.some(d => d.clearing);
+  showModal('phase3-backdrop', true);
+  renderPhase3();
+}
+
+function phase3BodyHTML() {
+  if (phase3Index === 0) return `
+    <p>Phase 3 stellt sicher, dass <strong>nur rechtlich freigegebene Daten veröffentlicht</strong> werden. Sie besteht aus zwei aufeinander aufbauenden Schritten:</p>
+    <ul class="p3-list">
+      <li><strong>Risiko-Clearing (Modul 3a)</strong> – bewertet jeden Datensatz <em>deterministisch</em> nach Rot/Gelb/Grün: darf er, darf er nicht, oder erst nach Bearbeitung?</li>
+      <li><strong>Pseudonymisierung (Modul 3b)</strong> – bereinigt personenbezogene Freitexte strukturerhaltend, damit aus einem „Gelb" ein freigabefähiger Datensatz wird.</li>
+    </ul>
+    <p class="modal-privacy"><i class="fas fa-lock"></i> Ziel ist die rechtssichere, datenschutzkonforme Open-Data-Freigabe – nichts verlässt dabei den Browser.</p>`;
+  if (phase3Index === 1) return `
+    <p>Der Prozess folgt vier Schritten:</p>
+    <ol class="modal-steps">
+      <li><strong>Klassifizieren</strong> – je Datensatz die Clearing-Fragen beantworten (Personenbezug, Art. 9 DSGVO, Rechtsgrundlage, Anonymisierbarkeit). Ergebnis: eine Ampel.</li>
+      <li><strong>Entscheiden</strong> – <span style="color:var(--ampel-gruen);font-weight:700">Grün</span> = direkt freigabefähig · <span style="color:var(--ampel-rot);font-weight:700">Rot</span> = nicht veröffentlichen (höchstens aggregiert) · <span style="color:var(--ampel-gelb);font-weight:700">Gelb</span> = Bearbeitung nötig.</li>
+      <li><strong>Bearbeiten</strong> – bei Gelb: personenbezogene Freitexte über die Textbereinigung pseudonymisieren bzw. aggregieren/anonymisieren.</li>
+      <li><strong>Prüfen &amp; dokumentieren</strong> – Ergebnis im Clearing festhalten, Begründung exportieren; fachliche/juristische Endkontrolle vor der Veröffentlichung.</li>
+    </ol>`;
+  if (phase3Index === 2) return `
+    <p>Kurze Selbsteinschätzung – was trifft bereits zu?</p>
+    <div class="p3-checks">
+      ${P3_CHECKS.map(c => `
+        <label class="p3-check">
+          <input type="checkbox" data-check="${esc(c.id)}"${phase3Checks[c.id] ? ' checked' : ''}>
+          <span>${esc(c.label)}</span>
+        </label>`).join('')}
+    </div>`;
+  // Schritt 4 – Nächste Schritte
+  const done = P3_CHECKS.filter(c => phase3Checks[c.id]).length;
+  const noInv = !phase3Checks.inventory;
+  const needsPseudo = phase3Checks.freitexte;
+  return `
+    <p>Du hast <strong>${done} von ${P3_CHECKS.length}</strong> Punkten bestätigt. Empfohlene nächste Schritte:</p>
+    ${noInv ? `<p class="modal-privacy"><i class="fas fa-circle-info"></i> Zuerst ein <strong>Dateninventar</strong> aufbauen – darauf setzt das Clearing auf.</p>` : ''}
+    <div class="p3-tools">
+      ${noInv ? `<button class="btn btn-primary" id="p3-open-inventory"><i class="fas fa-boxes-stacked"></i> Dateninventar starten</button>` : `<button class="btn btn-primary" id="p3-open-clearing"><i class="fas fa-traffic-light"></i> Risiko-Clearing öffnen</button>`}
+      <button class="btn ${needsPseudo ? 'btn-primary' : 'btn-secondary'}" id="p3-open-pseudo"><i class="fas fa-user-shield"></i> Textbereinigung öffnen${needsPseudo ? ' (empfohlen)' : ''}</button>
+    </div>
+    <p class="gov-note" style="margin-top:14px"><i class="fas fa-circle-info"></i> Die Textbereinigung ist das Werkzeug für „Gelb"-Fälle mit personenbezogenen Freitexten. Eine manuelle Endkontrolle bleibt vor jeder Veröffentlichung Pflicht.</p>`;
+}
+
+function renderPhase3() {
+  const body = document.getElementById('p3-body');
+  const steps = document.getElementById('p3-steps');
+  const prog = document.getElementById('p3-progress');
+  const back = document.getElementById('p3-back');
+  const next = document.getElementById('p3-next');
+  if (!body) return;
+  const last = PHASE3_TITLES.length - 1;
+  steps.innerHTML = PHASE3_TITLES.map((t, i) =>
+    `<span class="wizard-dot${i === phase3Index ? ' is-active' : ''}${i < phase3Index ? ' is-done' : ''}" title="${esc(t)}"></span>`).join('');
+  prog.textContent = `Schritt ${phase3Index + 1} / ${PHASE3_TITLES.length} · ${PHASE3_TITLES[phase3Index]}`;
+  back.disabled = phase3Index === 0;
+  next.style.display = phase3Index === last ? 'none' : '';
+  body.innerHTML = phase3BodyHTML();
+  body.scrollTop = 0;
+  if (phase3Index === 2) {
+    body.querySelectorAll('input[data-check]').forEach(cb =>
+      cb.addEventListener('change', () => { phase3Checks[cb.dataset.check] = cb.checked; }));
+  }
+  if (phase3Index === last) {
+    body.querySelector('#p3-open-clearing')?.addEventListener('click', () => { showModal('phase3-backdrop', false); openClearing(); });
+    body.querySelector('#p3-open-inventory')?.addEventListener('click', () => { showModal('phase3-backdrop', false); openInventoryModal(); });
+    body.querySelector('#p3-open-pseudo')?.addEventListener('click', () => { showModal('phase3-backdrop', false); navTo('pseudo'); });
+  }
+}
+
+document.getElementById('open-phase3-btn')?.addEventListener('click', openPhase3Wizard);
+document.getElementById('phase3-close-btn')?.addEventListener('click', () => showModal('phase3-backdrop', false));
+document.getElementById('p3-next')?.addEventListener('click', () => { if (phase3Index < PHASE3_TITLES.length - 1) { phase3Index++; renderPhase3(); } });
+document.getElementById('p3-back')?.addEventListener('click', () => { if (phase3Index > 0) { phase3Index--; renderPhase3(); } });
 
 // Klick auf den Backdrop (außerhalb des Dialogs) schließt das Modal
 MODALS.forEach(id => {

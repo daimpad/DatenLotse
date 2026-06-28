@@ -197,7 +197,7 @@
       <span class="module-phase">Phase 3 · Clearing</span>
       <h2 class="module-title">Risiko &amp; Pseudonymisierung</h2>
       <p class="module-desc">Rot/Gelb/Grün-Risikobewertung je Datensatz (im Inventar) plus client-seitige Pseudonymisierung deutscher Verwaltungstexte (Namen, Adressen, Aktenzeichen) — strukturerhaltend, nichts verlässt den Browser.</p>
-      <button class="btn btn-primary" id="open-pseudo-btn"><i class="fas fa-user-shield"></i> Textbereinigung öffnen</button>
+      <button class="btn btn-primary" id="open-phase3-btn"><i class="fas fa-shield-halved"></i> Phase 3 starten</button>
     </article>
 
   </section>
@@ -347,7 +347,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v13</span>
+    <span class="footer-version">v14</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -441,6 +441,23 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=13"></script>
+  <!-- ── Phase-3-Prozess-Wizard (Modul 3) ──────────────────────── -->
+  <div class="modal-backdrop hidden" id="phase3-backdrop">
+    <div class="faq-modal wizard-modal" role="dialog" aria-modal="true" aria-labelledby="p3-title">
+      <div class="faq-modal-header">
+        <h2 id="p3-title"><i class="fas fa-shield-halved"></i> Phase 3 · Risiko &amp; Pseudonymisierung</h2>
+        <button class="icon-close" id="phase3-close-btn" aria-label="Schließen"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="wizard-steps" id="p3-steps"></div>
+      <div class="faq-modal-body wizard-body" id="p3-body"></div>
+      <div class="wizard-footer">
+        <button class="btn btn-secondary" id="p3-back"><i class="fas fa-arrow-left"></i> Zurück</button>
+        <span class="wizard-progress" id="p3-progress"></span>
+        <button class="btn btn-primary" id="p3-next">Weiter <i class="fas fa-arrow-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js?v=14"></script>
 </body>
 </html>
