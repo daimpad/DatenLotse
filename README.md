@@ -28,7 +28,7 @@
 | 📦 | **Dateninventar (DCAT-AP.de)** | Aus jedem Datenfluss wird ein Dataset-Kandidat abgeleitet und in editierbaren Karten dargestellt; Publisher/Ansprechpartner als Freitext, Aktualisierungszyklus/Lizenz/Zugriffsrechte als Dropdowns – mit Live-Vollständigkeits-% in Ampelfarben |
 | 📤 | **DCAT-Export (JSON + CSV)** | DCAT-AP.de-konformes JSON-LD (`dcat:Catalog`/`dcat:Dataset` mit `@context`) zum Harvesting durch GovData/CKAN sowie eine flache CSV-Liste |
 | 🚦 | **Clearing-Ampel (Rot-Gelb-Grün)** | Transparenter, deterministischer Entscheidungsbaum je Datensatz (Schutzbedarf-Vorbelegung, Art.-9-/Rechtsgrundlage-/Anonymisierbarkeit-Prüfung) mit nachvollziehbarer Begründung, Gesamtübersicht und Ampel-Spalte im CSV-Export |
-| 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende Bereinigung deutscher Verwaltungstexte (Namen, Adressen, Aktenzeichen, IBAN) – rein per Regex, nichts verlässt den Browser *(in Arbeit)* |
+| 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende, deterministische Bereinigung deutscher Verwaltungstexte (Namen anrede-getriggert, Adressen, PLZ+Ort, Aktenzeichen, IBAN, E-Mail, Telefon, Geburtsdatum im Kontext) mit konsistenten Platzhaltern, Mapping-Tabelle und Download – rein per Regex, nichts verlässt den Browser |
 | 👥 | **Governance & RACI** | Geführter Fragebogen → RACI-Matrix + Reifegrad-Ampel *(geplant)* |
 | 🔒 | **Local-First / No-Database** | Alle Daten bleiben im Browser – kein Backend, kein Account, keine externen Laufzeit-Aufrufe |
 | 📱 | **Mobile-First** | Responsives Layout: Buttons in voller Breite, Grids brechen auf eine Spalte |

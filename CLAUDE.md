@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v7` (Script-Tag: `<script src="js/app.js?v=7">`)
+- **Aktuelle Version:** `v8` (Script-Tag: `<script src="js/app.js?v=8">`)
 
 ---
 
@@ -53,7 +53,7 @@ Spätere Module hängen sich an `inventory` an: Modul 3a (Clearing) bewertet die
 
 ### View-Umschaltung
 
-Beim Import wird Hero + Modul-Grid ausgeblendet und die Arbeits-View eingeblendet. Sobald mehr als zwei Views existieren, eine gemeinsame `showView(id)`-Helper-Funktion einführen statt überall `style.display` zu setzen.
+Drei Views: `home` (Hero + Akkordeon + Modul-Grid), `inventory` (Inventar/Clearing-Tabs) und `pseudo` (Textbereinigung). Zentral über `showView(name)` umgeschaltet (blendet die Home-Elemente per `style.display` aus, toggelt `.hidden` an `#inventory-view`/`#pseudo-view`, scrollt nach oben). `navTo(target)` kapselt die Logik der Navigations-Einstiege (Topbar-Brand → home, Sidebar-Links `data-view`, Modul-3-Button → pseudo; „Dateninventar" öffnet die Inventar-View nur, wenn bereits importiert wurde).
 
 ### Globaler State
 
@@ -118,6 +118,18 @@ Zweiter Tab in der Inventar-View (`#tab-clearing` → `#clearing-panel`), operie
 - **Progressive Anzeige:** Folgefragen erscheinen nur, wenn relevant; `renderClearing()` rendert bei jeder Antwort neu und setzt entfallende Folgeantworten zurück.
 - **Export:** `buildInventoryCSV()` ruft `ensureAllClearing()` und ergänzt die Spalten `clearingAmpel` + `clearingEmpfehlung`. `accessRights` im DCAT-JSON bleibt nutzergesteuert (keine stille Überschreibung).
 
+### Pseudonymisierung (Modul 3b)
+
+Eigene View „Textbereinigung" (`#pseudo-view`). **Reines Regex-Pack, kein ML/NER** (harte Sperre). `pseudonymize(text)` arbeitet in drei Schritten:
+
+1. **`collectSpans`** wendet `PSEUDO_PATTERNS` (in Prioritätsreihenfolge: IBAN, E-Mail, Telefon, Aktenzeichen, Geburtsdatum *im Kontext*, Straße+Hausnr., PLZ+Ort, Name *anrede-getriggert*) an und sammelt `{start, end, type, value}`. Bei Capture-Gruppen (Name, Geburtsdatum) wird via `d`-Flag nur der Kernwert erfasst (Anrede/„geb." bleiben stehen).
+2. **`selectSpans`** sortiert nach Position, dann längstem Span, dann Priorität, und verwirft Überlappungen (Longest/First-match-wins) → **keine Doppel-Ersetzung**.
+3. Aufbau in **einem** Durchlauf: pro Entitätstyp ein Zähler + `Map(original → platzhalter)` → gleicher Wert ⇒ **immer derselbe** Platzhalter (`[PERSON_1]`, `[ADRESSE_1]`, `[ORT_1]`, `[AZ_1]`, `[IBAN_1]`, `[EMAIL_1]`, `[TELEFON_1]`, `[GEBURTSDATUM_1]`). Rückgabe: `{ text, html (hervorgehoben), mapping, count }`.
+
+**Deterministisch & strukturerhaltend:** identischer Input ⇒ identischer Output; Platzhalter enthalten keine Kommas/Quotes/Zeilenumbrüche → CSV-Struktur bleibt erhalten. **Freistehende Datumsangaben** (ohne „geb."/„geboren am") bleiben unangetastet. Grenzen-Liste ist im UI sichtbar; manuelle Nachkontrolle bleibt Pflicht. `PSEUDO_DEMO` liefert einen Beispieltext.
+
+> **Zukunft (NICHT gebaut):** optionales client-seitiges NER-Modell (Transformers.js/WASM) ist reiner Roadmap-Text – kein Code, auch nicht opt-in.
+
 ---
 
 ## Wichtige Konventionen
@@ -169,7 +181,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | Inventar-Rendering | `renderInventory()`, `completeness(d)`, `optionsHTML(opts, sel)` | `#inventory-view`, `#inventory-body`, `.inv-card`, `[data-field]` |
 | DCAT-Export | `buildDcatJSON()`, `buildInventoryCSV()`, `csvCell(v)`, `downloadBlob()` | `#btn-export-json`, `#btn-export-csv` |
 | Clearing-Ampel (Modul 3a) | `evaluateClearing(a)`, `renderClearing()`, `initClearing(d)`, `ensureAllClearing()`, `showInventoryTab(name)` | `#tab-clearing`, `#clearing-panel`, `#clearing-summary`, `.clear-card`, `[data-q]` |
-| Pseudonymisierung | `pseudonymize(text)` *(geplant, Modul 3b)* | — |
+| Pseudonymisierung (Modul 3b) | `pseudonymize(text)`, `collectSpans`, `selectSpans`, `runPseudonymize()`, `showView(name)`, `navTo(target)` | `#pseudo-view`, `#pseudo-input`, `#pseudo-output`, `#pseudo-mapping`, `#open-pseudo-btn` |
 | Governance/RACI | `buildRaci()` *(geplant, Modul 1)* | — |
 | Seitenleiste (Off-Canvas) | `openSidebar()`, `closeSidebar()` | `#app-sidebar`, `#sidebar-toggle-btn`, `#sidebar-overlay` |
 | FAQ-/CTA-Modal | `showModal(id, show)` (+ Backdrop-Klick, Escape) | `#faq-btn`, `#faq-backdrop`, `#cta-btn`, `#cta-backdrop` |
@@ -199,3 +211,4 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v5 | Footer identisch zu DatenGraf: `.footer-links`-Nav (Impressum · Datenschutz · Kontakt · GitHub-Icon), rechtsbündige `.footer-version` (subtil) statt einfachem `<span>`; Markup & CSS gespiegelt, Text/Links auf DatenLotse angepasst |
 | v6 | Homepage-Ausbau im DatenGraf-Stil: Topbar mit Hamburger (Off-Canvas-Seitenleiste, Scaffold), lila CTA „Loslegen" (Platzhalter-Modal) und FAQ-„?"-Button (FAQ-Modal); Subtitle aus der Marke entfernt, Logo größer (Topbar 44px, Hero 172px), Hero-Headline + Modul-Titel lila & größer; Akkordeon „Mehr über den DatenLotsen erfahren" mit fancy Feature-Grid vor den Modul-Karten; Modul-Karten mit Hover (Schatten + leichte Vergrößerung); Phase-4&5-Block (Beratungs-CTA) mit lila Hintergrund; Footer-Links rechtsbündig |
 | v7 | Modul 3a – Risiko-Clearing: zweiter Tab in der Inventar-View; pro Datensatz ein deterministischer Rot/Gelb/Grün-Entscheidungsbaum (`evaluateClearing`) mit Schutzbedarf-Vorbelegung, progressivem Fragebogen, Begründung/Empfehlung je Eintrag und Gesamtübersicht („x grün · y gelb · z rot"); Ampel-Spalten im CSV-Export ergänzt |
+| v8 | Modul 3b – Client-Side-Pseudonymisierung: eigene View „Textbereinigung" mit Regex-Pack für DE-Verwaltung (Name, Adresse, PLZ+Ort, Aktenzeichen, IBAN, E-Mail, Telefon, kontextgebundenes Geburtsdatum), strukturerhaltende & deterministische Platzhalter (Longest-match-wins, keine Doppel-Ersetzung), hervorgehobene Ausgabe + Mapping-Tabelle + Download + sichtbare Grenzen-Liste; `showView`/`navTo`-Routing (3 Views), Topbar-Brand → Start, Modul-3-Button + Sidebar-Link |
