@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v6` (Script-Tag: `<script src="js/app.js?v=6">`)
+- **Aktuelle Version:** `v7` (Script-Tag: `<script src="js/app.js?v=7">`)
 
 ---
 
@@ -61,7 +61,7 @@ Beim Import wird Hero + Modul-Grid ausgeblendet und die Arbeits-View eingeblende
 |---|---|---|
 | `grafRows` | `Row[]` | Importierte DatenGraf-Zeilen (Row-Schema) |
 | `inventory` | `Dataset[]` | Abgeleitete DCAT-AP.de-Inventar-Einträge |
-| `clearing` *(geplant)* | am Eintrag | `d.clearing = { ampel, begruendung, empfehlung }` (Modul 3a) |
+| `clearing` | am Eintrag | `d.clearing = { ampel, begruendung, empfehlung }` + `d._clearing = { pb, art9, recht, anon }` (Antworten, Modul 3a) |
 | `governance` *(geplant)* | `Object` | RACI-/Reifegrad-Ergebnisse (Modul 1) |
 
 ### LocalStorage-Schlüssel
@@ -108,6 +108,15 @@ Das Schema ist die **öffentliche API** zwischen DatenGraf und DatenLotse und 1:
 ### Vollständigkeit (Ampel)
 
 `completeness(d)` misst den Anteil gefüllter `REQUIRED_FIELDS` (`title, publisher, contactPoint, accrualPeriodicity, license, accessRights`) als 0–100 %. Schwellen für die Badge-Farbe: ≥ 80 % `--ampel-gruen`, ≥ 50 % `--ampel-gelb`, sonst `--ampel-rot`. Eingaben werden per `input`-Listener live in `inventory[idx]` zurückgeschrieben und Badge + Durchschnitt sofort aktualisiert.
+
+### Clearing-Ampel (Modul 3a)
+
+Zweiter Tab in der Inventar-View (`#tab-clearing` → `#clearing-panel`), operiert auf denselben `inventory`-Einträgen. Pro Datensatz ein kompakter Fragebogen; das Ergebnis ist ein **deterministischer** Entscheidungsbaum (kein ML) in `evaluateClearing(a)`. Antworten liegen unter `d._clearing = { pb, art9, recht, anon }`, das Ergebnis unter `d.clearing = { ampel, begruendung, empfehlung }`.
+
+- **Vorbelegung:** `initClearing(d)` leitet Frage 1 (`pb`) aus `Schutzbedarf` ab: `DSGVO` ⇒ `ja`, `Öffentlich` ⇒ `nein`, sonst `unklar`. Frage 2–4 sind Nutzer-Eingaben.
+- **Regeln (geordnet):** `pb=nein` ⇒ **Grün**; `pb=unklar` ⇒ **Gelb** (nie automatisch Grün); `art9=ja` ⇒ **Rot**; `pb=ja` + `recht=nein` ⇒ **Rot**; `pb=ja` + `recht=ja` + `anon=ja` ⇒ **Gelb** (Brücke zu Modul 3b), `anon=nein` ⇒ **Rot**. Greift keine Regel eindeutig ⇒ **Gelb, manuelle Prüfung**.
+- **Progressive Anzeige:** Folgefragen erscheinen nur, wenn relevant; `renderClearing()` rendert bei jeder Antwort neu und setzt entfallende Folgeantworten zurück.
+- **Export:** `buildInventoryCSV()` ruft `ensureAllClearing()` und ergänzt die Spalten `clearingAmpel` + `clearingEmpfehlung`. `accessRights` im DCAT-JSON bleibt nutzergesteuert (keine stille Überschreibung).
 
 ---
 
@@ -159,7 +168,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | Inventar-Ableitung | `deriveInventory(rows)`, `mapSchutzToAccess(schutz)`, `mapHaeufigkeit(h)`, `slug(s)` | — |
 | Inventar-Rendering | `renderInventory()`, `completeness(d)`, `optionsHTML(opts, sel)` | `#inventory-view`, `#inventory-body`, `.inv-card`, `[data-field]` |
 | DCAT-Export | `buildDcatJSON()`, `buildInventoryCSV()`, `csvCell(v)`, `downloadBlob()` | `#btn-export-json`, `#btn-export-csv` |
-| Clearing-Ampel | `runClearing()` *(geplant, Modul 3a)* | — |
+| Clearing-Ampel (Modul 3a) | `evaluateClearing(a)`, `renderClearing()`, `initClearing(d)`, `ensureAllClearing()`, `showInventoryTab(name)` | `#tab-clearing`, `#clearing-panel`, `#clearing-summary`, `.clear-card`, `[data-q]` |
 | Pseudonymisierung | `pseudonymize(text)` *(geplant, Modul 3b)* | — |
 | Governance/RACI | `buildRaci()` *(geplant, Modul 1)* | — |
 | Seitenleiste (Off-Canvas) | `openSidebar()`, `closeSidebar()` | `#app-sidebar`, `#sidebar-toggle-btn`, `#sidebar-overlay` |
@@ -189,3 +198,4 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v4 | Doku-Sync: CLAUDE.md & README an den real gebauten Modul-2-MVP angeglichen (Feature-Tabelle, Dataset-Shape, kontrollierte Vokabulare, Vollständigkeits-Ampel, Chronologie) |
 | v5 | Footer identisch zu DatenGraf: `.footer-links`-Nav (Impressum · Datenschutz · Kontakt · GitHub-Icon), rechtsbündige `.footer-version` (subtil) statt einfachem `<span>`; Markup & CSS gespiegelt, Text/Links auf DatenLotse angepasst |
 | v6 | Homepage-Ausbau im DatenGraf-Stil: Topbar mit Hamburger (Off-Canvas-Seitenleiste, Scaffold), lila CTA „Loslegen" (Platzhalter-Modal) und FAQ-„?"-Button (FAQ-Modal); Subtitle aus der Marke entfernt, Logo größer (Topbar 44px, Hero 172px), Hero-Headline + Modul-Titel lila & größer; Akkordeon „Mehr über den DatenLotsen erfahren" mit fancy Feature-Grid vor den Modul-Karten; Modul-Karten mit Hover (Schatten + leichte Vergrößerung); Phase-4&5-Block (Beratungs-CTA) mit lila Hintergrund; Footer-Links rechtsbündig |
+| v7 | Modul 3a – Risiko-Clearing: zweiter Tab in der Inventar-View; pro Datensatz ein deterministischer Rot/Gelb/Grün-Entscheidungsbaum (`evaluateClearing`) mit Schutzbedarf-Vorbelegung, progressivem Fragebogen, Begründung/Empfehlung je Eintrag und Gesamtübersicht („x grün · y gelb · z rot"); Ampel-Spalten im CSV-Export ergänzt |

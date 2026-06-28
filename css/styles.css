@@ -243,6 +243,114 @@ a { color: var(--c-accent); }
 .inv-fields input:focus,
 .inv-fields select:focus { outline: none; border-color: var(--c-accent); }
 
+/* ── Tabs Inventar ↔ Clearing ────────────────────────────────── */
+.inv-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 16px 0 4px;
+  border-bottom: 1px solid var(--c-border-s);
+}
+.inv-tab {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-muted);
+  padding: 9px 14px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.inv-tab:hover { color: var(--c-accent); }
+.inv-tab.is-active { color: var(--c-accent); border-bottom-color: var(--c-accent); }
+.inventar-panel.hidden,
+.clearing-panel.hidden { display: none; }
+
+/* ── Risiko-Clearing (Modul 3a) ──────────────────────────────── */
+.clearing-summary { display: flex; gap: 12px; flex-wrap: wrap; margin: 6px 0 18px; }
+.clear-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 13px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--c-border-s);
+}
+.clear-stat--gruen { color: var(--ampel-gruen); }
+.clear-stat--gelb  { color: var(--ampel-gelb); }
+.clear-stat--rot   { color: var(--ampel-rot); }
+.clear-dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+.clearing-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
+}
+.clear-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-left: 4px solid var(--c-border-s);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.clear-card--gruen { border-left-color: var(--ampel-gruen); }
+.clear-card--gelb  { border-left-color: var(--ampel-gelb); }
+.clear-card--rot   { border-left-color: var(--ampel-rot); }
+.clear-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.clear-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.clear-title { font-size: 15px; font-weight: 700; color: var(--c-text); }
+.clear-src { font-size: 12px; color: var(--c-muted); }
+.clear-ampel {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.clear-ampel--gruen { color: var(--ampel-gruen); background: rgba(46,158,96,0.12); }
+.clear-ampel--gelb  { color: var(--ampel-gelb);  background: rgba(212,130,10,0.12); }
+.clear-ampel--rot   { color: var(--ampel-rot);   background: rgba(192,57,43,0.12); }
+.clear-questions { display: flex; flex-direction: column; gap: 11px; }
+.clear-q { display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+.clear-q-label { font-weight: 600; color: var(--c-text); line-height: 1.4; }
+.clear-q-ex, .clear-auto { font-weight: 400; color: var(--c-muted); }
+.clear-q select {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--c-text);
+  padding: 7px 9px;
+  border: 1px solid var(--c-border-s);
+  border-radius: 7px;
+  background: #fff;
+  max-width: 260px;
+}
+.clear-q select:focus { outline: none; border-color: var(--c-accent); }
+.clear-result { border-top: 1px solid var(--c-border-s); padding-top: 11px; }
+.clear-begruendung { font-size: 13px; color: var(--c-text); line-height: 1.55; }
+.clear-empfehlung { font-size: 13px; color: var(--c-muted); line-height: 1.55; margin-top: 6px; }
+.clear-empfehlung i { color: var(--c-accent); margin-right: 3px; }
+
 /* ── Beratungs-CTA (Phase 4–5) ───────────────────────────────── */
 .consult-cta {
   max-width: 980px;

@@ -202,8 +202,23 @@
         <button class="btn btn-primary" id="btn-export-json"><i class="fas fa-file-export"></i> DCAT-AP.de JSON</button>
       </div>
     </div>
-    <p class="inventory-hint">Ergänze die offenen Pflichtfelder (Lizenz, Aktualisierungszyklus, Zugriffsrechte). Die Prozentanzeige zeigt die DCAT-AP.de-Vollständigkeit je Datensatz. Alles bleibt lokal im Browser.</p>
-    <div class="inventory-body" id="inventory-body"></div>
+    <div class="inv-tabs" role="tablist">
+      <button class="inv-tab is-active" id="tab-inventar" role="tab"><i class="fas fa-boxes-stacked"></i> Inventar</button>
+      <button class="inv-tab" id="tab-clearing" role="tab"><i class="fas fa-traffic-light"></i> Risiko-Clearing</button>
+    </div>
+
+    <!-- Tab: Inventar -->
+    <div class="inventar-panel" id="inventar-panel">
+      <p class="inventory-hint">Ergänze die offenen Pflichtfelder (Lizenz, Aktualisierungszyklus, Zugriffsrechte). Die Prozentanzeige zeigt die DCAT-AP.de-Vollständigkeit je Datensatz. Alles bleibt lokal im Browser.</p>
+      <div class="inventory-body" id="inventory-body"></div>
+    </div>
+
+    <!-- Tab: Risiko-Clearing (Modul 3a) -->
+    <div class="clearing-panel hidden" id="clearing-panel">
+      <p class="inventory-hint">Beantworte je Datensatz den kurzen Fragebogen. Die Ampel folgt einem transparenten, deterministischen Entscheidungsbaum (kein ML). Bei Unklarheit gilt <strong>Gelb · manuelle Prüfung</strong> – nie automatisch Grün. Frage&nbsp;1 ist aus dem DatenGraf-Schutzbedarf vorbelegt. Alles bleibt lokal im Browser.</p>
+      <div class="clearing-summary" id="clearing-summary"></div>
+      <div class="clearing-body" id="clearing-body"></div>
+    </div>
   </section>
 
   <!-- ── Beratungs-CTA (Phase 4–5) ─────────────────────────────── -->
@@ -231,7 +246,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v6</span>
+    <span class="footer-version">v7</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -295,6 +310,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=6"></script>
+  <script src="js/app.js?v=7"></script>
 </body>
 </html>
