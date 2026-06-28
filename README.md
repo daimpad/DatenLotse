@@ -161,6 +161,9 @@ datenlotse/
 │   └── styles.css              # Layout & Komponenten
 ├── js/
 │   └── app.js                  # Gesamte Anwendungslogik (eine Datei)
+├── data/
+│   ├── sample-kommune.csv      # Beispiel: fiktive Stadtverwaltung (12 Datensätze)
+│   └── template.csv            # Leere Vorlage zum eigenen Befüllen
 ├── assets/
 │   └── fonts/
 │       ├── fa/all.min.css      # Font Awesome 6.7.2 CSS

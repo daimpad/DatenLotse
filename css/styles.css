@@ -150,6 +150,8 @@ a { color: var(--c-accent); }
   font-size: 18px;
 }
 .module-title { font-size: 20px; font-weight: 800; color: var(--c-accent); letter-spacing: -0.3px; }
+.module-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.gov-empty-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .module-desc { font-size: 13px; color: var(--c-muted); line-height: 1.6; flex: 1; }
 .module-badge-soon {
   align-self: flex-start;

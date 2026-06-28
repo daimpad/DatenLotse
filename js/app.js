@@ -485,8 +485,18 @@ function pickAndImport() {
   input.click();
 }
 
+// Beispieldaten laden (via fetch → benötigt HTTP, nicht file://)
+function loadSampleData(file) {
+  fetch(file || 'data/sample-kommune.csv')
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(text => importGrafCSV(text))
+    .catch(() => alert('Beispieldaten konnten nicht geladen werden.\nBitte die App über http:// (python3 -m http.server) öffnen, nicht über file://.'));
+}
+
 document.getElementById('btn-import-graf')?.addEventListener('click', pickAndImport);
 document.getElementById('btn-import-again')?.addEventListener('click', pickAndImport);
+document.querySelectorAll('[data-sample]').forEach(btn =>
+  btn.addEventListener('click', () => loadSampleData(btn.dataset.sample)));
 
 document.getElementById('btn-export-json')?.addEventListener('click', () => {
   if (!inventory.length) return;

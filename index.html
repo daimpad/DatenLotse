@@ -177,7 +177,10 @@
       <span class="module-phase">Phase 2 · Asset Management</span>
       <h2 class="module-title">Dateninventar</h2>
       <p class="module-desc">Importiere die DatenGraf-CSV und reichere jeden Datensatz um DCAT-AP.de-Metadaten an (Publisher, Lizenz, Aktualisierungszyklus). Export als DCAT-konformes JSON/CSV für GovData &amp; CKAN.</p>
-      <button class="btn btn-primary" id="btn-import-graf"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
+      <div class="module-actions">
+        <button class="btn btn-primary" id="btn-import-graf"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
+        <button class="btn btn-secondary btn-sm" data-sample="data/sample-kommune.csv"><i class="fas fa-flask"></i> Beispiel laden</button>
+      </div>
     </article>
 
     <!-- Modul 3 – Clearing & Pseudonymisierung -->
@@ -238,8 +241,11 @@
 
     <div class="gov-empty hidden" id="gov-empty">
       <i class="fas fa-boxes-stacked"></i>
-      <p>Für die RACI-Matrix werden die Datendomänen aus dem Inventar abgeleitet. Bitte zuerst eine DatenGraf-CSV importieren.</p>
-      <button class="btn btn-primary" id="gov-import-btn"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
+      <p>Für die RACI-Matrix werden die Datendomänen aus dem Inventar abgeleitet. Bitte zuerst eine DatenGraf-CSV importieren – oder lade den Beispieldatensatz, um die Matrix sofort zu sehen.</p>
+      <div class="gov-empty-actions">
+        <button class="btn btn-primary" id="gov-import-btn"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
+        <button class="btn btn-secondary" data-sample="data/sample-kommune.csv"><i class="fas fa-flask"></i> Beispiel laden</button>
+      </div>
     </div>
 
     <div id="gov-content">
@@ -330,7 +336,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v9</span>
+    <span class="footer-version">v10</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -394,6 +400,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=9"></script>
+  <script src="js/app.js?v=10"></script>
 </body>
 </html>
