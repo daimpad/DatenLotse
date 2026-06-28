@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v5` (Script-Tag: `<script src="js/app.js?v=5">`)
+- **Aktuelle Version:** `v6` (Script-Tag: `<script src="js/app.js?v=6">`)
 
 ---
 
@@ -162,6 +162,8 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | Clearing-Ampel | `runClearing()` *(geplant, Modul 3a)* | — |
 | Pseudonymisierung | `pseudonymize(text)` *(geplant, Modul 3b)* | — |
 | Governance/RACI | `buildRaci()` *(geplant, Modul 1)* | — |
+| Seitenleiste (Off-Canvas) | `openSidebar()`, `closeSidebar()` | `#app-sidebar`, `#sidebar-toggle-btn`, `#sidebar-overlay` |
+| FAQ-/CTA-Modal | `showModal(id, show)` (+ Backdrop-Klick, Escape) | `#faq-btn`, `#faq-backdrop`, `#cta-btn`, `#cta-backdrop` |
 
 ---
 
@@ -185,4 +187,5 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | — | **Modul-2-MVP** (Direkt-Commit auf `main`, zwischen v2 und v3): `renderInventory()` mit editierbaren Karten, Live-Vollständigkeits-% (Ampel) und Dropdowns für Zyklus/Lizenz/Zugriffsrechte; DCAT-AP.de-Export `buildDcatJSON()` + flacher CSV-Export `buildInventoryCSV()` via `downloadBlob()`; Import mit Schema-Validierung auf Spalte „Quelle". |
 | v3 | Marken-Assets: neues `logo.svg` (DatenLotse-Mark, lila/gold) + aktualisiertes Favicon-Set; Logo auf der Seite platziert wie bei DatenGraf – `.topbar-logo` (36px neben dem Brand-Text) und `.hero-logo` (rund, mit Border + Schatten, zentriert über der Headline; mobil 110px) |
 | v4 | Doku-Sync: CLAUDE.md & README an den real gebauten Modul-2-MVP angeglichen (Feature-Tabelle, Dataset-Shape, kontrollierte Vokabulare, Vollständigkeits-Ampel, Chronologie) |
-| v5 | Footer identisch zu DatenGraf: `.footer-links`-Nav (Impressum · Datenschutz · Kontakt · GitHub-Icon) mit `space-between`-Layout, rechtsbündige `.footer-version` (subtil) statt einfachem `<span>`; Markup & CSS gespiegelt, Text/Links auf DatenLotse angepasst |
+| v5 | Footer identisch zu DatenGraf: `.footer-links`-Nav (Impressum · Datenschutz · Kontakt · GitHub-Icon), rechtsbündige `.footer-version` (subtil) statt einfachem `<span>`; Markup & CSS gespiegelt, Text/Links auf DatenLotse angepasst |
+| v6 | Homepage-Ausbau im DatenGraf-Stil: Topbar mit Hamburger (Off-Canvas-Seitenleiste, Scaffold), lila CTA „Loslegen" (Platzhalter-Modal) und FAQ-„?"-Button (FAQ-Modal); Subtitle aus der Marke entfernt, Logo größer (Topbar 44px, Hero 172px), Hero-Headline + Modul-Titel lila & größer; Akkordeon „Mehr über den DatenLotsen erfahren" mit fancy Feature-Grid vor den Modul-Karten; Modul-Karten mit Hover (Schatten + leichte Vergrößerung); Phase-4&5-Block (Beratungs-CTA) mit lila Hintergrund; Footer-Links rechtsbündig |

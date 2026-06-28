@@ -69,28 +69,92 @@
 </head>
 <body>
 
+  <!-- ── Seitenleiste (Off-Canvas-Scaffold) ────────────────────── -->
+  <aside class="app-sidebar collapsed" id="app-sidebar" aria-label="Seitenleiste">
+    <div class="app-sidebar-header">
+      <span class="app-sidebar-title"><i class="fas fa-compass"></i> DatenLotse</span>
+      <button class="icon-close" id="sidebar-close-btn" aria-label="Seitenleiste schließen"><i class="fas fa-xmark"></i></button>
+    </div>
+    <nav class="app-sidebar-nav">
+      <a href="#module-grid"><i class="fas fa-fw fa-layer-group"></i> Module &amp; Phasen</a>
+      <a href="#modul-inventar"><i class="fas fa-fw fa-boxes-stacked"></i> Dateninventar</a>
+      <a href="#about-accordion"><i class="fas fa-fw fa-circle-info"></i> Über DatenLotse</a>
+      <a href="https://datengraf.nozilla.net/" target="_blank" rel="noopener"><i class="fas fa-fw fa-circle-nodes"></i> Zu DatenGraf</a>
+    </nav>
+    <div class="app-sidebar-foot">Weitere Werkzeuge folgen mit den nächsten Phasen.</div>
+  </aside>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
   <!-- ── Topbar ────────────────────────────────────────────────── -->
   <header class="topbar">
+    <button class="btn btn-secondary btn-icon" id="sidebar-toggle-btn" aria-label="Menü öffnen" title="Menü"><i class="fas fa-bars"></i></button>
     <div class="topbar-brand">
-      <img src="logo.svg" alt="" class="topbar-logo" aria-hidden="true">
+      <img src="logo.svg" alt="DatenLotse" class="topbar-logo">
       <span class="topbar-brand-text">DatenLotse</span>
-      <span class="topbar-tag">Open-Data-Operationalisierung</span>
     </div>
     <div class="topbar-spacer"></div>
-    <a class="btn btn-secondary" href="https://datengraf.nozilla.net/" target="_blank" rel="noopener">
+    <button class="btn btn-primary btn-sm" id="cta-btn"><i class="fas fa-rocket"></i> Loslegen</button>
+    <a class="btn btn-secondary btn-sm topbar-graf-link" href="https://datengraf.nozilla.net/" target="_blank" rel="noopener">
       <i class="fas fa-circle-nodes"></i> Zu DatenGraf
     </a>
+    <button class="btn btn-secondary btn-icon" id="faq-btn" title="Häufige Fragen" aria-label="Häufige Fragen"><i class="fas fa-question"></i></button>
   </header>
 
   <!-- ── Hero ──────────────────────────────────────────────────── -->
   <section class="hero" id="hero">
     <img src="logo.svg" alt="DatenLotse" class="hero-logo">
     <h1 class="hero-headline">Von der Datenökosystem-Map zur Umsetzung</h1>
-    <p class="hero-sub">DatenGraf zeigt, <em>wie</em> deine Datenflüsse aussehen. DatenLotse zeigt, <em>was du jetzt tust</em>: Dateninventar aufbauen, Risiken klären, datenschutzkonform standardisieren und als Open Data bereitstellen — lokal im Browser, ohne Server.</p>
     <p class="hero-from-graf">
       <i class="fas fa-file-csv"></i>
       Schon kartiert? <a href="#modul-inventar">DatenGraf-CSV importieren</a> und direkt mit dem Inventar starten.
     </p>
+  </section>
+
+  <!-- ── Akkordeon: Über den DatenLotsen ───────────────────────── -->
+  <section class="about-accordion" id="about-accordion">
+    <details class="about-details">
+      <summary class="about-summary">
+        <span><i class="fas fa-compass"></i> Mehr über den DatenLotsen erfahren</span>
+        <i class="fas fa-chevron-down about-caret"></i>
+      </summary>
+      <div class="about-content">
+        <p class="about-text">DatenGraf zeigt, <em>wie</em> deine Datenflüsse aussehen. DatenLotse zeigt, <em>was du jetzt tust</em>: Dateninventar aufbauen, Risiken klären, datenschutzkonform standardisieren und als Open Data bereitstellen — lokal im Browser, ohne Server.</p>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-ic"><i class="fas fa-file-import"></i></div>
+            <h3>DatenGraf-Brücke</h3>
+            <p>Importiere exakt das CSV, das DatenGraf exportiert — ohne Konvertierung direkt zur Umsetzungsgrundlage.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-ic"><i class="fas fa-boxes-stacked"></i></div>
+            <h3>Dateninventar (DCAT-AP.de)</h3>
+            <p>Jeder Datenfluss wird zum editierbaren Dataset mit Live-Vollständigkeit in Ampelfarben.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-ic"><i class="fas fa-file-export"></i></div>
+            <h3>DCAT-Export</h3>
+            <p>JSON-LD (<code>dcat:Catalog</code>) und flache CSV — harvestbar durch GovData &amp; CKAN.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-ic"><i class="fas fa-traffic-light"></i></div>
+            <h3>Clearing-Ampel</h3>
+            <p>Transparenter Rot/Gelb/Grün-Entscheidungsbaum je Datensatz.</p>
+            <span class="feature-soon">geplant</span>
+          </article>
+          <article class="feature-card">
+            <div class="feature-ic"><i class="fas fa-user-shield"></i></div>
+            <h3>Pseudonymisierung</h3>
+            <p>Deutsche Verwaltungstexte strukturerhaltend bereinigen — nichts verlässt den Browser.</p>
+            <span class="feature-soon">geplant</span>
+          </article>
+          <article class="feature-card">
+            <div class="feature-ic"><i class="fas fa-lock"></i></div>
+            <h3>Local-First</h3>
+            <p>Kein Server, kein Account, kein Datentransfer. Alles läuft lokal im Browser.</p>
+          </article>
+        </div>
+      </div>
+    </details>
   </section>
 
   <!-- ── Modul-Grid ────────────────────────────────────────────── -->
@@ -167,9 +231,70 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v5</span>
+    <span class="footer-version">v6</span>
   </footer>
 
-  <script src="js/app.js?v=5"></script>
+  <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
+  <div class="modal-backdrop hidden" id="faq-backdrop">
+    <div class="faq-modal" role="dialog" aria-modal="true" aria-labelledby="faq-title">
+      <div class="faq-modal-header">
+        <h2 id="faq-title"><i class="fas fa-circle-question"></i> Häufige Fragen</h2>
+        <button class="icon-close" id="faq-close-btn" aria-label="Schließen"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="faq-modal-body">
+        <details class="faq-item">
+          <summary class="faq-q">Was ist DatenLotse – und wie hängt es mit DatenGraf zusammen?</summary>
+          <div class="faq-a">
+            <p>DatenGraf beantwortet „<strong>Wie</strong> sehen meine Datenflüsse aus?", DatenLotse beantwortet „<strong>Was tue ich jetzt konkret?</strong>". Du exportierst in DatenGraf eine CSV und importierst sie hier — daraus entsteht ein Dateninventar nach DCAT-AP.de.</p>
+          </div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">Verlassen meine Daten den Browser?</summary>
+          <div class="faq-a">
+            <p>Nein. DatenLotse läuft <strong>vollständig client-seitig</strong> — kein Server, kein Account, kein Datentransfer. Importierte CSVs und eingegebene Werte bleiben ausschließlich in deinem Browser.</p>
+          </div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">Welche CSV kann ich importieren?</summary>
+          <div class="faq-a">
+            <p>Exakt das Format, das DatenGraf exportiert (Spalten <em>Quelle, Ziel, Datentyp, Häufigkeit, Schutzbedarf …</em>). Jede eindeutige Kombination aus <em>Quelle</em> und <em>Datentyp</em> wird ein Dataset-Kandidat.</p>
+          </div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">Was ist DCAT-AP.de und wofür der Export?</summary>
+          <div class="faq-a">
+            <p>DCAT-AP.de ist das deutsche Metadaten-Profil für offene Daten. Der Export erzeugt DCAT-konformes JSON-LD und eine CSV-Liste, die durch <strong>GovData</strong> und CKAN-Portale geharvestet werden können.</p>
+          </div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">Was bedeutet die Vollständigkeits-Ampel im Inventar?</summary>
+          <div class="faq-a">
+            <p>Die Prozentanzeige zeigt, wie viele DCAT-AP.de-Pflichtfelder eines Datensatzes gefüllt sind: ab 80 % grün, ab 50 % gelb, darunter rot. Sie aktualisiert sich live beim Ausfüllen.</p>
+          </div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">Was kommt als Nächstes?</summary>
+          <div class="faq-a">
+            <p>Geplant sind die Clearing-Ampel (Risikobewertung je Datensatz), die client-seitige Pseudonymisierung deutscher Verwaltungstexte sowie ein Governance-/RACI-Modul.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CTA-Modal (Platzhalter) ───────────────────────────────── -->
+  <div class="modal-backdrop hidden" id="cta-backdrop">
+    <div class="faq-modal" role="dialog" aria-modal="true" aria-labelledby="cta-title">
+      <div class="faq-modal-header">
+        <h2 id="cta-title"><i class="fas fa-rocket"></i> Loslegen</h2>
+        <button class="icon-close" id="cta-close-btn" aria-label="Schließen"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="faq-modal-body">
+        <p class="cta-modal-empty">Hier entsteht der geführte Einstieg in DatenLotse.<br>(Platzhalter — Inhalt folgt.)</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js?v=6"></script>
 </body>
 </html>
