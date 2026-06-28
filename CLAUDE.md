@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v15` (Script-Tag: `<script src="js/app.js?v=15">`)
+- **Aktuelle Version:** `v16` (Script-Tag: `<script src="js/app.js?v=16">`)
 
 ---
 
@@ -53,7 +53,7 @@ Spätere Module hängen sich an `inventory` an: Modul 3a (Clearing) bewertet die
 
 ### View-Umschaltung
 
-Vier Views: `home` (Hero + Akkordeon + Modul-Grid), `inventory` (Inventar/Clearing-Tabs), `governance` (RACI + Reifegrad) und `pseudo` (Textbereinigung). Zentral über `showView(name)` umgeschaltet (blendet die Home-Elemente per `style.display` aus, toggelt `.hidden` an `#inventory-view`/`#governance-view`/`#pseudo-view`, scrollt nach oben). `navTo(target)` kapselt die Navigations-Einstiege (Topbar-Brand → home, Sidebar-Links `data-view`, Modul-Buttons; „Dateninventar" öffnet die Inventar-View nur, wenn bereits importiert wurde, `governance`/`pseudo` jederzeit).
+Fünf Views: `home` (Hero + Akkordeon + Modul-Grid), `kompass` (Daten-Kompass), `inventory` (Inventar/Clearing-Tabs), `governance` (RACI + Reifegrad) und `pseudo` (Textbereinigung). Zentral über `showView(name)` umgeschaltet (blendet die Home-Elemente per `style.display` aus, toggelt `.hidden` an `#kompass-view`/`#inventory-view`/`#governance-view`/`#pseudo-view`, scrollt nach oben). `navTo(target)` kapselt die Navigations-Einstiege (Topbar-Brand → home, Hero-CTA + Topbar-„Loslegen" → kompass, Sidebar-Links `data-view`, Modul-Buttons; „Dateninventar" öffnet ohne Daten das Erklär-Modal, `kompass`/`governance`/`pseudo` jederzeit).
 
 ### Globaler State
 
@@ -72,6 +72,7 @@ Präfix `datenlotse_` (analog DatenGrafs `datengraf_`). Immer try/catch um JSON-
 |---|---|
 | `datenlotse_inventory` | Inventar inkl. Clearing-Antworten/-Ergebnis (`d._clearing`, `d.clearing`) als JSON |
 | `datenlotse_governance` | Governance-Fragebogen-Antworten (`governanceAnswers`) als JSON |
+| `datenlotse_kompass` | Daten-Kompass-Status je Checklisten-Item (`kompassState`, `"dim.item" → status`) als JSON |
 
 ---
 
@@ -139,6 +140,16 @@ Eigene View `#governance-view`. **Datendomänen** werden aus dem Inventar abgele
 - **RACI-Matrix:** festes, transparentes Template (`raciFor()`) – Owner = **A**, Steward = **R**, Fachbereich/IT = **C**, DSB = **C** bei DSGVO-Domänen sonst **I**. `roleGap()` markiert Rollen, deren zuständige Fragebogen-Frage nicht mit „Ja" beantwortet wurde (Owner/Steward/DSB).
 - **Export:** `buildRaciCSV()` (Domänen × Rollen + Reifegrad-Zeile) und `printGovReport()` (eigenständiges HTML im Druckfenster → PDF, inline-styled).
 
+### Daten-Kompass
+
+Eigene View `#kompass-view` und **Haupt-CTA** (Hero-Button + Topbar-„Loslegen"). Eine ausführliche Open-Data-Reifegrad-Checkliste nach anerkannten Modellen: **World-Bank ODRA**, **EU Open Data Maturity**, **5-Sterne-Open-Data** (Berners-Lee), **DCAT-AP.de** und **DSGVO/FAIR** (Quellen im UI unter „Methodik & Quellen").
+
+- **Struktur:** `KOMPASS_DIMENSIONS` (7 Dimensionen × je 3–4 Items). Status je Item: `offen` / `teilweise` / `erfuellt` / `na`.
+- **Score:** `kompassDimScore()` und `kompassOverall()` = Ø der Faktoren (erfüllt 1, teilweise 0,5, offen 0; `na` ausgenommen), 0–100. Ampel `kompassAmpel()`: ≥ 80 „Fortgeschritten", ≥ 50 „Im Aufbau", sonst „Am Anfang".
+- **Vorbelegung:** `kompassDerived()` leitet einige Items aus dem App-Stand ab (Inventar vorhanden, Ø-Vollständigkeit, Clearing gesetzt, Governance beantwortet). Nutzer-Entscheidungen (`kompassState`) haben Vorrang und werden persistiert (`datenlotse_kompass`).
+- **Adaptive Empfehlungen:** unvollständige Dimensionen mit `action` zeigen einen Sprung in den passenden Baustein (`kompassAction()` → `navTo`/`openPhase3Wizard`/Phase-4&5-Modal).
+- **Export:** `printKompass()`/`buildKompassReportHTML()` (Druckfenster → PDF).
+
 ---
 
 ## Wichtige Konventionen
@@ -194,9 +205,10 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | Pseudonymisierung (Modul 3b) | `pseudonymize(text)`, `collectSpans`, `selectSpans`, `runPseudonymize()`, `showView(name)`, `navTo(target)` | `#pseudo-view`, `#pseudo-input`, `#pseudo-output`, `#pseudo-mapping` |
 | Phase-3-Wizard (Modal-Stepper) | `openPhase3Wizard()`, `renderPhase3()`, `openClearing()` | `#open-phase3-btn`, `#phase3-backdrop`, `#p3-body`, `[data-check]` |
 | Governance/RACI (Modul 1) | `deriveDomains()`, `raciFor(d)`, `reifegrad()`, `renderGovernance()`, `buildRaciCSV()`, `printGovReport()` | `#governance-view`, `#gov-questions`, `#gov-matrix`, `#gov-score-badge`, `#open-gov-btn` |
+| Daten-Kompass | `renderKompass()`, `kompassStatus()`, `kompassDerived()`, `kompassOverall()`, `kompassAction()`, `buildKompassReportHTML()` | `#kompass-view`, `#kompass-score`, `#kompass-dims`, `#hero-kompass-btn`, `#cta-btn` |
 | Persistenz | `saveState()`, `loadState()`, `clearState()` | `datenlotse_*`, `#reset-data-btn` |
 | Seitenleiste (Off-Canvas) | `openSidebar()`, `closeSidebar()` | `#app-sidebar`, `#sidebar-toggle-btn`, `#sidebar-overlay` |
-| Modals (FAQ/CTA/Inventar/Phase-3/Phase-4&5) | `showModal(id, show)`, `openInventoryModal()`, `openPhase3Wizard()` (+ Backdrop-Klick, Escape, Fokus-Management; `MODALS`-Liste) | `#faq-backdrop`, `#cta-backdrop`, `#inventory-backdrop`, `#phase3-backdrop`, `#phase45-backdrop` |
+| Modals (FAQ/Inventar/Phase-3/Phase-4&5) | `showModal(id, show)`, `openInventoryModal()`, `openPhase3Wizard()` (+ Backdrop-Klick, Escape, Fokus-Management; `MODALS`-Liste) | `#faq-backdrop`, `#inventory-backdrop`, `#phase3-backdrop`, `#phase45-backdrop` |
 
 ---
 
@@ -231,3 +243,4 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v13 | Onboarding (1/n) – Dateninventar-Erklär-Modal (`#inventory-backdrop`): Klick auf „Dateninventar starten" (Karte) bzw. Sidebar „Dateninventar" ohne Daten öffnet erst einen Erklär-Dialog (was/warum DCAT-AP.de, 5-Schritt-Ablauf, Local-First), der am Ende „Beispiel laden" + „DatenGraf-CSV importieren" anbietet |
 | v14 | Onboarding (2/n) – Phase-3-Prozess-Wizard (`#phase3-backdrop`, 4-stufiger Modal-Stepper): Modul-3-Karte „Phase 3 starten" erklärt erst den Clearing→Pseudonymisierung-Prozess (Worum geht es / Ablauf / Bereitschafts-Check mit Checkboxen / Nächste Schritte) und schlägt am Ende die Tools vor – „Risiko-Clearing öffnen" und (bei personenbezogenen Freitexten hervorgehoben) „Textbereinigung öffnen"; Tools bleiben über Sidebar direkt erreichbar |
 | v15 | Onboarding (3/n) – Phase-4/5-Erklär-Modal (`#phase45-backdrop`): Button „Was bedeuten Phase 4 & 5?" vor „Umsetzung besprechen" im Beratungs-Block öffnet einen Erklär-Dialog zu Pipeline (ETL/Container/CKAN) und zirkulärem Ökosystem (Feedback/Qualität) inkl. Begründung, warum Phase 4 & 5 Beratung statt generischer Software erfordern |
+| v16 | Daten-Kompass (Herzstück) – eigene View + Hero-Haupt-CTA (Topbar-„Loslegen" zeigt ebenfalls darauf): ausführliche Open-Data-Reifegrad-Checkliste nach ODRA / EU Open Data Maturity / 5-Sterne / DCAT-AP.de / DSGVO·FAIR (7 Dimensionen, Quellenangaben), Status je Item mit Score & Ampel, Vorbelegung aus dem App-Stand, adaptive Sprünge in die passenden Bausteine, Persistenz (`datenlotse_kompass`) und PDF-Export; leeres „Loslegen"-Platzhalter-Modal entfernt |

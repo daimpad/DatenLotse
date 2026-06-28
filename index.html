@@ -80,6 +80,7 @@
     </div>
     <nav class="app-sidebar-nav">
       <a href="#" data-view="home"><i class="fas fa-fw fa-house"></i> Start</a>
+      <a href="#" data-view="kompass"><i class="fas fa-fw fa-compass"></i> Daten-Kompass</a>
       <a href="#" data-view="inventory"><i class="fas fa-fw fa-boxes-stacked"></i> Dateninventar</a>
       <a href="#" data-view="governance"><i class="fas fa-fw fa-users-gear"></i> Governance &amp; RACI</a>
       <a href="#" data-view="pseudo"><i class="fas fa-fw fa-user-shield"></i> Textbereinigung</a>
@@ -114,6 +115,8 @@
   <section class="hero" id="hero">
     <img src="logo.svg" alt="DatenLotse" class="hero-logo">
     <h1 class="hero-headline">Von der Datenökosystem-Map zur Umsetzung</h1>
+    <p class="hero-sub">Der <strong>Daten-Kompass</strong> zeigt dir entlang anerkannter Open-Data-Reifegradmodelle, wo deine Organisation im Öffnungsprozess steht – und welche Bausteine als Nächstes dran sind.</p>
+    <button class="btn btn-primary hero-cta" id="hero-kompass-btn"><i class="fas fa-compass"></i> Daten-Kompass starten</button>
     <p class="hero-from-graf">
       <i class="fas fa-file-csv"></i>
       Schon kartiert? <a href="#modul-inventar">DatenGraf-CSV importieren</a> und direkt mit dem Inventar starten.
@@ -320,6 +323,35 @@
     </div>
   </section>
 
+  <!-- ── Daten-Kompass (Open-Data-Reifegrad-Checkliste) ────────── -->
+  <section class="kompass-view hidden" id="kompass-view">
+    <div class="inventory-header">
+      <div>
+        <h2 class="inventory-title"><i class="fas fa-compass"></i> Daten-Kompass</h2>
+        <span class="inventory-meta">Wo steht deine Organisation im Open-Data-Öffnungsprozess? Hake ab, was zutrifft – der Kompass empfiehlt die nächsten Schritte.</span>
+      </div>
+      <div class="inventory-actions">
+        <button class="btn btn-secondary" id="kompass-print"><i class="fas fa-print"></i> PDF / Drucken</button>
+      </div>
+    </div>
+
+    <p class="inventory-hint">Die Checkliste folgt anerkannten Reifegradmodellen für offene Daten (World-Bank&nbsp;ODRA, EU&nbsp;Open&nbsp;Data&nbsp;Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR). Status je Punkt: <em>Offen · Teilweise · Erfüllt · Nicht relevant</em>. Manche Punkte sind aus deinem aktuellen Stand vorbelegt. Alles bleibt lokal im Browser.</p>
+
+    <div class="kompass-score" id="kompass-score"></div>
+    <div class="kompass-dims" id="kompass-dims"></div>
+
+    <details class="kompass-sources">
+      <summary><i class="fas fa-book"></i> Methodik &amp; Quellen</summary>
+      <ul>
+        <li><strong>Open Data Readiness Assessment (ODRA)</strong> – World Bank: organisatorische, rechtliche und infrastrukturelle Bereitschaft.</li>
+        <li><strong>Open Data Maturity Report</strong> – data.europa.eu (EU): Dimensionen Policy, Portal, Impact, Quality.</li>
+        <li><strong>5-Sterne-Open-Data</strong> – Tim Berners-Lee: technische Offenheit von ★ (offen lizenziert) bis ★★★★★ (Linked Open Data).</li>
+        <li><strong>DCAT-AP.de</strong> – deutsches Metadaten-Anwendungsprofil für GovData/CKAN-Harvesting.</li>
+        <li><strong>DSGVO</strong> &amp; <strong>FAIR-Prinzipien</strong> (Findable, Accessible, Interoperable, Reusable) – rechtliche und Nachnutzbarkeits-Anforderungen.</li>
+      </ul>
+    </details>
+  </section>
+
   <!-- ── Beratungs-CTA (Phase 4–5) ─────────────────────────────── -->
   <section class="consult-cta">
     <div class="consult-cta-inner">
@@ -350,7 +382,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v15</span>
+    <span class="footer-version">v16</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -397,19 +429,6 @@
             <p>Geplant sind die Clearing-Ampel (Risikobewertung je Datensatz), die client-seitige Pseudonymisierung deutscher Verwaltungstexte sowie ein Governance-/RACI-Modul.</p>
           </div>
         </details>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── CTA-Modal (Platzhalter) ───────────────────────────────── -->
-  <div class="modal-backdrop hidden" id="cta-backdrop">
-    <div class="faq-modal" role="dialog" aria-modal="true" aria-labelledby="cta-title">
-      <div class="faq-modal-header">
-        <h2 id="cta-title"><i class="fas fa-rocket"></i> Loslegen</h2>
-        <button class="icon-close" id="cta-close-btn" aria-label="Schließen"><i class="fas fa-xmark"></i></button>
-      </div>
-      <div class="faq-modal-body">
-        <p class="cta-modal-empty">Hier entsteht der geführte Einstieg in DatenLotse.<br>(Platzhalter — Inhalt folgt.)</p>
       </div>
     </div>
   </div>
@@ -505,6 +524,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=15"></script>
+  <script src="js/app.js?v=16"></script>
 </body>
 </html>

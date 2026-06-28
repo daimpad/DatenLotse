@@ -24,6 +24,7 @@
 
 | | Feature | Beschreibung |
 |---|---|---|
+| 🧭 | **Daten-Kompass** | Ausführliche Open-Data-Reifegrad-Checkliste (ODRA, EU Open Data Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR) über 7 Dimensionen mit Score, Vorbelegung aus dem Stand und adaptiven Empfehlungen der nächsten Bausteine – der Haupteinstieg |
 | 🔗 | **DatenGraf-CSV-Import** | Liest exakt das CSV-Schema, das DatenGraf exportiert – die Datenkartierung wird ohne Umweg zur Umsetzungsgrundlage |
 | 📦 | **Dateninventar (DCAT-AP.de)** | Aus jedem Datenfluss wird ein Dataset-Kandidat abgeleitet und in editierbaren Karten dargestellt; Publisher/Ansprechpartner als Freitext, Aktualisierungszyklus/Lizenz/Zugriffsrechte als Dropdowns – mit Live-Vollständigkeits-% in Ampelfarben |
 | 📤 | **DCAT-Export (JSON + CSV)** | DCAT-AP.de-konformes JSON-LD (`dcat:Catalog`/`dcat:Dataset` mit `@context`) zum Harvesting durch GovData/CKAN sowie eine flache CSV-Liste |
