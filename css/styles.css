@@ -150,6 +150,88 @@ a { color: var(--c-accent); }
   border-radius: 20px;
 }
 
+/* ── Inventar-View (Modul 2) ─────────────────────────────────── */
+.inventory-view { max-width: 1040px; margin: 28px auto 0; padding: 0 24px 48px; }
+.inventory-view.hidden { display: none; }
+.inventory-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.inventory-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.inventory-meta { font-size: 13px; color: var(--c-muted); }
+.inventory-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.inventory-hint {
+  font-size: 13px;
+  color: var(--c-muted);
+  line-height: 1.6;
+  margin: 8px 0 18px;
+  max-width: 720px;
+}
+.inventory-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+.inv-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.inv-card-head { display: flex; align-items: center; gap: 10px; }
+.inv-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--c-text);
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  padding: 2px 0;
+  font-family: inherit;
+}
+.inv-title:focus { outline: none; border-bottom-color: var(--c-accent); }
+.inv-complete { font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.inv-meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.inv-src { font-size: 12px; color: var(--c-muted); }
+.inv-fmt {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-accent);
+  background: rgba(66,0,147,0.07);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.inv-fields { display: flex; flex-direction: column; gap: 8px; }
+.inv-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-muted);
+}
+.inv-fields input,
+.inv-fields select {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--c-text);
+  padding: 7px 9px;
+  border: 1px solid var(--c-border-s);
+  border-radius: 7px;
+  background: #fff;
+}
+.inv-fields input:focus,
+.inv-fields select:focus { outline: none; border-color: var(--c-accent); }
+
 /* ── Beratungs-CTA (Phase 4–5) ───────────────────────────────── */
 .consult-cta {
   max-width: 980px;

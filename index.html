@@ -82,7 +82,7 @@
   </header>
 
   <!-- ── Hero ──────────────────────────────────────────────────── -->
-  <section class="hero">
+  <section class="hero" id="hero">
     <h1 class="hero-headline">Von der Datenökosystem-Map zur Umsetzung</h1>
     <p class="hero-sub">DatenGraf zeigt, <em>wie</em> deine Datenflüsse aussehen. DatenLotse zeigt, <em>was du jetzt tust</em>: Dateninventar aufbauen, Risiken klären, datenschutzkonform standardisieren und als Open Data bereitstellen — lokal im Browser, ohne Server.</p>
     <p class="hero-from-graf">
@@ -92,7 +92,7 @@
   </section>
 
   <!-- ── Modul-Grid ────────────────────────────────────────────── -->
-  <section class="module-grid">
+  <section class="module-grid" id="module-grid">
 
     <!-- Modul 1 – Governance -->
     <article class="module-card">
@@ -121,6 +121,23 @@
       <span class="module-badge-soon">Geplant</span>
     </article>
 
+  </section>
+
+  <!-- ── Inventar-View (Modul 2, erscheint nach Import) ────────── -->
+  <section class="inventory-view hidden" id="inventory-view">
+    <div class="inventory-header">
+      <div>
+        <h2 class="inventory-title"><i class="fas fa-boxes-stacked"></i> Dateninventar</h2>
+        <span class="inventory-meta" id="inventory-meta"></span>
+      </div>
+      <div class="inventory-actions">
+        <button class="btn btn-secondary" id="btn-import-again"><i class="fas fa-rotate"></i> Andere CSV</button>
+        <button class="btn btn-secondary" id="btn-export-csv"><i class="fas fa-file-csv"></i> CSV</button>
+        <button class="btn btn-primary" id="btn-export-json"><i class="fas fa-file-export"></i> DCAT-AP.de JSON</button>
+      </div>
+    </div>
+    <p class="inventory-hint">Ergänze die offenen Pflichtfelder (Lizenz, Aktualisierungszyklus, Zugriffsrechte). Die Prozentanzeige zeigt die DCAT-AP.de-Vollständigkeit je Datensatz. Alles bleibt lokal im Browser.</p>
+    <div class="inventory-body" id="inventory-body"></div>
   </section>
 
   <!-- ── Beratungs-CTA (Phase 4–5) ─────────────────────────────── -->
