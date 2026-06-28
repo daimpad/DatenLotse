@@ -17,6 +17,24 @@ body {
 
 a { color: var(--c-accent); }
 
+/* ── A11y: Skip-Link ─────────────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 600;
+  background: var(--c-accent);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+.skip-link:focus { top: 8px; outline: 2px solid #fff; }
+:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+
 /* ── Topbar ──────────────────────────────────────────────────── */
 .topbar {
   display: flex;
@@ -891,4 +909,15 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
   .governance-view { padding: 0 16px 48px; }
   .gov-grid { grid-template-columns: 1fr; }
   .gov-score { position: static; }
+}
+
+/* ── A11y: reduzierte Bewegung respektieren ──────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .module-card:hover,
+  .feature-card:hover { transform: none; }
 }

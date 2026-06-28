@@ -6,6 +6,7 @@
   <title>DatenLotse – Von der Datenökosystem-Map zur Open-Data-Umsetzung</title>
   <meta name="description" content="DatenLotse führt Verwaltungen und Organisationen von der kartierten Datenökosystem-Map zur operativen Umsetzung: Dateninventar nach DCAT-AP.de, Risiko-Clearing und datenschutzkonforme Pseudonymisierung – lokal im Browser.">
   <meta name="author" content="nozilla">
+  <meta name="robots" content="index, follow">
 
   <link rel="canonical" href="https://datenlotse.nozilla.net/">
 
@@ -69,6 +70,8 @@
 </head>
 <body>
 
+  <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
+
   <!-- ── Seitenleiste (Off-Canvas-Scaffold) ────────────────────── -->
   <aside class="app-sidebar collapsed" id="app-sidebar" aria-label="Seitenleiste">
     <div class="app-sidebar-header">
@@ -104,6 +107,8 @@
     </a>
     <button class="btn btn-secondary btn-icon" id="faq-btn" title="Häufige Fragen" aria-label="Häufige Fragen"><i class="fas fa-question"></i></button>
   </header>
+
+  <main id="main-content">
 
   <!-- ── Hero ──────────────────────────────────────────────────── -->
   <section class="hero" id="hero">
@@ -206,6 +211,7 @@
       </div>
       <div class="inventory-actions">
         <button class="btn btn-secondary" id="btn-import-again"><i class="fas fa-rotate"></i> Andere CSV</button>
+        <button class="btn btn-secondary" id="btn-print-inventory"><i class="fas fa-print"></i> PDF</button>
         <button class="btn btn-secondary" id="btn-export-csv"><i class="fas fa-file-csv"></i> CSV</button>
         <button class="btn btn-primary" id="btn-export-json"><i class="fas fa-file-export"></i> DCAT-AP.de JSON</button>
       </div>
@@ -327,6 +333,8 @@
     </div>
   </section>
 
+  </main>
+
   <!-- ── Footer ────────────────────────────────────────────────── -->
   <footer class="site-footer">
     <a class="footer-brand" href="https://nozilla.de/" target="_blank" rel="noopener">nozilla | bits &amp; bytes mit ❤</a>
@@ -339,7 +347,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v11</span>
+    <span class="footer-version">v12</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -403,6 +411,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=11"></script>
+  <script src="js/app.js?v=12"></script>
 </body>
 </html>

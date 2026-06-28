@@ -293,7 +293,7 @@ function renderInventory() {
     return `
     <div class="inv-card" data-idx="${i}">
       <div class="inv-card-head">
-        <input class="inv-title" data-field="title" value="${esc(d.title)}" placeholder="Titel des Datensatzes">
+        <input class="inv-title" data-field="title" aria-label="Titel des Datensatzes" value="${esc(d.title)}" placeholder="Titel des Datensatzes">
         <span class="inv-complete" style="color:${pctColor}">${pct}%</span>
       </div>
       <div class="inv-meta-row">
@@ -489,6 +489,65 @@ function downloadBlob(content, filename, type) {
   URL.revokeObjectURL(url);
 }
 
+/* ── Export: PDF-Bericht Inventar + Clearing (Druckfenster) ───── */
+function buildInventoryReportHTML() {
+  ensureAllClearing();
+  const avg = inventory.length ? Math.round(inventory.reduce((s, d) => s + completeness(d), 0) / inventory.length) : 0;
+  const c = { gruen: 0, gelb: 0, rot: 0 };
+  inventory.forEach(d => { if (d.clearing) c[d.clearing.ampel]++; });
+  const accessLabel = { PUBLIC: 'Öffentlich', RESTRICTED: 'Eingeschränkt', NON_PUBLIC: 'Nicht öffentlich' };
+  const ampLabel = { gruen: 'Grün', gelb: 'Gelb', rot: 'Rot' };
+  const ampColor = { gruen: '#2e9e60', gelb: '#d4820a', rot: '#c0392b' };
+  const rows = inventory.map(d => {
+    const pct = completeness(d);
+    const amp = d.clearing?.ampel;
+    return `<tr>
+      <td>${esc(d.title)}</td>
+      <td>${esc(d.publisher || '—')}</td>
+      <td>${esc(d.sourceSystem || '—')}</td>
+      <td style="text-align:right">${pct}%</td>
+      <td>${esc(d.license || '—')}</td>
+      <td>${esc(accessLabel[d.accessRights] || d.accessRights || '—')}</td>
+      <td style="color:${ampColor[amp] || '#7a7591'};font-weight:700">${ampLabel[amp] || '—'}</td>
+    </tr>`;
+  }).join('');
+  return `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>DatenLotse – Inventar- & Clearing-Bericht</title>
+    <style>
+      body{font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#1e1b2e;margin:32px;font-size:12px}
+      h1{color:#420093;font-size:22px;margin:0 0 4px} h2{color:#420093;font-size:15px;margin:22px 0 8px}
+      .muted{color:#7a7591} .chips span{display:inline-block;padding:5px 11px;border-radius:20px;font-weight:700;margin-right:8px}
+      table{border-collapse:collapse;width:100%;margin-top:6px} th,td{border:1px solid #d9d2e8;padding:6px 9px;text-align:left;vertical-align:top}
+      th{background:#f3eefb;color:#420093;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+      @media print{body{margin:12mm}}
+    </style></head><body>
+    <h1>DatenLotse – Dateninventar &amp; Risiko-Clearing</h1>
+    <p class="muted">DCAT-AP.de-Inventar mit Vollständigkeit und Clearing-Ampel. Lokal erzeugt – keine Datenübertragung.</p>
+    <h2>Überblick</h2>
+    <p>${inventory.length} Datensätze · Ø ${avg} % DCAT-AP.de-vollständig</p>
+    <p class="chips">
+      <span style="color:#2e9e60;background:rgba(46,158,96,.12)">${c.gruen} grün</span>
+      <span style="color:#d4820a;background:rgba(212,130,10,.12)">${c.gelb} gelb</span>
+      <span style="color:#c0392b;background:rgba(192,57,43,.12)">${c.rot} rot</span>
+    </p>
+    <h2>Datensätze</h2>
+    <table><thead><tr><th>Titel</th><th>Publisher</th><th>Quellsystem</th><th>Vollst.</th><th>Lizenz</th><th>Zugriff</th><th>Clearing</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <p class="muted">Clearing-Ampel laut deterministischem Entscheidungsbaum (Modul 3a). Gelb/Rot bedeuten Prüf- bzw. Sperrbedarf vor einer Veröffentlichung.</p>
+    </body></html>`;
+}
+
+function printInventoryReport() {
+  if (!inventory.length) return;
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(buildInventoryReportHTML());
+  w.document.close();
+  const go = () => { w.focus(); w.print(); };
+  if (w.document.readyState === 'complete') go();
+  else w.addEventListener('load', go);
+}
+document.getElementById('btn-print-inventory')?.addEventListener('click', printInventoryReport);
+
 /* ── DatenGraf-Brücke: CSV importieren ────────────────────────── */
 function importGrafCSV(text) {
   const rows = parseCSV(text);
@@ -554,8 +613,18 @@ document.getElementById('sidebar-close-btn')?.addEventListener('click', closeSid
 document.getElementById('sidebar-overlay')?.addEventListener('click', closeSidebar);
 document.querySelectorAll('.app-sidebar-nav a').forEach(a => a.addEventListener('click', closeSidebar));
 
+let modalOpener = null;
 function showModal(id, show) {
-  document.getElementById(id)?.classList.toggle('hidden', !show);
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('hidden', !show);
+  if (show) {
+    modalOpener = document.activeElement;
+    el.querySelector('.icon-close, button, [href], select, input')?.focus();
+  } else {
+    if (modalOpener && typeof modalOpener.focus === 'function') modalOpener.focus();
+    modalOpener = null;
+  }
 }
 document.getElementById('faq-btn')?.addEventListener('click', () => showModal('faq-backdrop', true));
 document.getElementById('faq-close-btn')?.addEventListener('click', () => showModal('faq-backdrop', false));
