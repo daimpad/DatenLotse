@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v3` (Script-Tag: `<script src="js/app.js?v=3">`)
+- **Aktuelle Version:** `v4` (Script-Tag: `<script src="js/app.js?v=4">`)
 
 ---
 
@@ -96,6 +96,19 @@ Das Schema ist die **öffentliche API** zwischen DatenGraf und DatenLotse und 1:
 | `Schutzbedarf` | `dct:accessRights` (PUBLIC/RESTRICTED/NON_PUBLIC) |
 | `Häufigkeit` | `dct:accrualPeriodicity` |
 
+`deriveInventory()` dedupliziert über den Schlüssel `Quelle__Datentyp`; Mehrfach-Ziele werden in `_recipients` (Set) gesammelt. Pro Dataset entsteht ein Objekt mit:
+
+```
+{ id, title, description, publisher, contactPoint, sourceSystem, format,
+  accrualPeriodicity, license, accessRights, _grafSchutzbedarf, _recipients }
+```
+
+`id` wird via `slug()` aus `QuelleOrganisation`-`Datentyp` gebildet. Vorbelegung der kontrollierten Vokabulare: `mapSchutzToAccess()` → `accessRights`, `mapHaeufigkeit()` → `accrualPeriodicity`. `license` bleibt leer (Nacherfassung). UI-Dropdowns kommen aus den Konstanten `FREQ_OPTIONS` / `LICENSE_OPTIONS` / `ACCESS_OPTIONS`.
+
+### Vollständigkeit (Ampel)
+
+`completeness(d)` misst den Anteil gefüllter `REQUIRED_FIELDS` (`title, publisher, contactPoint, accrualPeriodicity, license, accessRights`) als 0–100 %. Schwellen für die Badge-Farbe: ≥ 80 % `--ampel-gruen`, ≥ 50 % `--ampel-gelb`, sonst `--ampel-rot`. Eingaben werden per `input`-Listener live in `inventory[idx]` zurückgeschrieben und Badge + Durchschnitt sofort aktualisiert.
+
 ---
 
 ## Wichtige Konventionen
@@ -142,10 +155,10 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 
 | Feature | Schlüsselfunktionen | Schlüssel-IDs |
 |---|---|---|
-| CSV-Import (DatenGraf-Brücke) | `importGrafCSV(text)`, `parseCSV(text)`, `splitCSVLine(line)` | `#btn-import-graf` |
-| Inventar-Ableitung | `deriveInventory(rows)`, `mapSchutzToAccess(schutz)` | — |
-| Inventar-Rendering | `renderInventory()` *(noch nicht implementiert)* | — |
-| DCAT-Export | `buildDcatJSON()`, `buildInventoryCSV()`, `downloadBlob()` *(noch nicht implementiert)* | — |
+| CSV-Import (DatenGraf-Brücke) | `importGrafCSV(text)`, `pickAndImport()`, `parseCSV(text)`, `splitCSVLine(line)` | `#btn-import-graf`, `#btn-import-again` |
+| Inventar-Ableitung | `deriveInventory(rows)`, `mapSchutzToAccess(schutz)`, `mapHaeufigkeit(h)`, `slug(s)` | — |
+| Inventar-Rendering | `renderInventory()`, `completeness(d)`, `optionsHTML(opts, sel)` | `#inventory-view`, `#inventory-body`, `.inv-card`, `[data-field]` |
+| DCAT-Export | `buildDcatJSON()`, `buildInventoryCSV()`, `csvCell(v)`, `downloadBlob()` | `#btn-export-json`, `#btn-export-csv` |
 | Clearing-Ampel | `runClearing()` *(geplant, Modul 3a)* | — |
 | Pseudonymisierung | `pseudonymize(text)` *(geplant, Modul 3b)* | — |
 | Governance/RACI | `buildRaci()` *(geplant, Modul 1)* | — |
@@ -167,6 +180,8 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 
 | Version | Was wurde gemacht |
 |---|---|
-| v1 | Projekt-Skelett Modul 2: DatenGraf-CSV-Import (`importGrafCSV` → `parseCSV`/`deriveInventory`) + Design-Tokens & Layout im DatenGraf-Stil. **Hinweis:** Inventar-UI (`renderInventory`) und DCAT-Export sind in diesem Skelett noch nicht enthalten – aktuell endet der Import mit einer `alert()`-Zusammenfassung. Der vollständige MVP-Bauauftrag (Modul 2) steht noch aus. |
+| v1 | Projekt-Skelett Modul 2: DatenGraf-CSV-Import (`importGrafCSV` → `parseCSV`/`deriveInventory`) + Design-Tokens & Layout im DatenGraf-Stil (Import endete zunächst mit einer `alert()`-Zusammenfassung). |
 | v2 | Repo-Fundament & Deployment-Parität: Fonts lokal (Inter + Font Awesome, kein CDN), Favicon-Set + `site.webmanifest`, vollständige `<head>`-Meta (OG/Twitter/Favicons/theme-color), `social-preview.svg`/`robots.txt`/`sitemap.xml`, `LICENSE`/`SECURITY.md`/`CONTRIBUTING.md`/`.gitignore`/`package.json`, README & CLAUDE.md ausgebaut, GitHub-Pages-Workflow (`static.yml`) |
+| — | **Modul-2-MVP** (Direkt-Commit auf `main`, zwischen v2 und v3): `renderInventory()` mit editierbaren Karten, Live-Vollständigkeits-% (Ampel) und Dropdowns für Zyklus/Lizenz/Zugriffsrechte; DCAT-AP.de-Export `buildDcatJSON()` + flacher CSV-Export `buildInventoryCSV()` via `downloadBlob()`; Import mit Schema-Validierung auf Spalte „Quelle". |
 | v3 | Marken-Assets: neues `logo.svg` (DatenLotse-Mark, lila/gold) + aktualisiertes Favicon-Set; Logo auf der Seite platziert wie bei DatenGraf – `.topbar-logo` (36px neben dem Brand-Text) und `.hero-logo` (rund, mit Border + Schatten, zentriert über der Headline; mobil 110px) |
+| v4 | Doku-Sync: CLAUDE.md & README an den real gebauten Modul-2-MVP angeglichen (Feature-Tabelle, Dataset-Shape, kontrollierte Vokabulare, Vollständigkeits-Ampel, Chronologie) |
