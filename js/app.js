@@ -54,11 +54,13 @@ let inventory = [];     // abgeleitete DCAT-AP.de-Inventar-Einträge
 /* ── LocalStorage-Persistenz (Präfix datenlotse_) ─────────────── */
 const LS_INVENTORY = 'datenlotse_inventory';
 const LS_GOVERNANCE = 'datenlotse_governance';
+const LS_KOMPASS = 'datenlotse_kompass';
 
 function saveState() {
   try {
     localStorage.setItem(LS_INVENTORY, JSON.stringify(inventory));
     localStorage.setItem(LS_GOVERNANCE, JSON.stringify(governanceAnswers));
+    localStorage.setItem(LS_KOMPASS, JSON.stringify(kompassState));
   } catch (e) { /* Speicher nicht verfügbar/voll – still ignorieren */ }
 }
 
@@ -71,13 +73,18 @@ function loadState() {
     const gov = localStorage.getItem(LS_GOVERNANCE);
     if (gov) { const parsed = JSON.parse(gov); if (parsed && typeof parsed === 'object') governanceAnswers = parsed; }
   } catch (e) { /* defekte Governance-Daten ignorieren */ }
+  try {
+    const k = localStorage.getItem(LS_KOMPASS);
+    if (k) { const parsed = JSON.parse(k); if (parsed && typeof parsed === 'object') kompassState = parsed; }
+  } catch (e) { /* defekte Kompass-Daten ignorieren */ }
 }
 
 function clearState() {
-  try { localStorage.removeItem(LS_INVENTORY); localStorage.removeItem(LS_GOVERNANCE); } catch (e) { /* ignorieren */ }
+  try { localStorage.removeItem(LS_INVENTORY); localStorage.removeItem(LS_GOVERNANCE); localStorage.removeItem(LS_KOMPASS); } catch (e) { /* ignorieren */ }
   grafRows = [];
   inventory = [];
   governanceAnswers = {};
+  kompassState = {};
 }
 
 /* ── XSS-Schutz (wie DatenGraf) ───────────────────────────────── */
@@ -626,11 +633,11 @@ function showModal(id, show) {
     modalOpener = null;
   }
 }
-const MODALS = ['faq-backdrop', 'cta-backdrop', 'inventory-backdrop', 'phase3-backdrop', 'phase45-backdrop'];
+const MODALS = ['faq-backdrop', 'inventory-backdrop', 'phase3-backdrop', 'phase45-backdrop'];
 document.getElementById('faq-btn')?.addEventListener('click', () => showModal('faq-backdrop', true));
 document.getElementById('faq-close-btn')?.addEventListener('click', () => showModal('faq-backdrop', false));
-document.getElementById('cta-btn')?.addEventListener('click', () => showModal('cta-backdrop', true));
-document.getElementById('cta-close-btn')?.addEventListener('click', () => showModal('cta-backdrop', false));
+document.getElementById('cta-btn')?.addEventListener('click', () => navTo('kompass'));
+document.getElementById('hero-kompass-btn')?.addEventListener('click', () => navTo('kompass'));
 document.getElementById('open-phase45-btn')?.addEventListener('click', () => showModal('phase45-backdrop', true));
 document.getElementById('phase45-close-btn')?.addEventListener('click', () => showModal('phase45-backdrop', false));
 
@@ -758,6 +765,7 @@ function showView(name) {
   document.getElementById('inventory-view')?.classList.toggle('hidden', name !== 'inventory');
   document.getElementById('governance-view')?.classList.toggle('hidden', name !== 'governance');
   document.getElementById('pseudo-view')?.classList.toggle('hidden', name !== 'pseudo');
+  document.getElementById('kompass-view')?.classList.toggle('hidden', name !== 'kompass');
   window.scrollTo({ top: 0 });
 }
 
@@ -765,6 +773,9 @@ function navTo(target) {
   if (target === 'inventory') {
     if (inventory.length) renderInventory();   // rendert Karten + showView('inventory') – auch nach Reload
     else { showView('home'); openInventoryModal(); }   // ohne Daten: erst erklären, dann importieren
+  } else if (target === 'kompass') {
+    showView('kompass');
+    renderKompass();
   } else if (target === 'governance') {
     showView('governance');
     renderGovernance();
@@ -1148,10 +1159,249 @@ document.getElementById('gov-export-csv')?.addEventListener('click', () => {
 });
 document.getElementById('gov-print')?.addEventListener('click', printGovReport);
 
+/* ──────────────────────────────────────────────────────────────
+   Daten-Kompass: Open-Data-Reifegrad-Checkliste
+
+   Dimensionen + Items nach anerkannten Modellen (ODRA, EU Open Data
+   Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR). Status je Item:
+   offen / teilweise / erfüllt / nicht relevant. Manche Items werden aus
+   dem App-Stand vorbelegt; Nutzer-Entscheidungen werden persistiert.
+   ────────────────────────────────────────────────────────────── */
+let kompassState = {};   // `${dimId}.${itemId}` → 'erfuellt'|'teilweise'|'offen'|'na'
+
+const KOMPASS_STATUS = [['offen', 'Offen'], ['teilweise', 'Teilweise'], ['erfuellt', 'Erfüllt'], ['na', 'Nicht relevant']];
+const KOMPASS_FACTOR = { erfuellt: 1, teilweise: 0.5, offen: 0 };
+
+const KOMPASS_DIMENSIONS = [
+  {
+    id: 'strategie', title: 'Strategie & Rechtsrahmen', icon: 'fa-scale-balanced',
+    source: 'ODRA · EU Open Data Maturity (Policy)',
+    items: [
+      { id: 'leitlinie',     label: 'Open-Data-Leitlinie / Veröffentlichungsgrundsätze sind verabschiedet.' },
+      { id: 'recht',         label: 'Rechtsgrundlagen sind geklärt (2. Open-Data-Gesetz / Datennutzungsgesetz, IFG, Fachrecht).' },
+      { id: 'openbydefault', label: '„Open by default" ist als Grundsatz etabliert.' },
+      { id: 'lizenzpolitik', label: 'Eine Lizenzpolitik ist festgelegt (DL-DE / Creative Commons).' },
+    ],
+  },
+  {
+    id: 'organisation', title: 'Organisation & Rollen', icon: 'fa-users-gear',
+    source: 'ODRA (Institutional) · RACI',
+    action: { label: 'Governance & RACI öffnen', target: 'governance' },
+    items: [
+      { id: 'rollen',    label: 'Verantwortlichkeiten sind definiert (Data Owner, Data Steward).' },
+      { id: 'reifegrad', label: 'Ein Governance-Reifegrad-Check wurde durchgeführt.' },
+      { id: 'dsb',       label: 'Die/der Datenschutzbeauftragte ist eingebunden.' },
+    ],
+  },
+  {
+    id: 'inventar', title: 'Dateninventar & Metadaten', icon: 'fa-boxes-stacked',
+    source: 'DCAT-AP.de · FAIR (Findable)',
+    action: { label: 'Dateninventar starten', target: 'inventory' },
+    items: [
+      { id: 'kartiert',   label: 'Die Datenbestände sind kartiert (z. B. mit DatenGraf).' },
+      { id: 'inventar',   label: 'Ein Inventar nach DCAT-AP.de ist erstellt.' },
+      { id: 'metadaten',  label: 'Die Metadaten sind vollständig (Publisher, Lizenz, Zyklus, Zugriff).' },
+      { id: 'identifier', label: 'Jeder Datensatz hat einen eindeutigen Identifier.' },
+    ],
+  },
+  {
+    id: 'datenschutz', title: 'Datenschutz & Clearing', icon: 'fa-shield-halved',
+    source: 'DSGVO · DatenLotse Modul 3',
+    action: { label: 'Phase 3 starten', target: 'phase3' },
+    items: [
+      { id: 'pb',       label: 'Der Personenbezug ist je Datensatz bewertet (Clearing-Ampel).' },
+      { id: 'art9',     label: 'Besondere Kategorien nach Art. 9 DSGVO sind geprüft.' },
+      { id: 'pseudo',   label: 'Personenbezogene Freitexte sind pseudonymisiert.' },
+      { id: 'freigabe', label: 'Die Freigabeentscheidung ist je Datensatz dokumentiert.' },
+    ],
+  },
+  {
+    id: 'technik', title: 'Technik, Format & Standards', icon: 'fa-cubes',
+    source: '5-Sterne-Open-Data (Berners-Lee) · FAIR (Interoperable)',
+    items: [
+      { id: 'offen',       label: 'Daten liegen in offenen, maschinenlesbaren Formaten vor (★★★: CSV/JSON statt PDF).' },
+      { id: 'struktur',    label: 'Strukturierte Daten nutzen offene Standards (★★★★: URIs/RDF).' },
+      { id: 'verlinkt',    label: 'Daten sind mit anderen Daten verlinkt (★★★★★: Linked Open Data).' },
+      { id: 'dcatconform', label: 'Die Bereitstellung ist DCAT-AP.de-konform.' },
+    ],
+  },
+  {
+    id: 'veroeffentlichung', title: 'Veröffentlichung & Portal', icon: 'fa-globe',
+    source: 'EU Open Data Maturity (Portal/Quality)',
+    items: [
+      { id: 'portal',  label: 'Ein Zielportal ist gewählt (GovData, kommunales Portal, CKAN).' },
+      { id: 'harvest', label: 'Die Datasets sind harvestbar bereitgestellt.' },
+      { id: 'zyklus',  label: 'Aktualisierungszyklen sind definiert und werden eingehalten.' },
+      { id: 'qs',      label: 'Eine Qualitätssicherung (Vollständigkeit, Aktualität) ist etabliert.' },
+    ],
+  },
+  {
+    id: 'wirkung', title: 'Nutzung, Wirkung & Feedback', icon: 'fa-recycle',
+    source: 'EU Open Data Maturity (Impact) · ODRA (Demand)',
+    action: { label: 'Phase 4 & 5 verstehen', target: 'phase45' },
+    items: [
+      { id: 'monitoring', label: 'Die Nutzung der Daten wird beobachtet (Monitoring).' },
+      { id: 'feedback',   label: 'Es gibt Feedback-Kanäle für Nachnutzende.' },
+      { id: 'wirkung',    label: 'Anwendungsfälle / Wirkung werden erfasst.' },
+      { id: 'zirkulaer',  label: 'Ein kontinuierlicher Verbesserungsprozess ist etabliert (zirkulär).' },
+    ],
+  },
+];
+
+// Vorbelegung aus dem aktuellen App-Stand (nur solange der Nutzer nichts gesetzt hat)
+function kompassDerived(dimId, itemId) {
+  const has = inventory.length > 0;
+  const avg = has ? Math.round(inventory.reduce((s, d) => s + completeness(d), 0) / inventory.length) : 0;
+  const allClassified = has && inventory.every(d => d.clearing && d.clearing.ampel);
+  const someClassified = has && inventory.some(d => d.clearing);
+  const govAnswered = Object.keys(governanceAnswers).length > 0;
+  switch (`${dimId}.${itemId}`) {
+    case 'inventar.kartiert':       return (grafRows.length || has) ? 'erfuellt' : 'offen';
+    case 'inventar.inventar':       return has ? 'erfuellt' : 'offen';
+    case 'inventar.metadaten':      return avg >= 80 ? 'erfuellt' : avg > 0 ? 'teilweise' : 'offen';
+    case 'inventar.identifier':     return has ? 'erfuellt' : 'offen';
+    case 'datenschutz.pb':          return allClassified ? 'erfuellt' : someClassified ? 'teilweise' : 'offen';
+    case 'organisation.reifegrad':  return govAnswered ? 'teilweise' : 'offen';
+    default: return 'offen';
+  }
+}
+
+function kompassStatus(dimId, itemId) {
+  return kompassState[`${dimId}.${itemId}`] || kompassDerived(dimId, itemId);
+}
+
+function kompassDimScore(dim) {
+  let sum = 0, count = 0;
+  dim.items.forEach(it => {
+    const st = kompassStatus(dim.id, it.id);
+    if (st === 'na') return;
+    sum += KOMPASS_FACTOR[st] ?? 0; count++;
+  });
+  return count ? Math.round((sum / count) * 100) : null;
+}
+
+function kompassOverall() {
+  let sum = 0, count = 0;
+  KOMPASS_DIMENSIONS.forEach(dim => dim.items.forEach(it => {
+    const st = kompassStatus(dim.id, it.id);
+    if (st === 'na') return;
+    sum += KOMPASS_FACTOR[st] ?? 0; count++;
+  }));
+  return count ? Math.round((sum / count) * 100) : 0;
+}
+
+function kompassAmpel(score) {
+  if (score >= 80) return { cls: 'gruen', label: 'Fortgeschritten' };
+  if (score >= 50) return { cls: 'gelb',  label: 'Im Aufbau' };
+  return { cls: 'rot', label: 'Am Anfang' };
+}
+
+function renderKompass() {
+  renderKompassScore();
+  renderKompassDims();
+}
+
+function renderKompassScore() {
+  const box = document.getElementById('kompass-score');
+  if (!box) return;
+  const score = kompassOverall();
+  const amp = kompassAmpel(score);
+  box.className = `kompass-score kompass-score--${amp.cls}`;
+  box.innerHTML =
+    `<div class="kompass-score-num">${score}<span> / 100</span></div>
+     <div class="kompass-score-meta"><strong>${amp.label}</strong><span>Open-Data-Reifegrad</span></div>
+     <div class="kompass-score-bar"><span style="width:${score}%"></span></div>`;
+}
+
+function renderKompassDims() {
+  const box = document.getElementById('kompass-dims');
+  if (!box) return;
+  box.innerHTML = KOMPASS_DIMENSIONS.map(dim => {
+    const ds = kompassDimScore(dim);
+    const dsCls = ds == null ? 'na' : ds >= 80 ? 'gruen' : ds >= 50 ? 'gelb' : 'rot';
+    const items = dim.items.map(it => {
+      const st = kompassStatus(dim.id, it.id);
+      const stCls = ['erfuellt', 'teilweise', 'na'].includes(st) ? st : 'offen';
+      return `<div class="kompass-item kompass-item--${stCls}">
+        <span class="kompass-item-label">${esc(it.label)}</span>
+        <select class="kompass-item-sel" data-dim="${esc(dim.id)}" data-item="${esc(it.id)}">${optionsHTML(KOMPASS_STATUS, st)}</select>
+      </div>`;
+    }).join('');
+    const incomplete = ds != null && ds < 100;
+    const actionBtn = (dim.action && incomplete)
+      ? `<button class="btn btn-secondary btn-sm kompass-action" data-kompass-action="${esc(dim.action.target)}"><i class="fas fa-arrow-right"></i> ${esc(dim.action.label)}</button>` : '';
+    return `<div class="kompass-dim">
+      <div class="kompass-dim-head">
+        <div class="kompass-dim-title">
+          <span class="kompass-dim-ic"><i class="fas ${esc(dim.icon)}"></i></span>
+          <div><h3>${esc(dim.title)}</h3><span class="kompass-dim-src">${esc(dim.source)}</span></div>
+        </div>
+        <span class="kompass-dim-score kompass-dim-score--${dsCls}">${ds == null ? '–' : ds + ' %'}</span>
+      </div>
+      <div class="kompass-items">${items}</div>
+      ${actionBtn}
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('.kompass-item-sel').forEach(sel => {
+    sel.addEventListener('change', () => {
+      kompassState[`${sel.dataset.dim}.${sel.dataset.item}`] = sel.value;
+      saveState();
+      renderKompass();
+    });
+  });
+  box.querySelectorAll('[data-kompass-action]').forEach(btn =>
+    btn.addEventListener('click', () => kompassAction(btn.dataset.kompassAction)));
+}
+
+function kompassAction(target) {
+  if (target === 'phase3') openPhase3Wizard();
+  else if (target === 'phase45') showModal('phase45-backdrop', true);
+  else navTo(target);
+}
+
+function buildKompassReportHTML() {
+  const score = kompassOverall();
+  const amp = kompassAmpel(score);
+  const ampColor = { gruen: '#2e9e60', gelb: '#d4820a', rot: '#c0392b' }[amp.cls];
+  const stLabel = { erfuellt: 'Erfüllt', teilweise: 'Teilweise', offen: 'Offen', na: 'n/a' };
+  const dims = KOMPASS_DIMENSIONS.map(dim => {
+    const ds = kompassDimScore(dim);
+    const rows = dim.items.map(it =>
+      `<tr><td>${esc(it.label)}</td><td style="text-align:right;white-space:nowrap">${stLabel[kompassStatus(dim.id, it.id)]}</td></tr>`).join('');
+    return `<h2>${esc(dim.title)} <span class="muted" style="font-weight:400">· ${ds == null ? '–' : ds + ' %'} · ${esc(dim.source)}</span></h2>
+      <table><tbody>${rows}</tbody></table>`;
+  }).join('');
+  return `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>DatenLotse – Daten-Kompass</title>
+    <style>
+      body{font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#1e1b2e;margin:32px;font-size:12px}
+      h1{color:#420093;font-size:22px;margin:0 0 4px} h2{color:#420093;font-size:14px;margin:18px 0 6px}
+      .muted{color:#7a7591} .score{display:inline-block;padding:10px 18px;border-radius:10px;color:#fff;font-weight:700;background:${ampColor}}
+      table{border-collapse:collapse;width:100%;margin-top:4px} td{border:1px solid #d9d2e8;padding:5px 9px}
+      @media print{body{margin:12mm}}
+    </style></head><body>
+    <h1>DatenLotse – Daten-Kompass</h1>
+    <p class="muted">Open-Data-Reifegrad nach ODRA, EU Open Data Maturity, 5-Sterne-Open-Data, DCAT-AP.de und DSGVO/FAIR. Lokal erzeugt – keine Datenübertragung.</p>
+    <p><span class="score">${score} / 100 · ${amp.label}</span></p>
+    ${dims}
+    </body></html>`;
+}
+
+function printKompass() {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(buildKompassReportHTML());
+  w.document.close();
+  const go = () => { w.focus(); w.print(); };
+  if (w.document.readyState === 'complete') go();
+  else w.addEventListener('load', go);
+}
+document.getElementById('kompass-print')?.addEventListener('click', printKompass);
+
 /* ── Persistenz: gespeicherten Stand laden / zurücksetzen ─────── */
 document.getElementById('reset-data-btn')?.addEventListener('click', () => {
-  const hasData = inventory.length || Object.keys(governanceAnswers).length;
-  if (hasData && !confirm('Gespeicherte Daten (Inventar, Clearing, Governance) wirklich löschen?')) return;
+  const hasData = inventory.length || Object.keys(governanceAnswers).length || Object.keys(kompassState).length;
+  if (hasData && !confirm('Gespeicherte Daten (Inventar, Clearing, Governance, Kompass) wirklich löschen?')) return;
   clearState();
   document.getElementById('inventory-body') && (document.getElementById('inventory-body').innerHTML = '');
   showView('home');
