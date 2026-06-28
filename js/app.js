@@ -626,22 +626,29 @@ function showModal(id, show) {
     modalOpener = null;
   }
 }
+const MODALS = ['faq-backdrop', 'cta-backdrop', 'inventory-backdrop'];
 document.getElementById('faq-btn')?.addEventListener('click', () => showModal('faq-backdrop', true));
 document.getElementById('faq-close-btn')?.addEventListener('click', () => showModal('faq-backdrop', false));
 document.getElementById('cta-btn')?.addEventListener('click', () => showModal('cta-backdrop', true));
 document.getElementById('cta-close-btn')?.addEventListener('click', () => showModal('cta-backdrop', false));
 
+// Dateninventar-Erklär-Modal
+function openInventoryModal() { showModal('inventory-backdrop', true); }
+document.getElementById('open-inventory-btn')?.addEventListener('click', openInventoryModal);
+document.getElementById('inventory-close-btn')?.addEventListener('click', () => showModal('inventory-backdrop', false));
+document.getElementById('inv-modal-import')?.addEventListener('click', () => { showModal('inventory-backdrop', false); pickAndImport(); });
+document.getElementById('inv-modal-sample')?.addEventListener('click', () => { showModal('inventory-backdrop', false); loadSampleData('data/sample-kommune.csv'); });
+
 // Klick auf den Backdrop (außerhalb des Dialogs) schließt das Modal
-['faq-backdrop', 'cta-backdrop'].forEach(id => {
+MODALS.forEach(id => {
   const el = document.getElementById(id);
-  el?.addEventListener('click', e => { if (e.target === el) el.classList.add('hidden'); });
+  el?.addEventListener('click', e => { if (e.target === el) showModal(id, false); });
 });
 
 // Escape schließt offene Modals und die Seitenleiste
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  showModal('faq-backdrop', false);
-  showModal('cta-backdrop', false);
+  MODALS.forEach(id => showModal(id, false));
   closeSidebar();
 });
 
@@ -660,7 +667,7 @@ function showView(name) {
 function navTo(target) {
   if (target === 'inventory') {
     if (inventory.length) renderInventory();   // rendert Karten + showView('inventory') – auch nach Reload
-    else { showView('home'); document.getElementById('module-grid')?.scrollIntoView({ behavior: 'smooth' }); }
+    else { showView('home'); openInventoryModal(); }   // ohne Daten: erst erklären, dann importieren
   } else if (target === 'governance') {
     showView('governance');
     renderGovernance();

@@ -186,7 +186,7 @@
       <h2 class="module-title">Dateninventar</h2>
       <p class="module-desc">Importiere die DatenGraf-CSV und reichere jeden Datensatz um DCAT-AP.de-Metadaten an (Publisher, Lizenz, Aktualisierungszyklus). Export als DCAT-konformes JSON/CSV für GovData &amp; CKAN.</p>
       <div class="module-actions">
-        <button class="btn btn-primary" id="btn-import-graf"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
+        <button class="btn btn-primary" id="open-inventory-btn"><i class="fas fa-boxes-stacked"></i> Dateninventar starten</button>
         <button class="btn btn-secondary btn-sm" data-sample="data/sample-kommune.csv"><i class="fas fa-flask"></i> Beispiel laden</button>
       </div>
     </article>
@@ -347,7 +347,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v12</span>
+    <span class="footer-version">v13</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -411,6 +411,36 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=12"></script>
+  <!-- ── Dateninventar-Erklär-Modal (Modul 2) ──────────────────── -->
+  <div class="modal-backdrop hidden" id="inventory-backdrop">
+    <div class="faq-modal" role="dialog" aria-modal="true" aria-labelledby="inv-modal-title">
+      <div class="faq-modal-header">
+        <h2 id="inv-modal-title"><i class="fas fa-boxes-stacked"></i> Dateninventar nach DCAT-AP.de</h2>
+        <button class="icon-close" id="inventory-close-btn" aria-label="Schließen"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="faq-modal-body">
+        <p>Das <strong>Dateninventar</strong> ist der strukturierte Katalog deiner Datenbestände nach dem deutschen Metadatenstandard <strong>DCAT-AP.de</strong>. Es ist die Grundlage jeder Open-Data-Veröffentlichung: Nur was inventarisiert und mit Metadaten beschrieben ist, lässt sich über Portale wie <strong>GovData</strong> oder CKAN auffinden und nachnutzen.</p>
+        <p>DatenLotse leitet aus deiner DatenGraf-CSV automatisch Dataset-Kandidaten ab (je eindeutige Kombination aus <em>Quelle</em> und <em>Datentyp</em>). Für jeden Datensatz ergänzt du die DCAT-AP.de-Felder – Publisher, Ansprechpartner, Aktualisierungszyklus, Lizenz und Zugriffsrechte; eine Ampel zeigt live die Metadaten-Vollständigkeit.</p>
+
+        <h3 class="modal-h3"><i class="fas fa-list-check"></i> So läuft es ab</h3>
+        <ol class="modal-steps">
+          <li><strong>Importieren</strong> – DatenGraf-CSV laden (oder den Beispieldatensatz nutzen).</li>
+          <li><strong>Ableiten</strong> – Dataset-Kandidaten entstehen automatisch aus den Datenflüssen.</li>
+          <li><strong>Anreichern</strong> – DCAT-AP.de-Pflichtfelder je Datensatz ergänzen, Vollständigkeit live in Ampelfarben.</li>
+          <li><strong>Exportieren</strong> – als DCAT-AP.de-JSON-LD und CSV, harvestbar durch GovData/CKAN; zusätzlich PDF-Bericht.</li>
+          <li><strong>Weiterführen</strong> – dieselben Datensätze speisen Risiko-Clearing und Governance/RACI.</li>
+        </ol>
+
+        <p class="modal-privacy"><i class="fas fa-lock"></i> Alles läuft lokal im Browser – kein Server, kein Upload, kein Account. Dein gespeicherter Stand bleibt auf diesem Gerät.</p>
+
+        <div class="modal-cta-row">
+          <button class="btn btn-secondary" id="inv-modal-sample"><i class="fas fa-flask"></i> Beispiel laden</button>
+          <button class="btn btn-primary" id="inv-modal-import"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js?v=13"></script>
 </body>
 </html>
