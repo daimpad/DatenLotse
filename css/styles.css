@@ -396,6 +396,16 @@ a { color: var(--c-accent); }
   border-radius: 10px;
 }
 .consult-cta-btn:hover { background: #f0e8ff; transform: translateY(-2px); }
+.consult-cta-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.consult-cta-info {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.45);
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 10px;
+}
+.consult-cta-info:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
 
 /* ── Footer (identisch zu DatenGraf) ─────────────────────────── */
 .site-footer {
@@ -617,7 +627,8 @@ details[open] > .faq-q::after { transform: rotate(180deg); }
 .cta-modal-empty { color: var(--c-muted); font-size: 14px; line-height: 1.7; text-align: center; padding: 30px 8px; }
 
 /* ── Erklär-Modal-Inhalte (Inventar, Wizards) ────────────────── */
-#inventory-backdrop .faq-modal-body > p { font-size: 13px; line-height: 1.6; color: var(--c-text); margin: 0 0 10px; }
+#inventory-backdrop .faq-modal-body > p,
+#phase45-backdrop .faq-modal-body > p { font-size: 13px; line-height: 1.6; color: var(--c-text); margin: 0 0 10px; }
 .modal-h3 { font-size: 14px; font-weight: 700; color: var(--c-accent); margin: 18px 0 8px; display: flex; align-items: center; gap: 8px; }
 .modal-steps { margin: 0 0 12px; padding-left: 20px; }
 .modal-steps li { font-size: 13px; line-height: 1.6; color: var(--c-text); margin: 5px 0; }
