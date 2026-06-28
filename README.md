@@ -1,78 +1,192 @@
-# DatenLotse
+<img width="auto" height="150" alt="DatenLotse Logo" src="https://raw.githubusercontent.com/daimpad/datenlotse/main/logo.svg" />
 
-**Von der Datenökosystem-Map zur Open-Data-Umsetzung.**
+# DatenLotse – von der Datenkartierung zur Open-Data-Umsetzung
 
-DatenLotse ist das Operationalisierungs-Tool im Anschluss an [DatenGraf](https://datengraf.nozilla.net/). Wo DatenGraf zeigt, *wie* Datenflüsse in einer Organisation aussehen, führt DatenLotse durch den nächsten Schritt: Dateninventar aufbauen, Risiken klären, datenschutzkonform standardisieren und als Open Data bereitstellen.
+**DatenLotse** ist ein browserbasiertes, datenbankfreies Werkzeug, das Organisationen – insbesondere die öffentliche Verwaltung – vom kartierten Datenökosystem in die konkrete Open-Data-Umsetzung führt. Es ist das Schwester-Tool zu [DatenGraf](https://datengraf.nozilla.net/): Wo DatenGraf zeigt, *wie* die Datenflüsse aussehen, beantwortet DatenLotse die Frage *„Was tue ich jetzt konkret?"* – Dateninventar nach DCAT-AP.de aufbauen, Risiken klären, Texte datenschutzkonform pseudonymisieren. Alles läuft lokal im Browser: kein Server, kein Account, kein Datentransfer.
 
-- **URL:** https://datenlotse.nozilla.net/
-- **Tech:** Vanilla HTML/CSS/JS, kein Build, kein Backend — alles lokal im Browser (gleiche Philosophie wie DatenGraf)
-- **DSGVO:** Keine Datenübertragung. Verarbeitung ausschließlich client-seitig.
+<br>
 
----
+[![Stack](https://img.shields.io/badge/stack-HTML%20%2F%20JS-420093?style=flat-square&logo=javascript&logoColor=white)](https://github.com/daimpad/datenlotse)
+[![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-420093?style=flat-square)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-aktiv-420093?style=flat-square)](https://github.com/daimpad/datenlotse)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-bereit-420093?style=flat-square&logo=github&logoColor=white)](https://datenlotse.nozilla.net)
+[![Privacy](https://img.shields.io/badge/Privacy-Local--First-420093?style=flat-square&logo=shield&logoColor=white)](https://github.com/daimpad/datenlotse)
+[![Zero Server](https://img.shields.io/badge/Zero--Server-100%25%20lokal-black?style=flat-square)](https://nozilla.de)
+[![nozilla](https://img.shields.io/badge/by-nozilla-00FF9C?style=flat-square)](https://nozilla.de)
 
-## Philosophie
+<br>
 
-> Eine Sache gut: Aus einer kartierten Map einen umsetzbaren Open-Data-Fahrplan machen.
-
-- Single-File-App (`js/app.js`), wie DatenGraf
-- Design-Tokens in `css/tokens.css` — **synchron mit DatenGraf halten**, nicht divergieren lassen
-- Kein LLM-Chat im Kern. Strukturierte Fragebögen + Templates + Klassifikator. LLM höchstens opt-in (API-Key), wie bei DatenGraf
-
----
-
-## Module (Phasen 1–3)
-
-| Modul | Phase | Status | Inhalt |
-|---|---|---|---|
-| **2 Dateninventar** | Asset Management | **MVP / zuerst** | DatenGraf-CSV importieren → DCAT-AP.de-Metadaten ergänzen → Export JSON/CSV für GovData & CKAN |
-| **3a Risiko-Clearing** | Clearing | Next | Rot/Gelb/Grün-Entscheidungsbaum je Datensatz |
-| **3b Pseudonymisierung** | Clearing | Next | Client-Side-NER für DE-Verwaltungstexte, strukturerhaltend (`[PERSON_1]`) |
-| **1 Governance** | Fundament | Zuletzt | Fragebogen → RACI-Matrix + Reifegrad-Ampel |
-
-**Phase 4 (ETL/Container/CKAN) & Phase 5 (Feedback-Schleifen)** sind bewusst **kein** Self-Service-Tool, sondern Beratungs-/Workshop-Angebot (CTA → nozilla.de/kontakt).
+[**→ Jetzt starten**](https://datenlotse.nozilla.net) · [Sicherheit](SECURITY.md) · [Mitmachen](.github/CONTRIBUTING.md)
 
 ---
 
-## Bau-Reihenfolge (MVP-first)
+## Features
 
-1. **Modul 2** — Inventar-Import + DCAT-Export. Beweist sofort den Nutzen der DatenGraf-Verkettung. *(Andockpunkt: `importGrafCSV()` in `app.js` ist bereits da.)*
-2. **Modul 3a** — Risiko-Ampel (billig, hoher gefühlter Wert)
-3. **Modul 3b** — Pseudonymisierung (Marketing-Highlight; mit Regex-Pack starten, ML später)
-4. **Modul 1** — Governance (auch als PDF-Template denkbar)
-
----
-
-## Die DatenGraf-Brücke
-
-DatenLotse importiert exakt das CSV-Format, das DatenGraf via `toCSV()` exportiert. Das Row-Schema (`GRAF_COLUMNS` in `app.js`) ist 1:1 übernommen. `deriveInventory()` mappt die Datenflüsse auf DCAT-AP.de-Dataset-Kandidaten.
-
-**Wichtig:** Bei Schema-Änderungen in DatenGraf muss `GRAF_COLUMNS` hier mitgezogen werden.
+| | Feature | Beschreibung |
+|---|---|---|
+| 🔗 | **DatenGraf-CSV-Import** | Liest exakt das CSV-Schema, das DatenGraf exportiert – die Datenkartierung wird ohne Umweg zur Umsetzungsgrundlage |
+| 📦 | **Dateninventar (DCAT-AP.de)** | Aus jedem Datenfluss wird ein Dataset-Kandidat mit DCAT-AP.de-Metadaten (Publisher, Lizenz, Aktualisierungszyklus, Zugriffsrechte) abgeleitet; editierbare Karten-UI *(in Arbeit)* |
+| 📤 | **DCAT-Export (JSON + CSV)** | DCAT-AP.de-konformes JSON-LD (`dcat:Catalog`/`dcat:Dataset`) zum Harvesting durch GovData/CKAN sowie eine flache CSV-Liste *(in Arbeit)* |
+| 🚦 | **Clearing-Ampel (Rot-Gelb-Grün)** | Transparenter, deterministischer Entscheidungsbaum je Datensatz – mit nachvollziehbarer Begründung *(in Arbeit)* |
+| 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende Bereinigung deutscher Verwaltungstexte (Namen, Adressen, Aktenzeichen, IBAN) – rein per Regex, nichts verlässt den Browser *(in Arbeit)* |
+| 👥 | **Governance & RACI** | Geführter Fragebogen → RACI-Matrix + Reifegrad-Ampel *(geplant)* |
+| 🔒 | **Local-First / No-Database** | Alle Daten bleiben im Browser – kein Backend, kein Account, keine externen Laufzeit-Aufrufe |
+| 📱 | **Mobile-First** | Responsives Layout: Buttons in voller Breite, Grids brechen auf eine Spalte |
 
 ---
 
-## Lokale Entwicklung
+## Quick Start
+
+### Option A – direkt im Browser
+
+```
+https://datenlotse.nozilla.net
+```
+
+Importiere eine DatenGraf-CSV über **Dateninventar → DatenGraf-CSV importieren** und reichere die abgeleiteten Datensätze um DCAT-AP.de-Metadaten an.
+
+### Option B – lokal ausführen
 
 ```bash
+git clone https://github.com/daimpad/datenlotse.git
+cd datenlotse
 python3 -m http.server 8080
 # → http://localhost:8080
 ```
 
-`file://` funktioniert nicht (FileReader/fetch). Cache-Busting wie DatenGraf: `?v=N` in `index.html` erhöhen.
+> **Hinweis:** `index.html` muss über HTTP(S) geöffnet werden, damit `FileReader`/`fetch()` und die Beispieldaten funktionieren. Ein direktes Öffnen als `file://` startet die App nicht korrekt.
+
+### Option C – eigene DatenGraf-CSV verwenden
+
+DatenLotse liest exakt das Schema, das DatenGraf via Export erzeugt:
+
+```
+Quelle,QuelleAbteilung,QuelleBereich,QuelleOrganisation,QuelleRolle,
+Beziehung,Ziel,Datentyp,Häufigkeit,Format,Schutzbedarf,Erfassungsart,Anmerkungen,Ansprechpartner
+```
+
+Importiere deine Datei über den Button **DatenGraf-CSV importieren**. Jede eindeutige `(Quelle | Datentyp)`-Kombination wird zu einem DCAT-AP.de-Dataset-Kandidaten.
 
 ---
 
-## Deployment
+## Von der Map zur Umsetzung
 
-Custom Domain `datenlotse.nozilla.net`:
+DatenLotse begleitet den Weg von der fertigen DatenGraf-Karte in die operative Open-Data-Bereitstellung:
 
-- **Netlify (empfohlen):** Repo verbinden → Custom Domain → DNS-CNAME `datenlotse` auf Netlify zeigen. Auto-Deploy bei Push.
-- **GitHub Pages:** `CNAME`-Datei mit `datenlotse.nozilla.net` ins Repo + DNS-CNAME `datenlotse` → `daimpad.github.io`.
+1. **Inventar (Phase 2 · MVP)** – DatenGraf-CSV importieren, Datenflüsse zu DCAT-AP.de-Datasets verdichten, Metadaten ergänzen, als JSON/CSV exportieren.
+2. **Clearing (Phase 3a)** – Risikobewertung je Datensatz über einen transparenten Rot/Gelb/Grün-Entscheidungsbaum.
+3. **Pseudonymisierung (Phase 3b)** – Deutsche Verwaltungstexte strukturerhaltend von personenbezogenen Daten befreien, vollständig client-seitig.
+4. **Governance (Phase 1, Ausblick)** – geführter Fragebogen zu Zuständigkeiten → RACI-Matrix + Reifegrad-Ampel.
+
+**Die DatenGraf-Brücke:** Das Row-Schema (`GRAF_COLUMNS` in `js/app.js`) ist 1:1 aus DatenGraf übernommen; CSV-Parser und Quoting sind identisch. So wird der Export des einen Tools ohne Konvertierung zum Import des anderen.
+
+**Phase 4 (ETL/Container/CKAN) & Phase 5 (Feedback-Schleifen)** sind bewusst **kein** Self-Service-Tool, sondern ein Beratungs- und Workshop-Angebot → [nozilla.de/kontakt](https://nozilla.de/kontakt/).
 
 ---
 
-## TODO vor dem ersten Deploy
+## DCAT-AP.de
 
-- [ ] Fonts lokal hosten (`assets/fonts/` aus DatenGraf übernehmen) — aktuell Font Awesome per CDN als Übergang
-- [ ] Favicon-Set ergänzen
-- [ ] `datengraf.nozilla.net`-Link prüfen (aktuelle DatenGraf-Domain einsetzen)
-- [ ] Modul 2 (MVP) bauen
+Das Inventar-Modul erzeugt zu jedem Datensatz Metadaten nach dem deutschen DCAT-AP.de-Profil – damit die Datasets durch [GovData](https://www.govdata.de/) und CKAN-basierte Portale geharvestet werden können. Erzeugt bzw. nacherfassbar sind u. a.:
+
+| Feld | Zweck |
+|---|---|
+| `dct:title` / `dct:description` | Titel und Beschreibung des Datasets |
+| `dct:identifier` | Eindeutige Kennung |
+| `dct:publisher` → `foaf:Organization` | Veröffentlichende Stelle |
+| `dcat:contactPoint` | Ansprechpartner (vCard) |
+| `dct:accrualPeriodicity` | Aktualisierungszyklus (CONT/DAILY/WEEKLY/MONTHLY/QUARTERLY/ANNUAL/IRREG/NEVER) |
+| `dct:accessRights` | Zugriffsrechte (PUBLIC/RESTRICTED/NON_PUBLIC) |
+| `dcat:distribution` → `dct:format` + `dct:license` | Format und Lizenz (dl-de/by-2-0, dl-de/zero-2-0, cc-by-4.0, cc-zero …) |
+| `dcatde:sourceSystem` | Quellsystem aus der DatenGraf-Kartierung |
+
+Die Ausgabe erfolgt als JSON-LD mit `@context` auf das DCAT-AP.de-Profil sowie als flache CSV-Liste.
+
+---
+
+## Technischer Stack
+
+| Technologie | Version | Zweck |
+|---|---|---|
+| **Vanilla JS** | ES2020+ | Gesamte Anwendungslogik ohne Framework, eine Datei (`js/app.js`) |
+| **CSS Custom Properties** | — | Design-System mit Glasmorphismus, Tokens in `css/tokens.css` |
+| **Inter** | lokal | Schriftart (latin + latin-ext, 400/500/600/700) |
+| **Font Awesome** | 6.7.2 (lokal) | Icon-Library (solid, regular, brands) |
+| **FileReader API** | — | Lokaler CSV-/Textimport ohne Upload |
+| **LocalStorage API** | — | Persistenz ohne Backend |
+| **Blob API** | — | DCAT-JSON-, CSV- und Text-Downloads |
+
+> Keine Build-Tools, keine Runtime-Library nötig – nur HTML, CSS und JS. Inter und Font Awesome werden lokal aus `assets/fonts/` ausgeliefert, nicht per CDN.
+
+---
+
+## Methodik / Konzepte
+
+<details>
+<summary><strong>DCAT-AP.de-Mapping</strong></summary>
+
+`deriveInventory(rows)` verdichtet die DatenGraf-Zeilen: Jede eindeutige `(Quelle | Datentyp)`-Kombination wird zu einem DCAT-AP.de-Dataset-Kandidaten. Vorbelegungen werden aus der Kartierung abgeleitet – `Schutzbedarf` → `dct:accessRights`, `Häufigkeit` → `dct:accrualPeriodicity`. DCAT-Pflichtfelder, die DatenGraf nicht kennt (Lizenz, Zyklus), werden im UI nacherfasst.
+
+</details>
+
+<details>
+<summary><strong>3-Klassen-Clearing-Modell (Rot/Gelb/Grün)</strong></summary>
+
+Eine geordnete, deterministische Regelmenge bildet die Freigabeempfehlung je Datensatz ab – ohne ML, vollständig nachvollziehbar. Besondere Kategorien nach Art. 9 DSGVO oder fehlende Rechtsgrundlage bei personenbezogenen Daten führen zu **Rot**; anonymisierbare personenbezogene Daten zu **Gelb** (erst nach Bearbeitung freigabefähig); rein öffentliche Daten zu **Grün**. Bei Unklarheit gilt der konservative Default **Gelb (manuelle Prüfung)**, nie Grün.
+
+</details>
+
+<details>
+<summary><strong>Strukturerhaltende Pseudonymisierung</strong></summary>
+
+Ein Regex-Pack für DE-Verwaltungstexte (Namen anrede-getriggert, Adressen, Aktenzeichen, IBAN, E-Mail, Telefon, kontextgebundene Geburtsdaten) ersetzt erkannte Entitäten durch konsistente Platzhalter (`[PERSON_1]`, `[ADRESSE_1]` …). Pro Entitätstyp ein Zähler + Map `Originalwert → Platzhalter`: gleicher Wert ⇒ immer derselbe Platzhalter, deterministisch über das ganze Dokument. Erkannte Spans werden nach Position sortiert, Überlappungen verworfen (Longest-match-wins), erst dann ersetzt – so bleibt die relationale Maschinenlesbarkeit erhalten und nichts verlässt den Browser.
+
+</details>
+
+<details>
+<summary><strong>RACI-Matrix & Reifegrad</strong></summary>
+
+Ein geführter Fragebogen leitet aus den Datendomänen des Inventars eine RACI-Matrix (Responsible / Accountable / Consulted / Informed) ab und berechnet einen gewichteten Reifegrad-Score (0–100) – analog zum Vollständigkeits-Score von DatenGraf.
+
+</details>
+
+---
+
+## Dateistruktur
+
+```
+datenlotse/
+├── index.html                  # Einstiegspunkt – HTML-Struktur
+├── css/
+│   ├── tokens.css              # Design-Tokens (Kernwerte aus DatenGraf + --ampel-*)
+│   └── styles.css              # Layout & Komponenten
+├── js/
+│   └── app.js                  # Gesamte Anwendungslogik (eine Datei)
+├── assets/
+│   └── fonts/
+│       ├── fa/all.min.css      # Font Awesome 6.7.2 CSS
+│       ├── webfonts/           # Font Awesome woff2-Dateien (solid/regular/brands)
+│       └── inter/              # Inter-Schriftdateien (woff2) + inter.css
+├── .github/
+│   ├── workflows/
+│   │   └── static.yml          # GitHub Pages Deployment
+│   └── CONTRIBUTING.md         # Beitragsrichtlinien
+├── CNAME                       # datenlotse.nozilla.net
+├── CLAUDE.md                   # AI-Entwicklungs-Kontext & Architektur
+├── SECURITY.md                 # Sicherheitsrichtlinie
+├── LICENSE                     # GPL-3.0
+└── README.md                   # Diese Datei
+```
+
+---
+
+## Lizenz
+
+Dieses Projekt steht unter der [GNU General Public License v3.0](LICENSE).
+
+---
+
+<div align="center">
+
+Ein Projekt von **[nozilla](https://nozilla.de)** — bits & bytes mit ❤
+
+</div>

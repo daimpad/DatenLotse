@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#420093"/>
+      <stop offset="100%" style="stop-color:#6c2fbf"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Decorative route / waypoints (right side) -->
+  <path d="M880 180 L1010 150 L1090 300 L980 410 L1060 480" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="3" stroke-dasharray="2 14" stroke-linecap="round"/>
+
+  <circle cx="880" cy="180" r="40" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
+  <circle cx="1010" cy="150" r="26" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.28)" stroke-width="2"/>
+  <circle cx="1090" cy="300" r="52" fill="rgba(255,255,255,0.22)" stroke="rgba(255,255,255,0.4)" stroke-width="2.5"/>
+  <circle cx="980" cy="410" r="34" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.28)" stroke-width="2"/>
+  <circle cx="1060" cy="480" r="26" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.22)" stroke-width="2"/>
+
+  <!-- Ampel dots -->
+  <circle cx="880" cy="180" r="13" fill="#2e9e60"/>
+  <circle cx="1090" cy="300" r="13" fill="#d4820a"/>
+  <circle cx="980" cy="410" r="13" fill="#c0392b"/>
+
+  <!-- Logo mark -->
+  <text x="80" y="170" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="700" fill="rgba(255,255,255,0.55)" letter-spacing="3">DATENLOTSE</text>
+
+  <!-- Headline -->
+  <text x="80" y="280" font-family="Inter, system-ui, sans-serif" font-size="68" font-weight="800" fill="#ffffff">Von der Map</text>
+  <text x="80" y="360" font-family="Inter, system-ui, sans-serif" font-size="68" font-weight="800" fill="#ffffff">zur Open-Data-</text>
+  <text x="80" y="440" font-family="Inter, system-ui, sans-serif" font-size="68" font-weight="800" fill="rgba(255,255,255,0.75)">Umsetzung.</text>
+
+  <!-- Chips -->
+  <rect x="80" y="488" width="210" height="40" rx="20" fill="rgba(255,255,255,0.14)"/>
+  <text x="185" y="513" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="16" fill="rgba(255,255,255,0.9)">DCAT-AP.de</text>
+
+  <rect x="304" y="488" width="210" height="40" rx="20" fill="rgba(255,255,255,0.14)"/>
+  <text x="409" y="513" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="16" fill="rgba(255,255,255,0.9)">Browserbasiert</text>
+
+  <rect x="528" y="488" width="220" height="40" rx="20" fill="rgba(255,255,255,0.14)"/>
+  <text x="638" y="513" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="16" fill="rgba(255,255,255,0.9)">DSGVO-konform</text>
+
+  <!-- Footer -->
+  <text x="80" y="590" font-family="Inter, system-ui, sans-serif" font-size="18" fill="rgba(255,255,255,0.4)">nozilla.de · datenlotse.nozilla.net</text>
+</svg>
