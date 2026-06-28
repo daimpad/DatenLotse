@@ -27,7 +27,7 @@
 | 🔗 | **DatenGraf-CSV-Import** | Liest exakt das CSV-Schema, das DatenGraf exportiert – die Datenkartierung wird ohne Umweg zur Umsetzungsgrundlage |
 | 📦 | **Dateninventar (DCAT-AP.de)** | Aus jedem Datenfluss wird ein Dataset-Kandidat abgeleitet und in editierbaren Karten dargestellt; Publisher/Ansprechpartner als Freitext, Aktualisierungszyklus/Lizenz/Zugriffsrechte als Dropdowns – mit Live-Vollständigkeits-% in Ampelfarben |
 | 📤 | **DCAT-Export (JSON + CSV)** | DCAT-AP.de-konformes JSON-LD (`dcat:Catalog`/`dcat:Dataset` mit `@context`) zum Harvesting durch GovData/CKAN sowie eine flache CSV-Liste |
-| 🚦 | **Clearing-Ampel (Rot-Gelb-Grün)** | Transparenter, deterministischer Entscheidungsbaum je Datensatz – mit nachvollziehbarer Begründung *(in Arbeit)* |
+| 🚦 | **Clearing-Ampel (Rot-Gelb-Grün)** | Transparenter, deterministischer Entscheidungsbaum je Datensatz (Schutzbedarf-Vorbelegung, Art.-9-/Rechtsgrundlage-/Anonymisierbarkeit-Prüfung) mit nachvollziehbarer Begründung, Gesamtübersicht und Ampel-Spalte im CSV-Export |
 | 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende Bereinigung deutscher Verwaltungstexte (Namen, Adressen, Aktenzeichen, IBAN) – rein per Regex, nichts verlässt den Browser *(in Arbeit)* |
 | 👥 | **Governance & RACI** | Geführter Fragebogen → RACI-Matrix + Reifegrad-Ampel *(geplant)* |
 | 🔒 | **Local-First / No-Database** | Alle Daten bleiben im Browser – kein Backend, kein Account, keine externen Laufzeit-Aufrufe |

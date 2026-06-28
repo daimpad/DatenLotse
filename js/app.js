@@ -161,6 +161,85 @@ function completeness(d) {
   return Math.round((filled / REQUIRED_FIELDS.length) * 100);
 }
 
+/* ── Modul 3a: Clearing-Ampel (deterministischer Entscheidungsbaum)
+   Antworten je Datensatz:
+     pb    = personenbezogen   'ja' | 'nein' | 'unklar'  (Frage 1, aus Schutzbedarf vorbelegt)
+     art9  = besondere Kat.    ''   | 'ja' | 'nein'       (Frage 2)
+     recht = Rechtsgrundlage   ''   | 'ja' | 'nein'       (Frage 3)
+     anon  = anonymisierbar    ''   | 'ja' | 'nein'       (Frage 4)
+   Ergebnis am Eintrag: d.clearing = { ampel, begruendung, empfehlung }.
+   Grundsatz: bei Unklarheit Gelb – nie automatisch Grün.
+   ────────────────────────────────────────────────────────────── */
+const AMPEL_LABEL = { gruen: 'Grün · Freigabe', gelb: 'Gelb · Prüfen', rot: 'Rot · Sperren' };
+
+// Frage 1 aus DatenGraf-Schutzbedarf vorbelegen
+function initClearing(d) {
+  if (d._clearing) return d._clearing;
+  const s = d._grafSchutzbedarf || '';
+  let pb = 'unklar';
+  if (/dsgvo/i.test(s)) pb = 'ja';
+  else if (/öffentlich|oeffentlich/i.test(s)) pb = 'nein';
+  d._clearing = { pb, art9: '', recht: '', anon: '' };
+  return d._clearing;
+}
+
+function evaluateClearing(a) {
+  // Regel 5: kein Personenbezug → Grün
+  if (a.pb === 'nein') return {
+    ampel: 'gruen',
+    begruendung: 'Keine personenbezogenen Daten – datenschutzrechtlich unkritisch.',
+    empfehlung: 'Freigabe als Open Data möglich. Lizenz und Metadaten im Inventar vervollständigen.'
+  };
+  // Personenbezug unklar → mindestens Gelb (nie automatisch Grün)
+  if (a.pb !== 'ja') return {
+    ampel: 'gelb',
+    begruendung: 'Personenbezug unklar. Im Zweifel wird konservativ bewertet.',
+    empfehlung: 'Personenbezug in Frage 1 klären, bevor eine Freigabe erwogen wird.'
+  };
+  // ab hier: personenbezogen
+  // Regel 2: Art. 9 DSGVO → Rot (Ende)
+  if (a.art9 === 'ja') return {
+    ampel: 'rot',
+    begruendung: 'Besondere Kategorien nach Art. 9 DSGVO (z. B. Gesundheit, Religion, Biometrie).',
+    empfehlung: 'Nicht veröffentlichen. Keine Open-Data-Freigabe ohne enge Rechtsgrundlage und gesonderte Prüfung.'
+  };
+  // Regel 3: keine Rechtsgrundlage → Rot (Ende)
+  if (a.recht === 'nein') return {
+    ampel: 'rot',
+    begruendung: 'Personenbezogen ohne Rechtsgrundlage / gesetzlichen Veröffentlichungsauftrag.',
+    empfehlung: 'Nicht veröffentlichen. Zuerst Rechtsgrundlage klären (Art. 6 DSGVO / Fachrecht).'
+  };
+  // Regel 4: mit Rechtsgrundlage → von Anonymisierbarkeit abhängig
+  if (a.recht === 'ja') {
+    if (a.anon === 'ja') return {
+      ampel: 'gelb',
+      begruendung: 'Personenbezogen mit Rechtsgrundlage, aber anonymisier-/pseudonymisierbar – erst nach Bearbeitung freigabefähig.',
+      empfehlung: 'Vor Veröffentlichung anonymisieren/aggregieren; Freitexte über die Textbereinigung (Modul 3b) pseudonymisieren.'
+    };
+    if (a.anon === 'nein') return {
+      ampel: 'rot',
+      begruendung: 'Personenbezogen und nicht sinnvoll anonymisierbar – der Personenbezug bliebe bestehen.',
+      empfehlung: 'Nicht als Open Data veröffentlichen. Allenfalls aggregierte Kennzahlen separat erwägen.'
+    };
+    return {
+      ampel: 'gelb',
+      begruendung: 'Personenbezogen mit Rechtsgrundlage. Anonymisierbarkeit noch offen.',
+      empfehlung: 'Frage 4 beantworten: Lässt sich der Datensatz anonymisieren/aggregieren?'
+    };
+  }
+  // Fallback: greift keine Regel eindeutig → Gelb
+  return {
+    ampel: 'gelb',
+    begruendung: 'Personenbezogen, Bewertung noch unvollständig.',
+    empfehlung: 'Fragen 2–4 beantworten. Bis dahin: manuelle Prüfung empfohlen, keine Freigabe.'
+  };
+}
+
+// Clearing für alle Einträge sicherstellen (z. B. vor dem Export)
+function ensureAllClearing() {
+  inventory.forEach(d => { d.clearing = evaluateClearing(initClearing(d)); });
+}
+
 /* ── Rendering: Inventar-Tabelle ──────────────────────────────── */
 function optionsHTML(opts, selected) {
   return opts.map(([v, l]) =>
@@ -178,6 +257,7 @@ function renderInventory() {
   if (heroEl) heroEl.style.display = 'none';
   if (gridEl) gridEl.style.display = 'none';
   view.classList.remove('hidden');
+  showInventoryTab('inventar');   // bei (Neu-)Import immer mit dem Inventar starten
 
   const avgComplete = inventory.length
     ? Math.round(inventory.reduce((s, d) => s + completeness(d), 0) / inventory.length) : 0;
@@ -234,6 +314,106 @@ function renderInventory() {
   });
 }
 
+/* ── Rendering: Risiko-Clearing (Modul 3a) ────────────────────── */
+const PB_OPTS    = [['ja', 'Ja'], ['nein', 'Nein'], ['unklar', 'Unklar']];
+const YESNO_OPTS = [['', '— wählen —'], ['ja', 'Ja'], ['nein', 'Nein']];
+
+function clearingAutoHint(d) {
+  const s = d._grafSchutzbedarf || '';
+  if (/dsgvo|öffentlich|oeffentlich/i.test(s))
+    return ` <span class="clear-auto">· vorbelegt aus Schutzbedarf „${esc(s)}"</span>`;
+  return '';
+}
+
+function renderClearing() {
+  const body = document.getElementById('clearing-body');
+  if (!body) return;
+
+  body.innerHTML = inventory.map((d, i) => {
+    const a = initClearing(d);
+    d.clearing = evaluateClearing(a);
+    const amp = d.clearing.ampel;
+    const showArt9  = a.pb === 'ja';
+    const showRecht = a.pb === 'ja' && a.art9 !== 'ja';
+    const showAnon  = a.pb === 'ja' && a.art9 !== 'ja' && a.recht === 'ja';
+    return `
+    <div class="clear-card clear-card--${amp}" data-idx="${i}">
+      <div class="clear-card-head">
+        <div class="clear-head-text">
+          <span class="clear-title">${esc(d.title)}</span>
+          <span class="clear-src"><i class="fas fa-database"></i> ${esc(d.sourceSystem || '—')}</span>
+        </div>
+        <span class="clear-ampel clear-ampel--${amp}"><span class="clear-dot"></span>${AMPEL_LABEL[amp]}</span>
+      </div>
+      <div class="clear-questions">
+        <label class="clear-q">
+          <span class="clear-q-label">1 · Enthält der Datensatz personenbezogene Daten?${clearingAutoHint(d)}</span>
+          <select data-q="pb">${optionsHTML(PB_OPTS, a.pb)}</select>
+        </label>
+        ${showArt9 ? `
+        <label class="clear-q">
+          <span class="clear-q-label">2 · Besondere Kategorien nach Art. 9 DSGVO? <span class="clear-q-ex">(Gesundheit, Religion, Biometrie …)</span></span>
+          <select data-q="art9">${optionsHTML(YESNO_OPTS, a.art9)}</select>
+        </label>` : ''}
+        ${showRecht ? `
+        <label class="clear-q">
+          <span class="clear-q-label">3 · Rechtsgrundlage / gesetzlicher Auftrag zur Veröffentlichung?</span>
+          <select data-q="recht">${optionsHTML(YESNO_OPTS, a.recht)}</select>
+        </label>` : ''}
+        ${showAnon ? `
+        <label class="clear-q">
+          <span class="clear-q-label">4 · Anonymisier-, aggregier- oder pseudonymisierbar?</span>
+          <select data-q="anon">${optionsHTML(YESNO_OPTS, a.anon)}</select>
+        </label>` : ''}
+      </div>
+      <div class="clear-result">
+        <p class="clear-begruendung">${esc(d.clearing.begruendung)}</p>
+        <p class="clear-empfehlung"><i class="fas fa-arrow-right"></i> ${esc(d.clearing.empfehlung)}</p>
+      </div>
+    </div>`;
+  }).join('');
+
+  body.querySelectorAll('.clear-card').forEach(card => {
+    const idx = +card.dataset.idx;
+    card.querySelectorAll('select[data-q]').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const a = inventory[idx]._clearing;
+        a[sel.dataset.q] = sel.value;
+        // Folgefragen zurücksetzen, wenn ihre Voraussetzung entfällt
+        if (sel.dataset.q === 'pb'    && a.pb   !== 'ja') { a.art9 = ''; a.recht = ''; a.anon = ''; }
+        if (sel.dataset.q === 'art9'  && a.art9 === 'ja') { a.recht = ''; a.anon = ''; }
+        if (sel.dataset.q === 'recht' && a.recht !== 'ja') { a.anon = ''; }
+        renderClearing();   // progressive Anzeige + Ergebnis neu berechnen
+      });
+    });
+  });
+
+  updateClearingSummary();
+}
+
+function updateClearingSummary() {
+  const sum = document.getElementById('clearing-summary');
+  if (!sum) return;
+  const c = { gruen: 0, gelb: 0, rot: 0 };
+  inventory.forEach(d => { if (d.clearing) c[d.clearing.ampel]++; });
+  sum.innerHTML =
+    `<span class="clear-stat clear-stat--gruen"><span class="clear-dot"></span>${c.gruen} grün</span>` +
+    `<span class="clear-stat clear-stat--gelb"><span class="clear-dot"></span>${c.gelb} gelb</span>` +
+    `<span class="clear-stat clear-stat--rot"><span class="clear-dot"></span>${c.rot} rot</span>`;
+}
+
+/* ── Tab-Umschaltung Inventar ↔ Clearing ──────────────────────── */
+function showInventoryTab(name) {
+  const isClearing = name === 'clearing';
+  document.getElementById('inventar-panel')?.classList.toggle('hidden', isClearing);
+  document.getElementById('clearing-panel')?.classList.toggle('hidden', !isClearing);
+  document.getElementById('tab-inventar')?.classList.toggle('is-active', !isClearing);
+  document.getElementById('tab-clearing')?.classList.toggle('is-active', isClearing);
+  if (isClearing) renderClearing();
+}
+document.getElementById('tab-inventar')?.addEventListener('click', () => showInventoryTab('inventar'));
+document.getElementById('tab-clearing')?.addEventListener('click', () => showInventoryTab('clearing'));
+
 /* ── Export: DCAT-AP.de JSON ──────────────────────────────────── */
 function buildDcatJSON() {
   return {
@@ -262,10 +442,15 @@ function buildDcatJSON() {
 
 /* ── Export: flaches CSV (Inventarliste) ──────────────────────── */
 function buildInventoryCSV() {
+  ensureAllClearing();   // Ampel auch ohne Besuch des Clearing-Tabs befüllen
   const cols = ['id', 'title', 'description', 'publisher', 'contactPoint',
                 'sourceSystem', 'format', 'accrualPeriodicity', 'license', 'accessRights'];
-  const head = cols.join(',');
-  const rows = inventory.map(d => cols.map(c => csvCell(d[c])).join(','));
+  const head = [...cols, 'clearingAmpel', 'clearingEmpfehlung'].join(',');
+  const rows = inventory.map(d => {
+    const cells = cols.map(c => csvCell(d[c]));
+    cells.push(csvCell(d.clearing?.ampel || ''), csvCell(d.clearing?.empfehlung || ''));
+    return cells.join(',');
+  });
   return [head, ...rows].join('\n');
 }
 
