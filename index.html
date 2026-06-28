@@ -78,6 +78,7 @@
     <nav class="app-sidebar-nav">
       <a href="#" data-view="home"><i class="fas fa-fw fa-house"></i> Start</a>
       <a href="#" data-view="inventory"><i class="fas fa-fw fa-boxes-stacked"></i> Dateninventar</a>
+      <a href="#" data-view="governance"><i class="fas fa-fw fa-users-gear"></i> Governance &amp; RACI</a>
       <a href="#" data-view="pseudo"><i class="fas fa-fw fa-user-shield"></i> Textbereinigung</a>
       <a href="#" data-view="about"><i class="fas fa-fw fa-circle-info"></i> Über DatenLotse</a>
       <a href="https://datengraf.nozilla.net/" target="_blank" rel="noopener"><i class="fas fa-fw fa-circle-nodes"></i> Zu DatenGraf</a>
@@ -166,8 +167,8 @@
       <div class="module-icon"><i class="fas fa-users-gear"></i></div>
       <span class="module-phase">Phase 1 · Fundament</span>
       <h2 class="module-title">Governance &amp; Rollen</h2>
-      <p class="module-desc">Geführter Check zu Zuständigkeiten und Data Stewards. Ergebnis: eine RACI-Matrix und ein Reifegrad-Ampelbild für dein Datenmanagement.</p>
-      <span class="module-badge-soon">Geplant</span>
+      <p class="module-desc">Geführter Check zu Zuständigkeiten und Data Stewards. Ergebnis: eine RACI-Matrix (aus deinem Inventar abgeleitet) und ein Reifegrad-Ampelbild für dein Datenmanagement.</p>
+      <button class="btn btn-primary" id="open-gov-btn"><i class="fas fa-users-gear"></i> Governance starten</button>
     </article>
 
     <!-- Modul 2 – Inventar (MVP) -->
@@ -219,6 +220,46 @@
       <p class="inventory-hint">Beantworte je Datensatz den kurzen Fragebogen. Die Ampel folgt einem transparenten, deterministischen Entscheidungsbaum (kein ML). Bei Unklarheit gilt <strong>Gelb · manuelle Prüfung</strong> – nie automatisch Grün. Frage&nbsp;1 ist aus dem DatenGraf-Schutzbedarf vorbelegt. Alles bleibt lokal im Browser.</p>
       <div class="clearing-summary" id="clearing-summary"></div>
       <div class="clearing-body" id="clearing-body"></div>
+    </div>
+  </section>
+
+  <!-- ── Governance & Rollen (Modul 1) ─────────────────────────── -->
+  <section class="governance-view hidden" id="governance-view">
+    <div class="inventory-header">
+      <div>
+        <h2 class="inventory-title"><i class="fas fa-users-gear"></i> Governance &amp; Rollen</h2>
+        <span class="inventory-meta">RACI-Matrix &amp; Reifegrad – aus deinem Dateninventar abgeleitet, lokal im Browser.</span>
+      </div>
+      <div class="inventory-actions">
+        <button class="btn btn-secondary" id="gov-export-csv"><i class="fas fa-file-csv"></i> RACI-CSV</button>
+        <button class="btn btn-secondary" id="gov-print"><i class="fas fa-print"></i> PDF / Drucken</button>
+      </div>
+    </div>
+
+    <div class="gov-empty hidden" id="gov-empty">
+      <i class="fas fa-boxes-stacked"></i>
+      <p>Für die RACI-Matrix werden die Datendomänen aus dem Inventar abgeleitet. Bitte zuerst eine DatenGraf-CSV importieren.</p>
+      <button class="btn btn-primary" id="gov-import-btn"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
+    </div>
+
+    <div id="gov-content">
+      <div class="gov-grid">
+        <div class="gov-quiz">
+          <h3 class="gov-h3">Reifegrad-Check</h3>
+          <p class="inventory-hint">Acht gewichtete Fragen zu Zuständigkeiten, Stewardship und Prozessen. Der Reifegrad (0–100) errechnet sich nachvollziehbar aus den Antworten (Ja = voll, Teilweise = halb, Nein = 0).</p>
+          <div class="gov-questions" id="gov-questions"></div>
+        </div>
+        <aside class="gov-score">
+          <div class="gov-score-badge" id="gov-score-badge"></div>
+          <div class="gov-score-bars" id="gov-score-bars"></div>
+        </aside>
+      </div>
+
+      <h3 class="gov-h3">RACI-Matrix <span class="gov-legend">R&nbsp;Responsible · A&nbsp;Accountable · C&nbsp;Consulted · I&nbsp;Informed</span></h3>
+      <div class="gov-matrix-wrap">
+        <table class="gov-matrix" id="gov-matrix"></table>
+      </div>
+      <p class="gov-note"><i class="fas fa-circle-info"></i> Domänen sind aus den Publishern bzw. Quellsystemen des Inventars abgeleitet. <span class="gov-gap-dot"></span> markiert Rollen, die laut Fragebogen noch nicht (vollständig) besetzt sind. Datenschutz (DSB) ist bei DSGVO-relevanten Domänen <em>Consulted</em>, sonst <em>Informed</em>.</p>
     </div>
   </section>
 
@@ -289,7 +330,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v8</span>
+    <span class="footer-version">v9</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -353,6 +394,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=8"></script>
+  <script src="js/app.js?v=9"></script>
 </body>
 </html>

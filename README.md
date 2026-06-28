@@ -29,7 +29,7 @@
 | 📤 | **DCAT-Export (JSON + CSV)** | DCAT-AP.de-konformes JSON-LD (`dcat:Catalog`/`dcat:Dataset` mit `@context`) zum Harvesting durch GovData/CKAN sowie eine flache CSV-Liste |
 | 🚦 | **Clearing-Ampel (Rot-Gelb-Grün)** | Transparenter, deterministischer Entscheidungsbaum je Datensatz (Schutzbedarf-Vorbelegung, Art.-9-/Rechtsgrundlage-/Anonymisierbarkeit-Prüfung) mit nachvollziehbarer Begründung, Gesamtübersicht und Ampel-Spalte im CSV-Export |
 | 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende, deterministische Bereinigung deutscher Verwaltungstexte (Namen anrede-getriggert, Adressen, PLZ+Ort, Aktenzeichen, IBAN, E-Mail, Telefon, Geburtsdatum im Kontext) mit konsistenten Platzhaltern, Mapping-Tabelle und Download – rein per Regex, nichts verlässt den Browser |
-| 👥 | **Governance & RACI** | Geführter Fragebogen → RACI-Matrix + Reifegrad-Ampel *(geplant)* |
+| 👥 | **Governance & RACI** | 8-Fragen-Reifegrad-Check (gewichtet, 0–100) + automatisch aus dem Inventar abgeleitete RACI-Matrix (Domänen × Rollen) mit Lücken-Markierung; Export als CSV und PDF/Druck-Bericht |
 | 🔒 | **Local-First / No-Database** | Alle Daten bleiben im Browser – kein Backend, kein Account, keine externen Laufzeit-Aufrufe |
 | 📱 | **Mobile-First** | Responsives Layout: Buttons in voller Breite, Grids brechen auf eine Spalte |
 

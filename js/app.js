@@ -534,13 +534,14 @@ document.addEventListener('keydown', e => {
   closeSidebar();
 });
 
-/* ── View-Umschaltung (home / inventory / pseudo) ─────────────── */
+/* ── View-Umschaltung (home / inventory / governance / pseudo) ── */
 function showView(name) {
   ['hero', 'about-accordion', 'module-grid'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = (name === 'home') ? '' : 'none';
   });
   document.getElementById('inventory-view')?.classList.toggle('hidden', name !== 'inventory');
+  document.getElementById('governance-view')?.classList.toggle('hidden', name !== 'governance');
   document.getElementById('pseudo-view')?.classList.toggle('hidden', name !== 'pseudo');
   window.scrollTo({ top: 0 });
 }
@@ -549,6 +550,9 @@ function navTo(target) {
   if (target === 'inventory') {
     if (inventory.length) showView('inventory');
     else { showView('home'); document.getElementById('module-grid')?.scrollIntoView({ behavior: 'smooth' }); }
+  } else if (target === 'governance') {
+    showView('governance');
+    renderGovernance();
   } else if (target === 'pseudo') {
     showView('pseudo');
   } else if (target === 'about') {
@@ -563,6 +567,8 @@ function navTo(target) {
 document.querySelectorAll('.app-sidebar-nav a[data-view]').forEach(a =>
   a.addEventListener('click', e => { e.preventDefault(); navTo(a.dataset.view); }));
 document.getElementById('open-pseudo-btn')?.addEventListener('click', () => navTo('pseudo'));
+document.getElementById('open-gov-btn')?.addEventListener('click', () => navTo('governance'));
+document.getElementById('gov-import-btn')?.addEventListener('click', pickAndImport);
 document.getElementById('topbar-brand')?.addEventListener('click', () => navTo('home'));
 document.getElementById('topbar-brand')?.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navTo('home'); }
@@ -721,9 +727,215 @@ document.getElementById('pseudo-download-btn')?.addEventListener('click', () => 
 });
 
 /* ──────────────────────────────────────────────────────────────
+   Modul 1: Governance & Rollen (RACI + Reifegrad)
+
+   Datendomänen werden aus dem Inventar (Publisher/Quellsystem) abgeleitet.
+   Die RACI-Matrix folgt einem festen, transparenten Rollen-Template;
+   die DSB-Spalte hängt an der DSGVO-Relevanz der Domäne. Der Reifegrad
+   (0–100) ist die gewichtete Summe der Fragebogen-Antworten.
+   ────────────────────────────────────────────────────────────── */
+const GOV_QUESTIONS = [
+  { id: 'domains', label: 'Sind die Datendomänen klar abgegrenzt und dokumentiert?',                        weight: 12 },
+  { id: 'owner',   label: 'Ist je Domäne ein Data Owner (fachlich verantwortlich) benannt?',                weight: 16 },
+  { id: 'steward', label: 'Sind Data Stewards für die operative Datenpflege benannt?',                      weight: 16 },
+  { id: 'ssot',    label: 'Gibt es je Domäne eine Single Source of Truth?',                                  weight: 12 },
+  { id: 'quality', label: 'Existieren dokumentierte Datenqualitäts-Richtlinien?',                            weight: 12 },
+  { id: 'dsb',     label: 'Ist die/der Datenschutzbeauftragte in datenschutzrelevante Domänen eingebunden?', weight: 12 },
+  { id: 'release', label: 'Gibt es einen Freigabe-/Clearing-Prozess für Veröffentlichungen?',               weight: 12 },
+  { id: 'review',  label: 'Werden Zuständigkeiten regelmäßig überprüft und aktualisiert?',                   weight: 8 },
+];
+const GOV_FACTOR = { ja: 1, teilweise: 0.5, nein: 0 };
+const GOV_OPTS = [['', '— wählen —'], ['ja', 'Ja'], ['teilweise', 'Teilweise'], ['nein', 'Nein']];
+
+const RACI_ROLES = [
+  { key: 'owner',   label: 'Data Owner' },
+  { key: 'steward', label: 'Data Steward' },
+  { key: 'fach',    label: 'Fachbereich' },
+  { key: 'it',      label: 'IT-Betrieb' },
+  { key: 'dsb',     label: 'Datenschutz (DSB)' },
+];
+// Welche Frage „besetzt" welche Rolle (für Lücken-Markierung)
+const ROLE_GAP_Q = { owner: 'owner', steward: 'steward', dsb: 'dsb' };
+
+let governanceAnswers = {};
+
+function deriveDomains() {
+  const seen = new Map();
+  inventory.forEach(d => {
+    const name = (d.sourceSystem || d.publisher || 'Ohne Zuordnung').trim() || 'Ohne Zuordnung';
+    const dsgvo = /dsgvo/i.test(d._grafSchutzbedarf || '') || ['rot', 'gelb'].includes(d.clearing?.ampel);
+    if (!seen.has(name)) seen.set(name, { name, dsgvo: false, count: 0 });
+    const dom = seen.get(name);
+    dom.count++;
+    if (dsgvo) dom.dsgvo = true;
+  });
+  return [...seen.values()];
+}
+
+function raciFor(domain) {
+  return {
+    owner:   'A',
+    steward: 'R',
+    fach:    'C',
+    it:      'C',
+    dsb:     domain.dsgvo ? 'C' : 'I',
+  };
+}
+
+// Lücke = zuständige Frage nicht mit „Ja" beantwortet (DSB nur bei DSGVO-Domänen)
+function roleGap(roleKey, domain) {
+  const q = ROLE_GAP_Q[roleKey];
+  if (!q) return false;
+  if (roleKey === 'dsb' && !domain.dsgvo) return false;
+  return governanceAnswers[q] !== 'ja';
+}
+
+function reifegrad() {
+  let score = 0;
+  const breakdown = GOV_QUESTIONS.map(q => {
+    const f = GOV_FACTOR[governanceAnswers[q.id]] ?? 0;
+    score += q.weight * f;
+    return { id: q.id, label: q.label, weight: q.weight, factor: f };
+  });
+  return { score: Math.round(score), breakdown };
+}
+
+function reifeAmpel(score) {
+  if (score >= 80) return { cls: 'gruen', label: 'Reif' };
+  if (score >= 50) return { cls: 'gelb',  label: 'Im Aufbau' };
+  return { cls: 'rot', label: 'Lückenhaft' };
+}
+
+function renderGovernance() {
+  const empty = document.getElementById('gov-empty');
+  const content = document.getElementById('gov-content');
+  if (!empty || !content) return;
+  if (!inventory.length) {
+    empty.classList.remove('hidden');
+    content.classList.add('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  content.classList.remove('hidden');
+  renderGovQuestions();
+  renderGovScore();
+  renderRaciMatrix();
+}
+
+function renderGovQuestions() {
+  const box = document.getElementById('gov-questions');
+  if (!box) return;
+  box.innerHTML = GOV_QUESTIONS.map(q => `
+    <label class="gov-q">
+      <span class="gov-q-label">${esc(q.label)} <span class="gov-q-w">(${q.weight})</span></span>
+      <select data-gov="${esc(q.id)}">${optionsHTML(GOV_OPTS, governanceAnswers[q.id] || '')}</select>
+    </label>`).join('');
+  box.querySelectorAll('select[data-gov]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      governanceAnswers[sel.dataset.gov] = sel.value;
+      renderGovScore();
+      renderRaciMatrix();
+    });
+  });
+}
+
+function renderGovScore() {
+  const badge = document.getElementById('gov-score-badge');
+  const bars = document.getElementById('gov-score-bars');
+  if (!badge) return;
+  const { score, breakdown } = reifegrad();
+  const amp = reifeAmpel(score);
+  badge.className = `gov-score-badge gov-score-badge--${amp.cls}`;
+  badge.innerHTML = `<span class="gov-score-num">${score}</span><span class="gov-score-unit">/ 100</span><span class="gov-score-lbl">${amp.label}</span>`;
+  bars.innerHTML = breakdown.map(b => {
+    const pct = Math.round(b.factor * 100);
+    const cls = b.factor === 1 ? 'gruen' : b.factor === 0.5 ? 'gelb' : 'rot';
+    return `<div class="gov-bar-row" title="${esc(b.label)}">
+      <span class="gov-bar-lbl">${esc(b.label)}</span>
+      <span class="gov-bar"><span class="gov-bar-fill gov-bar-fill--${cls}" style="width:${pct}%"></span></span>
+    </div>`;
+  }).join('');
+}
+
+function renderRaciMatrix() {
+  const table = document.getElementById('gov-matrix');
+  if (!table) return;
+  const domains = deriveDomains();
+  const head = `<thead><tr><th>Datendomäne</th>${RACI_ROLES.map(r => `<th>${esc(r.label)}</th>`).join('')}</tr></thead>`;
+  const body = `<tbody>${domains.map(dom => {
+    const raci = raciFor(dom);
+    const cells = RACI_ROLES.map(r => {
+      const gap = roleGap(r.key, dom);
+      return `<td><span class="raci raci--${raci[r.key]}">${raci[r.key]}</span>${gap ? '<span class="gov-gap-dot" title="laut Fragebogen noch nicht (vollständig) besetzt"></span>' : ''}</td>`;
+    }).join('');
+    const tag = dom.dsgvo ? '<span class="gov-dsgvo">DSGVO</span>' : '';
+    return `<tr><td class="gov-dom"><span>${esc(dom.name)}</span> <span class="gov-dom-n">${dom.count}</span> ${tag}</td>${cells}</tr>`;
+  }).join('')}</tbody>`;
+  table.innerHTML = head + body;
+}
+
+function buildRaciCSV() {
+  const domains = deriveDomains();
+  const { score } = reifegrad();
+  const head = ['Domaene', 'DSGVO-relevant', 'Anzahl_Datensaetze', ...RACI_ROLES.map(r => r.label)].join(',');
+  const rows = domains.map(dom => {
+    const raci = raciFor(dom);
+    return [csvCell(dom.name), dom.dsgvo ? 'ja' : 'nein', dom.count, ...RACI_ROLES.map(r => raci[r.key])].join(',');
+  });
+  return [head, ...rows].join('\n') + `\n\nReifegrad,${score}/100`;
+}
+
+function buildGovReportHTML() {
+  const domains = deriveDomains();
+  const { score, breakdown } = reifegrad();
+  const amp = reifeAmpel(score);
+  const ampColor = { gruen: '#2e9e60', gelb: '#d4820a', rot: '#c0392b' }[amp.cls];
+  const matrixRows = domains.map(dom => {
+    const raci = raciFor(dom);
+    return `<tr><td>${esc(dom.name)}${dom.dsgvo ? ' <b>(DSGVO)</b>' : ''}</td>${RACI_ROLES.map(r => `<td style="text-align:center">${raci[r.key]}${roleGap(r.key, dom) ? ' ⚠' : ''}</td>`).join('')}</tr>`;
+  }).join('');
+  const breakdownRows = breakdown.map(b =>
+    `<tr><td>${esc(b.label)}</td><td style="text-align:right">${b.weight}</td><td style="text-align:right">${Math.round(b.factor * b.weight)}</td></tr>`).join('');
+  return `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>DatenLotse – Governance-Bericht</title>
+    <style>
+      body{font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#1e1b2e;margin:32px;font-size:13px}
+      h1{color:#420093;font-size:22px;margin:0 0 4px} h2{color:#420093;font-size:15px;margin:24px 0 8px}
+      .score{display:inline-block;padding:10px 18px;border-radius:10px;color:#fff;font-weight:700;background:${ampColor}}
+      table{border-collapse:collapse;width:100%;margin-top:6px} th,td{border:1px solid #d9d2e8;padding:6px 9px;text-align:left}
+      th{background:#f3eefb;color:#420093} .muted{color:#7a7591} @media print{body{margin:12mm}}
+    </style></head><body>
+    <h1>DatenLotse – Governance &amp; Rollen</h1>
+    <p class="muted">RACI-Matrix &amp; Reifegrad, abgeleitet aus dem Dateninventar. Lokal erzeugt – keine Datenübertragung.</p>
+    <h2>Reifegrad</h2>
+    <p><span class="score">${score} / 100 · ${amp.label}</span></p>
+    <table><thead><tr><th>Kategorie</th><th>Gewicht</th><th>Punkte</th></tr></thead><tbody>${breakdownRows}</tbody></table>
+    <h2>RACI-Matrix</h2>
+    <table><thead><tr><th>Datendomäne</th>${RACI_ROLES.map(r => `<th>${esc(r.label)}</th>`).join('')}</tr></thead><tbody>${matrixRows}</tbody></table>
+    <p class="muted">R = Responsible · A = Accountable · C = Consulted · I = Informed · ⚠ = laut Fragebogen noch nicht (vollständig) besetzt</p>
+    </body></html>`;
+}
+
+function printGovReport() {
+  if (!inventory.length) return;
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(buildGovReportHTML());
+  w.document.close();
+  const go = () => { w.focus(); w.print(); };
+  if (w.document.readyState === 'complete') go();
+  else w.addEventListener('load', go);
+}
+
+document.getElementById('gov-export-csv')?.addEventListener('click', () => {
+  if (!inventory.length) return;
+  downloadBlob(buildRaciCSV(), 'datenlotse-raci.csv', 'text/csv');
+});
+document.getElementById('gov-print')?.addEventListener('click', printGovReport);
+
+/* ──────────────────────────────────────────────────────────────
    ROADMAP / BAUAUFTRÄGE
    ────────────────────────────────────────────────────────────── */
 // ✓ MVP  – Modul 2: Inventar-Import, Nacherfassung, DCAT-AP.de-Export
 // ✓      – Modul 3a: Rot/Gelb/Grün-Clearing-Entscheidungsbaum
 // ✓      – Modul 3b: Client-Side-Pseudonymisierung (Regex-Pack DE Verwaltung)
-// Last   – Modul 1: Governance-Fragebogen → RACI-Matrix
+// ✓      – Modul 1: Governance-Fragebogen → RACI-Matrix + Reifegrad
