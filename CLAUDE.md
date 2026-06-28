@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v8` (Script-Tag: `<script src="js/app.js?v=8">`)
+- **Aktuelle Version:** `v9` (Script-Tag: `<script src="js/app.js?v=9">`)
 
 ---
 
@@ -53,7 +53,7 @@ Spätere Module hängen sich an `inventory` an: Modul 3a (Clearing) bewertet die
 
 ### View-Umschaltung
 
-Drei Views: `home` (Hero + Akkordeon + Modul-Grid), `inventory` (Inventar/Clearing-Tabs) und `pseudo` (Textbereinigung). Zentral über `showView(name)` umgeschaltet (blendet die Home-Elemente per `style.display` aus, toggelt `.hidden` an `#inventory-view`/`#pseudo-view`, scrollt nach oben). `navTo(target)` kapselt die Logik der Navigations-Einstiege (Topbar-Brand → home, Sidebar-Links `data-view`, Modul-3-Button → pseudo; „Dateninventar" öffnet die Inventar-View nur, wenn bereits importiert wurde).
+Vier Views: `home` (Hero + Akkordeon + Modul-Grid), `inventory` (Inventar/Clearing-Tabs), `governance` (RACI + Reifegrad) und `pseudo` (Textbereinigung). Zentral über `showView(name)` umgeschaltet (blendet die Home-Elemente per `style.display` aus, toggelt `.hidden` an `#inventory-view`/`#governance-view`/`#pseudo-view`, scrollt nach oben). `navTo(target)` kapselt die Navigations-Einstiege (Topbar-Brand → home, Sidebar-Links `data-view`, Modul-Buttons; „Dateninventar" öffnet die Inventar-View nur, wenn bereits importiert wurde, `governance`/`pseudo` jederzeit).
 
 ### Globaler State
 
@@ -62,7 +62,7 @@ Drei Views: `home` (Hero + Akkordeon + Modul-Grid), `inventory` (Inventar/Cleari
 | `grafRows` | `Row[]` | Importierte DatenGraf-Zeilen (Row-Schema) |
 | `inventory` | `Dataset[]` | Abgeleitete DCAT-AP.de-Inventar-Einträge |
 | `clearing` | am Eintrag | `d.clearing = { ampel, begruendung, empfehlung }` + `d._clearing = { pb, art9, recht, anon }` (Antworten, Modul 3a) |
-| `governance` *(geplant)* | `Object` | RACI-/Reifegrad-Ergebnisse (Modul 1) |
+| `governanceAnswers` | `Object` | Fragebogen-Antworten Modul 1 (`{ id: 'ja'\|'teilweise'\|'nein' }`); Domänen + RACI werden live aus `inventory` abgeleitet |
 
 ### LocalStorage-Schlüssel
 
@@ -130,6 +130,14 @@ Eigene View „Textbereinigung" (`#pseudo-view`). **Reines Regex-Pack, kein ML/N
 
 > **Zukunft (NICHT gebaut):** optionales client-seitiges NER-Modell (Transformers.js/WASM) ist reiner Roadmap-Text – kein Code, auch nicht opt-in.
 
+### Governance & Rollen (Modul 1)
+
+Eigene View `#governance-view`. **Datendomänen** werden aus dem Inventar abgeleitet (`deriveDomains()`: Schlüssel `sourceSystem`, Fallback `publisher`; pro Domäne `count` + `dsgvo`-Flag aus `Schutzbedarf`/Clearing). Ohne Import zeigt die View einen Empty-State mit Import-Button.
+
+- **Reifegrad:** `GOV_QUESTIONS` (8 gewichtete Fragen, Σ Gewichte = 100). `reifegrad()` summiert `weight × factor` (Ja = 1, Teilweise = 0,5, Nein = 0) → 0–100. Ampel: ≥ 80 grün/„Reif", ≥ 50 gelb/„Im Aufbau", sonst rot/„Lückenhaft". Live-Balken je Kategorie.
+- **RACI-Matrix:** festes, transparentes Template (`raciFor()`) – Owner = **A**, Steward = **R**, Fachbereich/IT = **C**, DSB = **C** bei DSGVO-Domänen sonst **I**. `roleGap()` markiert Rollen, deren zuständige Fragebogen-Frage nicht mit „Ja" beantwortet wurde (Owner/Steward/DSB).
+- **Export:** `buildRaciCSV()` (Domänen × Rollen + Reifegrad-Zeile) und `printGovReport()` (eigenständiges HTML im Druckfenster → PDF, inline-styled).
+
 ---
 
 ## Wichtige Konventionen
@@ -182,7 +190,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | DCAT-Export | `buildDcatJSON()`, `buildInventoryCSV()`, `csvCell(v)`, `downloadBlob()` | `#btn-export-json`, `#btn-export-csv` |
 | Clearing-Ampel (Modul 3a) | `evaluateClearing(a)`, `renderClearing()`, `initClearing(d)`, `ensureAllClearing()`, `showInventoryTab(name)` | `#tab-clearing`, `#clearing-panel`, `#clearing-summary`, `.clear-card`, `[data-q]` |
 | Pseudonymisierung (Modul 3b) | `pseudonymize(text)`, `collectSpans`, `selectSpans`, `runPseudonymize()`, `showView(name)`, `navTo(target)` | `#pseudo-view`, `#pseudo-input`, `#pseudo-output`, `#pseudo-mapping`, `#open-pseudo-btn` |
-| Governance/RACI | `buildRaci()` *(geplant, Modul 1)* | — |
+| Governance/RACI (Modul 1) | `deriveDomains()`, `raciFor(d)`, `reifegrad()`, `renderGovernance()`, `buildRaciCSV()`, `printGovReport()` | `#governance-view`, `#gov-questions`, `#gov-matrix`, `#gov-score-badge`, `#open-gov-btn` |
 | Seitenleiste (Off-Canvas) | `openSidebar()`, `closeSidebar()` | `#app-sidebar`, `#sidebar-toggle-btn`, `#sidebar-overlay` |
 | FAQ-/CTA-Modal | `showModal(id, show)` (+ Backdrop-Klick, Escape) | `#faq-btn`, `#faq-backdrop`, `#cta-btn`, `#cta-backdrop` |
 
@@ -212,3 +220,4 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v6 | Homepage-Ausbau im DatenGraf-Stil: Topbar mit Hamburger (Off-Canvas-Seitenleiste, Scaffold), lila CTA „Loslegen" (Platzhalter-Modal) und FAQ-„?"-Button (FAQ-Modal); Subtitle aus der Marke entfernt, Logo größer (Topbar 44px, Hero 172px), Hero-Headline + Modul-Titel lila & größer; Akkordeon „Mehr über den DatenLotsen erfahren" mit fancy Feature-Grid vor den Modul-Karten; Modul-Karten mit Hover (Schatten + leichte Vergrößerung); Phase-4&5-Block (Beratungs-CTA) mit lila Hintergrund; Footer-Links rechtsbündig |
 | v7 | Modul 3a – Risiko-Clearing: zweiter Tab in der Inventar-View; pro Datensatz ein deterministischer Rot/Gelb/Grün-Entscheidungsbaum (`evaluateClearing`) mit Schutzbedarf-Vorbelegung, progressivem Fragebogen, Begründung/Empfehlung je Eintrag und Gesamtübersicht („x grün · y gelb · z rot"); Ampel-Spalten im CSV-Export ergänzt |
 | v8 | Modul 3b – Client-Side-Pseudonymisierung: eigene View „Textbereinigung" mit Regex-Pack für DE-Verwaltung (Name, Adresse, PLZ+Ort, Aktenzeichen, IBAN, E-Mail, Telefon, kontextgebundenes Geburtsdatum), strukturerhaltende & deterministische Platzhalter (Longest-match-wins, keine Doppel-Ersetzung), hervorgehobene Ausgabe + Mapping-Tabelle + Download + sichtbare Grenzen-Liste; `showView`/`navTo`-Routing (3 Views), Topbar-Brand → Start, Modul-3-Button + Sidebar-Link |
+| v9 | Modul 1 – Governance & Rollen: eigene View mit 8-Fragen-Reifegrad-Check (gewichtet, 0–100, Ampel) und RACI-Matrix (Domänen aus Inventar abgeleitet, festes Rollen-Template, DSB abhängig von DSGVO-Relevanz, Lücken-Markierung aus dem Fragebogen); Export als RACI-CSV und PDF/Druck-Bericht; vierte View im `showView`-Routing |
