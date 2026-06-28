@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v14` (Script-Tag: `<script src="js/app.js?v=14">`)
+- **Aktuelle Version:** `v15` (Script-Tag: `<script src="js/app.js?v=15">`)
 
 ---
 
@@ -196,7 +196,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | Governance/RACI (Modul 1) | `deriveDomains()`, `raciFor(d)`, `reifegrad()`, `renderGovernance()`, `buildRaciCSV()`, `printGovReport()` | `#governance-view`, `#gov-questions`, `#gov-matrix`, `#gov-score-badge`, `#open-gov-btn` |
 | Persistenz | `saveState()`, `loadState()`, `clearState()` | `datenlotse_*`, `#reset-data-btn` |
 | Seitenleiste (Off-Canvas) | `openSidebar()`, `closeSidebar()` | `#app-sidebar`, `#sidebar-toggle-btn`, `#sidebar-overlay` |
-| Modals (FAQ/CTA/Inventar/Phase-3) | `showModal(id, show)`, `openInventoryModal()`, `openPhase3Wizard()` (+ Backdrop-Klick, Escape, Fokus-Management; `MODALS`-Liste) | `#faq-backdrop`, `#cta-backdrop`, `#inventory-backdrop`, `#phase3-backdrop` |
+| Modals (FAQ/CTA/Inventar/Phase-3/Phase-4&5) | `showModal(id, show)`, `openInventoryModal()`, `openPhase3Wizard()` (+ Backdrop-Klick, Escape, Fokus-Management; `MODALS`-Liste) | `#faq-backdrop`, `#cta-backdrop`, `#inventory-backdrop`, `#phase3-backdrop`, `#phase45-backdrop` |
 
 ---
 
@@ -230,3 +230,4 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v12 | Schritt 4 (3/n) – PDF-Bericht für Inventar + Clearing (`buildInventoryReportHTML`/`printInventoryReport`, Druckfenster) + A11y-/SEO-Feinschliff: `<main>`-Landmark, Skip-Link, `:focus-visible`, Modal-Fokusmanagement (Fokus rein/zurück), `prefers-reduced-motion`, `robots`-Meta, `aria-label` an Titel-Feld |
 | v13 | Onboarding (1/n) – Dateninventar-Erklär-Modal (`#inventory-backdrop`): Klick auf „Dateninventar starten" (Karte) bzw. Sidebar „Dateninventar" ohne Daten öffnet erst einen Erklär-Dialog (was/warum DCAT-AP.de, 5-Schritt-Ablauf, Local-First), der am Ende „Beispiel laden" + „DatenGraf-CSV importieren" anbietet |
 | v14 | Onboarding (2/n) – Phase-3-Prozess-Wizard (`#phase3-backdrop`, 4-stufiger Modal-Stepper): Modul-3-Karte „Phase 3 starten" erklärt erst den Clearing→Pseudonymisierung-Prozess (Worum geht es / Ablauf / Bereitschafts-Check mit Checkboxen / Nächste Schritte) und schlägt am Ende die Tools vor – „Risiko-Clearing öffnen" und (bei personenbezogenen Freitexten hervorgehoben) „Textbereinigung öffnen"; Tools bleiben über Sidebar direkt erreichbar |
+| v15 | Onboarding (3/n) – Phase-4/5-Erklär-Modal (`#phase45-backdrop`): Button „Was bedeuten Phase 4 & 5?" vor „Umsetzung besprechen" im Beratungs-Block öffnet einen Erklär-Dialog zu Pipeline (ETL/Container/CKAN) und zirkulärem Ökosystem (Feedback/Qualität) inkl. Begründung, warum Phase 4 & 5 Beratung statt generischer Software erfordern |

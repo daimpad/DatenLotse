@@ -626,11 +626,13 @@ function showModal(id, show) {
     modalOpener = null;
   }
 }
-const MODALS = ['faq-backdrop', 'cta-backdrop', 'inventory-backdrop', 'phase3-backdrop'];
+const MODALS = ['faq-backdrop', 'cta-backdrop', 'inventory-backdrop', 'phase3-backdrop', 'phase45-backdrop'];
 document.getElementById('faq-btn')?.addEventListener('click', () => showModal('faq-backdrop', true));
 document.getElementById('faq-close-btn')?.addEventListener('click', () => showModal('faq-backdrop', false));
 document.getElementById('cta-btn')?.addEventListener('click', () => showModal('cta-backdrop', true));
 document.getElementById('cta-close-btn')?.addEventListener('click', () => showModal('cta-backdrop', false));
+document.getElementById('open-phase45-btn')?.addEventListener('click', () => showModal('phase45-backdrop', true));
+document.getElementById('phase45-close-btn')?.addEventListener('click', () => showModal('phase45-backdrop', false));
 
 // Dateninventar-Erklär-Modal
 function openInventoryModal() { showModal('inventory-backdrop', true); }
