@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v2` (Script-Tag: `<script src="js/app.js?v=2">`)
+- **Aktuelle Version:** `v3` (Script-Tag: `<script src="js/app.js?v=3">`)
 
 ---
 
@@ -169,3 +169,4 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 |---|---|
 | v1 | Projekt-Skelett Modul 2: DatenGraf-CSV-Import (`importGrafCSV` → `parseCSV`/`deriveInventory`) + Design-Tokens & Layout im DatenGraf-Stil. **Hinweis:** Inventar-UI (`renderInventory`) und DCAT-Export sind in diesem Skelett noch nicht enthalten – aktuell endet der Import mit einer `alert()`-Zusammenfassung. Der vollständige MVP-Bauauftrag (Modul 2) steht noch aus. |
 | v2 | Repo-Fundament & Deployment-Parität: Fonts lokal (Inter + Font Awesome, kein CDN), Favicon-Set + `site.webmanifest`, vollständige `<head>`-Meta (OG/Twitter/Favicons/theme-color), `social-preview.svg`/`robots.txt`/`sitemap.xml`, `LICENSE`/`SECURITY.md`/`CONTRIBUTING.md`/`.gitignore`/`package.json`, README & CLAUDE.md ausgebaut, GitHub-Pages-Workflow (`static.yml`) |
+| v3 | Marken-Assets: neues `logo.svg` (DatenLotse-Mark, lila/gold) + aktualisiertes Favicon-Set; Logo auf der Seite platziert wie bei DatenGraf – `.topbar-logo` (36px neben dem Brand-Text) und `.hero-logo` (rund, mit Border + Schatten, zentriert über der Headline; mobil 110px) |
