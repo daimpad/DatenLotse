@@ -51,6 +51,35 @@ const ACCESS_OPTIONS = [
 let grafRows = [];      // importierte DatenGraf-Zeilen
 let inventory = [];     // abgeleitete DCAT-AP.de-Inventar-Einträge
 
+/* ── LocalStorage-Persistenz (Präfix datenlotse_) ─────────────── */
+const LS_INVENTORY = 'datenlotse_inventory';
+const LS_GOVERNANCE = 'datenlotse_governance';
+
+function saveState() {
+  try {
+    localStorage.setItem(LS_INVENTORY, JSON.stringify(inventory));
+    localStorage.setItem(LS_GOVERNANCE, JSON.stringify(governanceAnswers));
+  } catch (e) { /* Speicher nicht verfügbar/voll – still ignorieren */ }
+}
+
+function loadState() {
+  try {
+    const inv = localStorage.getItem(LS_INVENTORY);
+    if (inv) { const parsed = JSON.parse(inv); if (Array.isArray(parsed)) inventory = parsed; }
+  } catch (e) { /* defekte Inventar-Daten ignorieren */ }
+  try {
+    const gov = localStorage.getItem(LS_GOVERNANCE);
+    if (gov) { const parsed = JSON.parse(gov); if (parsed && typeof parsed === 'object') governanceAnswers = parsed; }
+  } catch (e) { /* defekte Governance-Daten ignorieren */ }
+}
+
+function clearState() {
+  try { localStorage.removeItem(LS_INVENTORY); localStorage.removeItem(LS_GOVERNANCE); } catch (e) { /* ignorieren */ }
+  grafRows = [];
+  inventory = [];
+  governanceAnswers = {};
+}
+
 /* ── XSS-Schutz (wie DatenGraf) ───────────────────────────────── */
 function esc(v) {
   return String(v == null ? '' : v)
@@ -304,6 +333,7 @@ function renderInventory() {
         badge.style.color = pct >= 80 ? 'var(--ampel-gruen)' : pct >= 50 ? 'var(--ampel-gelb)' : 'var(--ampel-rot)';
         const avg = Math.round(inventory.reduce((s, x) => s + completeness(x), 0) / inventory.length);
         meta.textContent = `${inventory.length} Datensätze · Ø ${avg} % DCAT-AP.de-vollständig`;
+        saveState();
       });
     });
   });
@@ -379,6 +409,7 @@ function renderClearing() {
         if (sel.dataset.q === 'art9'  && a.art9 === 'ja') { a.recht = ''; a.anon = ''; }
         if (sel.dataset.q === 'recht' && a.recht !== 'ja') { a.anon = ''; }
         renderClearing();   // progressive Anzeige + Ergebnis neu berechnen
+        saveState();
       });
     });
   });
@@ -468,6 +499,7 @@ function importGrafCSV(text) {
   grafRows = rows;
   inventory = deriveInventory(grafRows);
   renderInventory();
+  saveState();
 }
 
 /* ── Event-Bindings ───────────────────────────────────────────── */
@@ -558,7 +590,7 @@ function showView(name) {
 
 function navTo(target) {
   if (target === 'inventory') {
-    if (inventory.length) showView('inventory');
+    if (inventory.length) renderInventory();   // rendert Karten + showView('inventory') – auch nach Reload
     else { showView('home'); document.getElementById('module-grid')?.scrollIntoView({ behavior: 'smooth' }); }
   } else if (target === 'governance') {
     showView('governance');
@@ -845,6 +877,7 @@ function renderGovQuestions() {
       governanceAnswers[sel.dataset.gov] = sel.value;
       renderGovScore();
       renderRaciMatrix();
+      saveState();
     });
   });
 }
@@ -941,6 +974,19 @@ document.getElementById('gov-export-csv')?.addEventListener('click', () => {
   downloadBlob(buildRaciCSV(), 'datenlotse-raci.csv', 'text/csv');
 });
 document.getElementById('gov-print')?.addEventListener('click', printGovReport);
+
+/* ── Persistenz: gespeicherten Stand laden / zurücksetzen ─────── */
+document.getElementById('reset-data-btn')?.addEventListener('click', () => {
+  const hasData = inventory.length || Object.keys(governanceAnswers).length;
+  if (hasData && !confirm('Gespeicherte Daten (Inventar, Clearing, Governance) wirklich löschen?')) return;
+  clearState();
+  document.getElementById('inventory-body') && (document.getElementById('inventory-body').innerHTML = '');
+  showView('home');
+  closeSidebar();
+});
+
+// Beim Laden den gespeicherten Stand wiederherstellen (still – Daten sind über die Views erreichbar)
+loadState();
 
 /* ──────────────────────────────────────────────────────────────
    ROADMAP / BAUAUFTRÄGE
