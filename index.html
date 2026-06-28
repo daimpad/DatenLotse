@@ -76,9 +76,10 @@
       <button class="icon-close" id="sidebar-close-btn" aria-label="Seitenleiste schließen"><i class="fas fa-xmark"></i></button>
     </div>
     <nav class="app-sidebar-nav">
-      <a href="#module-grid"><i class="fas fa-fw fa-layer-group"></i> Module &amp; Phasen</a>
-      <a href="#modul-inventar"><i class="fas fa-fw fa-boxes-stacked"></i> Dateninventar</a>
-      <a href="#about-accordion"><i class="fas fa-fw fa-circle-info"></i> Über DatenLotse</a>
+      <a href="#" data-view="home"><i class="fas fa-fw fa-house"></i> Start</a>
+      <a href="#" data-view="inventory"><i class="fas fa-fw fa-boxes-stacked"></i> Dateninventar</a>
+      <a href="#" data-view="pseudo"><i class="fas fa-fw fa-user-shield"></i> Textbereinigung</a>
+      <a href="#" data-view="about"><i class="fas fa-fw fa-circle-info"></i> Über DatenLotse</a>
       <a href="https://datengraf.nozilla.net/" target="_blank" rel="noopener"><i class="fas fa-fw fa-circle-nodes"></i> Zu DatenGraf</a>
     </nav>
     <div class="app-sidebar-foot">Weitere Werkzeuge folgen mit den nächsten Phasen.</div>
@@ -88,7 +89,7 @@
   <!-- ── Topbar ────────────────────────────────────────────────── -->
   <header class="topbar">
     <button class="btn btn-secondary btn-icon" id="sidebar-toggle-btn" aria-label="Menü öffnen" title="Menü"><i class="fas fa-bars"></i></button>
-    <div class="topbar-brand">
+    <div class="topbar-brand" id="topbar-brand" role="button" tabindex="0" title="Zur Startseite">
       <img src="logo.svg" alt="DatenLotse" class="topbar-logo">
       <span class="topbar-brand-text">DatenLotse</span>
     </div>
@@ -183,8 +184,8 @@
       <div class="module-icon"><i class="fas fa-shield-halved"></i></div>
       <span class="module-phase">Phase 3 · Clearing</span>
       <h2 class="module-title">Risiko &amp; Pseudonymisierung</h2>
-      <p class="module-desc">Rot/Gelb/Grün-Risikobewertung je Datensatz plus client-seitige Pseudonymisierung deutscher Verwaltungstexte (Namen, Adressen, Aktenzeichen) — strukturerhaltend, nichts verlässt den Browser.</p>
-      <span class="module-badge-soon">Geplant</span>
+      <p class="module-desc">Rot/Gelb/Grün-Risikobewertung je Datensatz (im Inventar) plus client-seitige Pseudonymisierung deutscher Verwaltungstexte (Namen, Adressen, Aktenzeichen) — strukturerhaltend, nichts verlässt den Browser.</p>
+      <button class="btn btn-primary" id="open-pseudo-btn"><i class="fas fa-user-shield"></i> Textbereinigung öffnen</button>
     </article>
 
   </section>
@@ -221,6 +222,48 @@
     </div>
   </section>
 
+  <!-- ── Textbereinigung (Modul 3b) ────────────────────────────── -->
+  <section class="pseudo-view hidden" id="pseudo-view">
+    <div class="inventory-header">
+      <div>
+        <h2 class="inventory-title"><i class="fas fa-user-shield"></i> Textbereinigung</h2>
+        <span class="inventory-meta">Pseudonymisierung deutscher Verwaltungstexte – strukturerhaltend, rein per Regex, lokal im Browser. Nichts wird übertragen.</span>
+      </div>
+      <div class="inventory-actions">
+        <button class="btn btn-secondary" id="pseudo-file-btn"><i class="fas fa-file-arrow-up"></i> .txt/.csv laden</button>
+        <button class="btn btn-secondary" id="pseudo-demo-btn"><i class="fas fa-flask"></i> Beispiel</button>
+        <button class="btn btn-primary" id="pseudo-clean-btn"><i class="fas fa-wand-magic-sparkles"></i> Bereinigen</button>
+      </div>
+    </div>
+
+    <div class="pseudo-grid">
+      <div class="pseudo-col">
+        <label class="pseudo-label" for="pseudo-input">Eingabe</label>
+        <textarea id="pseudo-input" class="pseudo-input" spellcheck="false" placeholder="Verwaltungstext hier einfügen oder Datei laden …"></textarea>
+      </div>
+      <div class="pseudo-col">
+        <div class="pseudo-label-row">
+          <span class="pseudo-label">Bereinigt</span>
+          <button class="pseudo-mini-btn" id="pseudo-download-btn" hidden><i class="fas fa-download"></i> Download</button>
+        </div>
+        <div id="pseudo-output" class="pseudo-output" aria-live="polite"><span class="pseudo-placeholder">Das Ergebnis erscheint hier – erkannte Entitäten werden hervorgehoben.</span></div>
+      </div>
+    </div>
+
+    <div class="pseudo-mapping" id="pseudo-mapping"></div>
+
+    <div class="pseudo-limits">
+      <h3><i class="fas fa-triangle-exclamation"></i> Grenzen der automatischen Erkennung</h3>
+      <ul>
+        <li><strong>Namen</strong> werden nur <em>anrede-getriggert</em> erkannt (Herr/Frau/Hr./Fr./Dr./Prof. + Name). Freistehende Namen entgehen der Erkennung bewusst.</li>
+        <li><strong>Geburtsdaten</strong> nur im Kontext („geb."/„geboren am"). Andere Datumsangaben (Fristen, Bescheiddaten) bleiben absichtlich erhalten.</li>
+        <li><strong>Adressen</strong> nur bei gängigen Straßen-Endungen (-straße, -weg, -gasse, -allee, -platz, -ring, -damm); ungewöhnliche Schreibweisen können entgehen.</li>
+        <li><strong>Reines Regex-Pack</strong>, kein ML/NER. Eine <strong>manuelle Nachkontrolle</strong> ist vor jeder Veröffentlichung zwingend.</li>
+        <li><strong>CSV:</strong> Platzhalter enthalten keine Kommas, Anführungszeichen oder Zeilenumbrüche – die CSV-Struktur bleibt erhalten; Werte in gequoteten Feldern werden trotzdem ersetzt.</li>
+      </ul>
+    </div>
+  </section>
+
   <!-- ── Beratungs-CTA (Phase 4–5) ─────────────────────────────── -->
   <section class="consult-cta">
     <div class="consult-cta-inner">
@@ -246,7 +289,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v7</span>
+    <span class="footer-version">v8</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -310,6 +353,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=7"></script>
+  <script src="js/app.js?v=8"></script>
 </body>
 </html>

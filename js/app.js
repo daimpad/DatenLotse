@@ -248,15 +248,10 @@ function optionsHTML(opts, selected) {
 }
 
 function renderInventory() {
-  const heroEl = document.getElementById('hero');
-  const gridEl = document.getElementById('module-grid');
-  const view   = document.getElementById('inventory-view');
-  const body   = document.getElementById('inventory-body');
-  const meta   = document.getElementById('inventory-meta');
+  const body = document.getElementById('inventory-body');
+  const meta = document.getElementById('inventory-meta');
 
-  if (heroEl) heroEl.style.display = 'none';
-  if (gridEl) gridEl.style.display = 'none';
-  view.classList.remove('hidden');
+  showView('inventory');
   showInventoryTab('inventar');   // bei (Neu-)Import immer mit dem Inventar starten
 
   const avgComplete = inventory.length
@@ -539,10 +534,196 @@ document.addEventListener('keydown', e => {
   closeSidebar();
 });
 
+/* ── View-Umschaltung (home / inventory / pseudo) ─────────────── */
+function showView(name) {
+  ['hero', 'about-accordion', 'module-grid'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (name === 'home') ? '' : 'none';
+  });
+  document.getElementById('inventory-view')?.classList.toggle('hidden', name !== 'inventory');
+  document.getElementById('pseudo-view')?.classList.toggle('hidden', name !== 'pseudo');
+  window.scrollTo({ top: 0 });
+}
+
+function navTo(target) {
+  if (target === 'inventory') {
+    if (inventory.length) showView('inventory');
+    else { showView('home'); document.getElementById('module-grid')?.scrollIntoView({ behavior: 'smooth' }); }
+  } else if (target === 'pseudo') {
+    showView('pseudo');
+  } else if (target === 'about') {
+    showView('home');
+    const det = document.querySelector('#about-accordion details');
+    if (det) det.open = true;
+    document.getElementById('about-accordion')?.scrollIntoView({ behavior: 'smooth' });
+  } else {
+    showView('home');
+  }
+}
+document.querySelectorAll('.app-sidebar-nav a[data-view]').forEach(a =>
+  a.addEventListener('click', e => { e.preventDefault(); navTo(a.dataset.view); }));
+document.getElementById('open-pseudo-btn')?.addEventListener('click', () => navTo('pseudo'));
+document.getElementById('topbar-brand')?.addEventListener('click', () => navTo('home'));
+document.getElementById('topbar-brand')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navTo('home'); }
+});
+
+/* ──────────────────────────────────────────────────────────────
+   Modul 3b: Client-Side-Pseudonymisierung (reines Regex-Pack)
+
+   Strukturerhaltend & deterministisch: pro Entitätstyp ein Zähler +
+   Map(original → platzhalter). Gleicher Wert ⇒ derselbe Platzhalter.
+   Erkennung in definierter Reihenfolge; erkannte Spans werden nach
+   Position sortiert, Überlappungen verworfen (Longest/First-match-wins),
+   dann ersetzt → keine Doppel-Ersetzung. KEIN ML/NER – bewusst konservativ.
+   ────────────────────────────────────────────────────────────── */
+const PSEUDO_LABELS = {
+  name: 'Name', strasse: 'Adresse', plzort: 'PLZ + Ort', az: 'Aktenzeichen',
+  iban: 'IBAN', email: 'E-Mail', telefon: 'Telefon', geburtsdatum: 'Geburtsdatum'
+};
+const PSEUDO_PH = {
+  name: 'PERSON', strasse: 'ADRESSE', plzort: 'ORT', az: 'AZ',
+  iban: 'IBAN', email: 'EMAIL', telefon: 'TELEFON', geburtsdatum: 'GEBURTSDATUM'
+};
+// Reihenfolge = Priorität (spezifisch → allgemein)
+const PSEUDO_PATTERNS = [
+  { type: 'iban',         re: /DE\d{2}\s?(?:\d{4}\s?){4}\d{2}/g },
+  { type: 'email',        re: /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g },
+  { type: 'telefon',      re: /(?:\+49|0)[\d\s\/()\-]{4,}\d/g },
+  { type: 'az',           re: /\bAz\.?\s*[:\-]?\s*[\dIVXLC]+[\/\-][\dIVXLC]+(?:[\/\-]\d{2,4})?\b/g },
+  { type: 'geburtsdatum', re: /(?:geb\.?|geboren am)\s*(\d{1,2}\.\d{1,2}\.\d{2,4})/gid, group: 1 },
+  { type: 'strasse',      re: /[A-ZÄÖÜ][a-zäöüß]+(?:straße|str\.|weg|gasse|allee|platz|ring|damm)\s+\d+[a-z]?/g },
+  { type: 'plzort',       re: /\b\d{5}\s+[A-ZÄÖÜ][a-zäöüß]+(?:[\-\s][A-ZÄÖÜ][a-zäöüß]+)?/g },
+  { type: 'name',         re: /(?:Herr|Frau|Hr\.|Fr\.|Dr\.|Prof\.)\s+([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)?)/gd, group: 1 },
+];
+
+function collectSpans(text) {
+  const spans = [];
+  PSEUDO_PATTERNS.forEach((pat, prio) => {
+    pat.re.lastIndex = 0;
+    let m;
+    while ((m = pat.re.exec(text)) !== null) {
+      if (m[0] === '') { pat.re.lastIndex++; continue; }
+      const gi = pat.group || 0;
+      let start, end, value;
+      if (gi && m.indices && m.indices[gi]) {
+        [start, end] = m.indices[gi];
+        value = m[gi];
+      } else {
+        start = m.index; end = m.index + m[0].length; value = m[0];
+      }
+      spans.push({ start, end, type: pat.type, value, prio });
+    }
+  });
+  return spans;
+}
+
+function selectSpans(spans) {
+  // nach Startposition, dann längster Span, dann höchste Priorität (kleinste prio)
+  spans.sort((a, b) =>
+    a.start - b.start || (b.end - b.start) - (a.end - a.start) || a.prio - b.prio);
+  const out = [];
+  let lastEnd = -1;
+  for (const s of spans) {
+    if (s.start >= lastEnd) { out.push(s); lastEnd = s.end; }
+  }
+  return out;
+}
+
+function pseudonymize(text) {
+  const selected = selectSpans(collectSpans(text));
+  const counters = {};            // type → laufender Index
+  const maps = {};                // type → Map(original → platzhalter)
+  const mapping = [];             // eindeutige Einträge in Reihenfolge
+  let plain = '', html = '', cursor = 0;
+  for (const s of selected) {
+    plain += text.slice(cursor, s.start);
+    html  += esc(text.slice(cursor, s.start));
+    maps[s.type] = maps[s.type] || new Map();
+    let ph = maps[s.type].get(s.value);
+    if (!ph) {
+      counters[s.type] = (counters[s.type] || 0) + 1;
+      ph = `[${PSEUDO_PH[s.type]}_${counters[s.type]}]`;
+      maps[s.type].set(s.value, ph);
+      mapping.push({ type: s.type, label: PSEUDO_LABELS[s.type], placeholder: ph, original: s.value });
+    }
+    plain += ph;
+    html  += `<mark class="pseudo-hit" title="${esc(PSEUDO_LABELS[s.type])}: ${esc(s.value)}">${esc(ph)}</mark>`;
+    cursor = s.end;
+  }
+  plain += text.slice(cursor);
+  html  += esc(text.slice(cursor));
+  return { text: plain, html, mapping, count: selected.length };
+}
+
+const PSEUDO_DEMO =
+`Sehr geehrter Herr Max Mustermann,
+
+in der Sache Az. 12/345/67 bestätigen wir den Eingang Ihres Antrags.
+Herr Max Mustermann, wohnhaft Musterstraße 12a, 12345 Musterstadt,
+geb. 03.04.1985, wird um Rückmeldung gebeten.
+Zahlungen erfolgen auf IBAN DE12 3456 7890 1234 5678 90.
+Kontakt: max.mustermann@example.de, Tel. +49 30 1234567.
+Der Bescheid vom 15.03.2024 bleibt davon unberührt.`;
+
+let lastPseudoText = null;
+
+function runPseudonymize() {
+  const inputEl = document.getElementById('pseudo-input');
+  const outEl = document.getElementById('pseudo-output');
+  const mapEl = document.getElementById('pseudo-mapping');
+  const dlBtn = document.getElementById('pseudo-download-btn');
+  const text = inputEl.value;
+  if (!text.trim()) {
+    outEl.innerHTML = '<span class="pseudo-placeholder">Bitte zuerst einen Text eingeben oder das Beispiel laden.</span>';
+    mapEl.innerHTML = ''; dlBtn.hidden = true; lastPseudoText = null;
+    return;
+  }
+  const res = pseudonymize(text);
+  lastPseudoText = res.text;
+  outEl.innerHTML = res.html;
+  if (res.mapping.length) {
+    mapEl.innerHTML =
+      `<div class="pseudo-map-head"><i class="fas fa-table-list"></i> Ersetzungen (${res.mapping.length})</div>` +
+      `<table class="pseudo-map"><thead><tr><th>Platzhalter</th><th>Typ</th><th>Original</th></tr></thead><tbody>` +
+      res.mapping.map(m =>
+        `<tr><td><code>${esc(m.placeholder)}</code></td><td>${esc(m.label)}</td><td>${esc(m.original)}</td></tr>`
+      ).join('') +
+      `</tbody></table>`;
+  } else {
+    mapEl.innerHTML = '<div class="pseudo-map-head pseudo-map-empty"><i class="fas fa-circle-check"></i> Keine erkennbaren personenbezogenen Muster gefunden – bitte trotzdem manuell prüfen.</div>';
+  }
+  dlBtn.hidden = false;
+}
+
+function pickPseudoFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.txt,.csv,text/plain,text/csv';
+  input.addEventListener('change', () => {
+    const f = input.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { document.getElementById('pseudo-input').value = r.result; };
+    r.readAsText(f, 'utf-8');
+  });
+  input.click();
+}
+
+document.getElementById('pseudo-clean-btn')?.addEventListener('click', runPseudonymize);
+document.getElementById('pseudo-file-btn')?.addEventListener('click', pickPseudoFile);
+document.getElementById('pseudo-demo-btn')?.addEventListener('click', () => {
+  document.getElementById('pseudo-input').value = PSEUDO_DEMO;
+  runPseudonymize();
+});
+document.getElementById('pseudo-download-btn')?.addEventListener('click', () => {
+  if (lastPseudoText != null) downloadBlob(lastPseudoText, 'bereinigt.txt', 'text/plain');
+});
+
 /* ──────────────────────────────────────────────────────────────
    ROADMAP / BAUAUFTRÄGE
    ────────────────────────────────────────────────────────────── */
 // ✓ MVP  – Modul 2: Inventar-Import, Nacherfassung, DCAT-AP.de-Export
-// Next   – Modul 3a: Rot/Gelb/Grün-Clearing-Entscheidungsbaum
-// Next   – Modul 3b: Client-Side-Pseudonymisierung (Regex-Pack DE Verwaltung)
+// ✓      – Modul 3a: Rot/Gelb/Grün-Clearing-Entscheidungsbaum
+// ✓      – Modul 3b: Client-Side-Pseudonymisierung (Regex-Pack DE Verwaltung)
 // Last   – Modul 1: Governance-Fragebogen → RACI-Matrix
