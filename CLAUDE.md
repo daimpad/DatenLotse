@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v10` (Script-Tag: `<script src="js/app.js?v=10">`)
+- **Aktuelle Version:** `v11` (Script-Tag: `<script src="js/app.js?v=11">`)
 
 ---
 
@@ -66,11 +66,12 @@ Vier Views: `home` (Hero + Akkordeon + Modul-Grid), `inventory` (Inventar/Cleari
 
 ### LocalStorage-Schlüssel
 
-Präfix `datenlotse_` (analog DatenGrafs `datengraf_`). Immer try/catch um JSON-Parsing. *(Persistenz folgt in Schritt 4.)*
+Präfix `datenlotse_` (analog DatenGrafs `datengraf_`). Immer try/catch um JSON-Parsing. `saveState()` schreibt nach jeder Mutation (Import, Inventar-Edit, Clearing-Antwort, Governance-Antwort), `loadState()` stellt beim Laden wieder her, `clearState()` (Sidebar „Gespeicherte Daten löschen") leert alles.
 
 | Schlüssel | Inhalt |
 |---|---|
-| `datenlotse_inventory` | Inventar inkl. Clearing-Ergebnisse (JSON) |
+| `datenlotse_inventory` | Inventar inkl. Clearing-Antworten/-Ergebnis (`d._clearing`, `d.clearing`) als JSON |
+| `datenlotse_governance` | Governance-Fragebogen-Antworten (`governanceAnswers`) als JSON |
 
 ---
 
@@ -191,6 +192,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | Clearing-Ampel (Modul 3a) | `evaluateClearing(a)`, `renderClearing()`, `initClearing(d)`, `ensureAllClearing()`, `showInventoryTab(name)` | `#tab-clearing`, `#clearing-panel`, `#clearing-summary`, `.clear-card`, `[data-q]` |
 | Pseudonymisierung (Modul 3b) | `pseudonymize(text)`, `collectSpans`, `selectSpans`, `runPseudonymize()`, `showView(name)`, `navTo(target)` | `#pseudo-view`, `#pseudo-input`, `#pseudo-output`, `#pseudo-mapping`, `#open-pseudo-btn` |
 | Governance/RACI (Modul 1) | `deriveDomains()`, `raciFor(d)`, `reifegrad()`, `renderGovernance()`, `buildRaciCSV()`, `printGovReport()` | `#governance-view`, `#gov-questions`, `#gov-matrix`, `#gov-score-badge`, `#open-gov-btn` |
+| Persistenz | `saveState()`, `loadState()`, `clearState()` | `datenlotse_*`, `#reset-data-btn` |
 | Seitenleiste (Off-Canvas) | `openSidebar()`, `closeSidebar()` | `#app-sidebar`, `#sidebar-toggle-btn`, `#sidebar-overlay` |
 | FAQ-/CTA-Modal | `showModal(id, show)` (+ Backdrop-Klick, Escape) | `#faq-btn`, `#faq-backdrop`, `#cta-btn`, `#cta-backdrop` |
 
@@ -222,3 +224,4 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v8 | Modul 3b – Client-Side-Pseudonymisierung: eigene View „Textbereinigung" mit Regex-Pack für DE-Verwaltung (Name, Adresse, PLZ+Ort, Aktenzeichen, IBAN, E-Mail, Telefon, kontextgebundenes Geburtsdatum), strukturerhaltende & deterministische Platzhalter (Longest-match-wins, keine Doppel-Ersetzung), hervorgehobene Ausgabe + Mapping-Tabelle + Download + sichtbare Grenzen-Liste; `showView`/`navTo`-Routing (3 Views), Topbar-Brand → Start, Modul-3-Button + Sidebar-Link |
 | v9 | Modul 1 – Governance & Rollen: eigene View mit 8-Fragen-Reifegrad-Check (gewichtet, 0–100, Ampel) und RACI-Matrix (Domänen aus Inventar abgeleitet, festes Rollen-Template, DSB abhängig von DSGVO-Relevanz, Lücken-Markierung aus dem Fragebogen); Export als RACI-CSV und PDF/Druck-Bericht; vierte View im `showView`-Routing |
 | v10 | Schritt 4 (1/n) – Beispieldaten: `data/sample-kommune.csv` (12 Datensätze einer fiktiven Stadtverwaltung, gemischter Schutzbedarf) + `data/template.csv`; „Beispiel laden"-Buttons (`[data-sample]` → `loadSampleData()` via `fetch`) auf der Modul-2-Karte und im Governance-Empty-State – speist Inventar, Clearing & Governance zugleich |
+| v11 | Schritt 4 (2/n) – LocalStorage-Persistenz: `saveState()`/`loadState()`/`clearState()` sichern Inventar (inkl. Clearing-Antworten) und Governance-Antworten unter `datenlotse_*` und stellen sie beim Laden wieder her; „Gespeicherte Daten löschen" in der Seitenleiste; `navTo('inventory')` rendert nach Reload neu |
