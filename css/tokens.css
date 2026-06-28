@@ -1,0 +1,32 @@
+/* ──────────────────────────────────────────────────────────────
+   DatenLotse – Design Tokens
+   1:1 aus DatenGraf übernommen, damit beide Tools optisch eine
+   Familie bilden. Diese Datei NICHT divergieren lassen – Änderungen
+   am Designsystem hier und in DatenGraf synchron halten.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  --c-bg:        #f0edf8;
+  --c-surface:   rgba(255, 255, 255, 0.72);
+  --c-border:    rgba(255, 255, 255, 0.4);
+  --c-border-s:  rgba(180, 170, 210, 0.35);
+  --c-text:      #1e1b2e;
+  --c-muted:     #7a7591;
+  --c-accent:    #420093;
+  --c-accent-h:  #000000;
+  --c-danger:    #c0392b;
+  --c-success:   #2e9e60;
+  --c-warn:      #d4820a;
+
+  /* Clearing-Ampel (Phase 3) */
+  --ampel-rot:   #c0392b;
+  --ampel-gelb:  #d4820a;
+  --ampel-gruen: #2e9e60;
+
+  --radius:    10px;
+  --shadow-sm: 0 2px 8px rgba(66, 0, 147, 0.06);
+  --shadow-md: 0 4px 24px rgba(66, 0, 147, 0.10);
+  --shadow-lg: 0 8px 40px rgba(66, 0, 147, 0.14);
+  --glass-bg:  rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --ease-fluid: cubic-bezier(0.25, 1, 0.5, 1);
+}

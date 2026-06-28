@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DatenLotse – Von der Datenökosystem-Map zur Open-Data-Umsetzung</title>
+  <meta name="description" content="DatenLotse führt Verwaltungen und Organisationen von der kartierten Datenökosystem-Map zur operativen Umsetzung: Dateninventar nach DCAT-AP.de, Risiko-Clearing und datenschutzkonforme Pseudonymisierung – lokal im Browser.">
+
+  <link rel="canonical" href="https://datenlotse.nozilla.net/">
+
+  <!-- Open Graph -->
+  <meta property="og:title"       content="DatenLotse – Von der Map zur Open-Data-Umsetzung">
+  <meta property="og:description" content="Dateninventar nach DCAT-AP.de, Risiko-Clearing und datenschutzkonforme Pseudonymisierung – lokal im Browser, ohne Server.">
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="https://datenlotse.nozilla.net/">
+  <meta property="og:locale"      content="de_DE">
+  <meta property="og:site_name"   content="DatenLotse">
+
+  <!-- Fonts (lokal hosten wie bei DatenGraf – assets/fonts/ übernehmen) -->
+  <!-- <link rel="stylesheet" href="assets/fonts/inter/inter.css"> -->
+  <!-- <link rel="stylesheet" href="assets/fonts/fa/all.min.css"> -->
+  <!-- Übergang: bis Fonts lokal liegen, FA per CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- ── Topbar ────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-brand-text">DatenLotse</span>
+      <span class="topbar-tag">Open-Data-Operationalisierung</span>
+    </div>
+    <div class="topbar-spacer"></div>
+    <a class="btn btn-secondary" href="https://datengraf.nozilla.net/" target="_blank" rel="noopener">
+      <i class="fas fa-circle-nodes"></i> Zu DatenGraf
+    </a>
+  </header>
+
+  <!-- ── Hero ──────────────────────────────────────────────────── -->
+  <section class="hero">
+    <h1 class="hero-headline">Von der Datenökosystem-Map zur Umsetzung</h1>
+    <p class="hero-sub">DatenGraf zeigt, <em>wie</em> deine Datenflüsse aussehen. DatenLotse zeigt, <em>was du jetzt tust</em>: Dateninventar aufbauen, Risiken klären, datenschutzkonform standardisieren und als Open Data bereitstellen — lokal im Browser, ohne Server.</p>
+    <p class="hero-from-graf">
+      <i class="fas fa-file-csv"></i>
+      Schon kartiert? <a href="#modul-inventar">DatenGraf-CSV importieren</a> und direkt mit dem Inventar starten.
+    </p>
+  </section>
+
+  <!-- ── Modul-Grid ────────────────────────────────────────────── -->
+  <section class="module-grid">
+
+    <!-- Modul 1 – Governance -->
+    <article class="module-card">
+      <div class="module-icon"><i class="fas fa-users-gear"></i></div>
+      <span class="module-phase">Phase 1 · Fundament</span>
+      <h2 class="module-title">Governance &amp; Rollen</h2>
+      <p class="module-desc">Geführter Check zu Zuständigkeiten und Data Stewards. Ergebnis: eine RACI-Matrix und ein Reifegrad-Ampelbild für dein Datenmanagement.</p>
+      <span class="module-badge-soon">Geplant</span>
+    </article>
+
+    <!-- Modul 2 – Inventar (MVP) -->
+    <article class="module-card" id="modul-inventar">
+      <div class="module-icon"><i class="fas fa-boxes-stacked"></i></div>
+      <span class="module-phase">Phase 2 · Asset Management</span>
+      <h2 class="module-title">Dateninventar</h2>
+      <p class="module-desc">Importiere die DatenGraf-CSV und reichere jeden Datensatz um DCAT-AP.de-Metadaten an (Publisher, Lizenz, Aktualisierungszyklus). Export als DCAT-konformes JSON/CSV für GovData &amp; CKAN.</p>
+      <button class="btn btn-primary" id="btn-import-graf"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
+    </article>
+
+    <!-- Modul 3 – Clearing & Pseudonymisierung -->
+    <article class="module-card">
+      <div class="module-icon"><i class="fas fa-shield-halved"></i></div>
+      <span class="module-phase">Phase 3 · Clearing</span>
+      <h2 class="module-title">Risiko &amp; Pseudonymisierung</h2>
+      <p class="module-desc">Rot/Gelb/Grün-Risikobewertung je Datensatz plus client-seitige Pseudonymisierung deutscher Verwaltungstexte (Namen, Adressen, Aktenzeichen) — strukturerhaltend, nichts verlässt den Browser.</p>
+      <span class="module-badge-soon">Geplant</span>
+    </article>
+
+  </section>
+
+  <!-- ── Beratungs-CTA (Phase 4–5) ─────────────────────────────── -->
+  <section class="consult-cta">
+    <div class="consult-cta-inner">
+      <div>
+        <h2 class="consult-cta-headline">Phase 4 &amp; 5: Pipeline &amp; zirkuläres Ökosystem</h2>
+        <p class="consult-cta-sub">ETL-Automatisierung, Container-Infrastruktur, CKAN-Anbindung und Feedback-Schleifen begleiten wir persönlich — als Workshop oder maßgeschneiderte Umsetzung.</p>
+      </div>
+      <a class="btn consult-cta-btn" href="https://nozilla.de/kontakt/" target="_blank" rel="noopener">
+        <i class="fas fa-arrow-right"></i> Umsetzung besprechen
+      </a>
+    </div>
+  </section>
+
+  <!-- ── Footer ────────────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <a class="footer-brand" href="https://nozilla.de/" target="_blank" rel="noopener">nozilla | bits &amp; bytes mit ❤</a>
+    <a href="https://nozilla.de/impressum/" target="_blank" rel="noopener">Impressum</a>
+    <a href="https://nozilla.de/datenschutz/" target="_blank" rel="noopener">Datenschutz</a>
+    <span>v1</span>
+  </footer>
+
+  <script src="js/app.js?v=1"></script>
+</body>
+</html>
