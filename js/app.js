@@ -283,22 +283,56 @@ function optionsHTML(opts, selected) {
   ).join('');
 }
 
-function renderInventory() {
-  const body = document.getElementById('inventory-body');
-  const meta = document.getElementById('inventory-meta');
+// Filter-/Sortier-/Suchzustand der Inventar-Liste
+const invFilter = { q: '', schutz: '', ampel: '', sort: '' };
 
+function filteredInventory() {
+  if (invFilter.ampel) ensureAllClearing();   // Ampel-Filter braucht das Clearing-Ergebnis
+  let list = inventory.map((d, idx) => ({ d, idx }));
+  const q = invFilter.q.toLowerCase().trim();
+  if (q) list = list.filter(({ d }) =>
+    [d.title, d.publisher, d.sourceSystem, d.description].some(v => (v || '').toLowerCase().includes(q)));
+  if (invFilter.schutz) {
+    const re = new RegExp(invFilter.schutz === 'oeffentlich' ? 'öffentlich|oeffentlich' : invFilter.schutz, 'i');
+    list = list.filter(({ d }) => re.test(d._grafSchutzbedarf || ''));
+  }
+  if (invFilter.ampel) list = list.filter(({ d }) => d.clearing?.ampel === invFilter.ampel);
+  if (invFilter.sort === 'title') list.sort((a, b) => a.d.title.localeCompare(b.d.title, 'de'));
+  else if (invFilter.sort === 'complete-desc') list.sort((a, b) => completeness(b.d) - completeness(a.d));
+  else if (invFilter.sort === 'complete-asc') list.sort((a, b) => completeness(a.d) - completeness(b.d));
+  return list;
+}
+
+function invMetaText() {
+  const total = inventory.length;
+  const avg = total ? Math.round(inventory.reduce((s, d) => s + completeness(d), 0) / total) : 0;
+  const shown = filteredInventory().length;
+  const head = shown === total ? `${total} Datensätze` : `${shown} von ${total} Datensätzen`;
+  return `${head} · Ø ${avg} % DCAT-AP.de-vollständig`;
+}
+
+function renderInventory() {
   showView('inventory');
   showInventoryTab('inventar');   // bei (Neu-)Import immer mit dem Inventar starten
+  renderInventoryBody();
+}
 
-  const avgComplete = inventory.length
-    ? Math.round(inventory.reduce((s, d) => s + completeness(d), 0) / inventory.length) : 0;
-  meta.textContent = `${inventory.length} Datensätze · Ø ${avgComplete} % DCAT-AP.de-vollständig`;
+function renderInventoryBody() {
+  const body = document.getElementById('inventory-body');
+  const meta = document.getElementById('inventory-meta');
+  if (!body) return;
+  meta.textContent = invMetaText();
 
-  body.innerHTML = inventory.map((d, i) => {
+  const list = filteredInventory();
+  if (!list.length) {
+    body.innerHTML = '<p class="inv-empty">Keine Datensätze passen zur Suche bzw. den Filtern.</p>';
+    return;
+  }
+  body.innerHTML = list.map(({ d, idx }) => {
     const pct = completeness(d);
     const pctColor = pct >= 80 ? 'var(--ampel-gruen)' : pct >= 50 ? 'var(--ampel-gelb)' : 'var(--ampel-rot)';
     return `
-    <div class="inv-card" data-idx="${i}">
+    <div class="inv-card" data-idx="${idx}">
       <div class="inv-card-head">
         <input class="inv-title" data-field="title" aria-label="Titel des Datensatzes" value="${esc(d.title)}" placeholder="Titel des Datensatzes">
         <span class="inv-complete" style="color:${pctColor}">${pct}%</span>
@@ -327,24 +361,28 @@ function renderInventory() {
     </div>`;
   }).join('');
 
-  // Feld-Änderungen zurück in den State schreiben
+  // Feld-Änderungen zurück in den State schreiben (idx = echter Index in inventory)
   body.querySelectorAll('.inv-card').forEach(card => {
     const idx = +card.dataset.idx;
     card.querySelectorAll('[data-field]').forEach(el => {
       el.addEventListener('input', () => {
         inventory[idx][el.dataset.field] = el.value;
-        // Vollständigkeit live aktualisieren
         const pct = completeness(inventory[idx]);
         const badge = card.querySelector('.inv-complete');
         badge.textContent = pct + '%';
         badge.style.color = pct >= 80 ? 'var(--ampel-gruen)' : pct >= 50 ? 'var(--ampel-gelb)' : 'var(--ampel-rot)';
-        const avg = Math.round(inventory.reduce((s, x) => s + completeness(x), 0) / inventory.length);
-        meta.textContent = `${inventory.length} Datensätze · Ø ${avg} % DCAT-AP.de-vollständig`;
+        document.getElementById('inventory-meta').textContent = invMetaText();
         saveState();
       });
     });
   });
 }
+
+// Controls (Suche/Filter/Sortierung) – einmal binden, nur den Body neu rendern
+document.getElementById('inv-search')?.addEventListener('input', e => { invFilter.q = e.target.value; renderInventoryBody(); });
+document.getElementById('inv-filter-schutz')?.addEventListener('change', e => { invFilter.schutz = e.target.value; renderInventoryBody(); });
+document.getElementById('inv-filter-ampel')?.addEventListener('change', e => { invFilter.ampel = e.target.value; renderInventoryBody(); });
+document.getElementById('inv-sort')?.addEventListener('change', e => { invFilter.sort = e.target.value; renderInventoryBody(); });
 
 /* ── Rendering: Risiko-Clearing (Modul 3a) ────────────────────── */
 const PB_OPTS    = [['ja', 'Ja'], ['nein', 'Nein'], ['unklar', 'Unklar']];

@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v16` (Script-Tag: `<script src="js/app.js?v=16">`)
+- **Aktuelle Version:** `v17` (Script-Tag: `<script src="js/app.js?v=17">`)
 
 ---
 
@@ -111,6 +111,10 @@ Das Schema ist die **öffentliche API** zwischen DatenGraf und DatenLotse und 1:
 
 `completeness(d)` misst den Anteil gefüllter `REQUIRED_FIELDS` (`title, publisher, contactPoint, accrualPeriodicity, license, accessRights`) als 0–100 %. Schwellen für die Badge-Farbe: ≥ 80 % `--ampel-gruen`, ≥ 50 % `--ampel-gelb`, sonst `--ampel-rot`. Eingaben werden per `input`-Listener live in `inventory[idx]` zurückgeschrieben und Badge + Durchschnitt sofort aktualisiert.
 
+### Suche, Filter & Sortierung (Inventar)
+
+`renderInventory()` setzt View/Tab und ruft `renderInventoryBody()`; nur Letzteres rendert die Kartenliste neu und wird bei jeder Sucheingabe/Filter-/Sortieränderung erneut aufgerufen (die `.inv-controls` selbst werden **einmalig** gebunden, nicht neu gerendert → kein Fokusverlust im Suchfeld). Zustand in `invFilter = { q, schutz, ampel, sort }`. `filteredInventory()` projiziert `inventory` auf `{ d, idx }`-Paare (der **echte** Index bleibt erhalten), filtert über Volltext (`title/publisher/sourceSystem/description`), `Schutzbedarf` (Regex, `oeffentlich` matcht ö/oe) und Clearing-Ampel (`ensureAllClearing()` davor) und sortiert nach Titel oder Vollständigkeit. Da der `idx` durch den Filter mitgeführt wird, schreiben die `input`-Listener weiterhin korrekt nach `inventory[idx]` — Editieren über einer gefilterten Teilmenge trifft immer den richtigen Datensatz. `invMetaText()` zeigt „X von Y Datensätzen · Ø Z %"; leeres Ergebnis ⇒ `.inv-empty`-Hinweis.
+
 ### Clearing-Ampel (Modul 3a)
 
 Zweiter Tab in der Inventar-View (`#tab-clearing` → `#clearing-panel`), operiert auf denselben `inventory`-Einträgen. Pro Datensatz ein kompakter Fragebogen; das Ergebnis ist ein **deterministischer** Entscheidungsbaum (kein ML) in `evaluateClearing(a)`. Antworten liegen unter `d._clearing = { pb, art9, recht, anon }`, das Ergebnis unter `d.clearing = { ampel, begruendung, empfehlung }`.
@@ -198,7 +202,8 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 |---|---|---|
 | CSV-Import (DatenGraf-Brücke) | `importGrafCSV(text)`, `pickAndImport()`, `loadSampleData(file)`, `parseCSV(text)`, `splitCSVLine(line)` | `#btn-import-graf`, `#btn-import-again`, `[data-sample]` |
 | Inventar-Ableitung | `deriveInventory(rows)`, `mapSchutzToAccess(schutz)`, `mapHaeufigkeit(h)`, `slug(s)` | — |
-| Inventar-Rendering | `renderInventory()`, `completeness(d)`, `optionsHTML(opts, sel)` | `#inventory-view`, `#inventory-body`, `.inv-card`, `[data-field]` |
+| Inventar-Rendering | `renderInventory()`, `renderInventoryBody()`, `completeness(d)`, `optionsHTML(opts, sel)` | `#inventory-view`, `#inventory-body`, `.inv-card`, `[data-field]` |
+| Inventar Suche/Filter/Sortierung | `filteredInventory()`, `invMetaText()`, `invFilter` (State) | `.inv-controls`, `#inv-search`, `#inv-filter-schutz`, `#inv-filter-ampel`, `#inv-sort`, `.inv-empty` |
 | DCAT-Export | `buildDcatJSON()`, `buildInventoryCSV()`, `csvCell(v)`, `downloadBlob()` | `#btn-export-json`, `#btn-export-csv` |
 | PDF-Bericht Inventar/Clearing | `buildInventoryReportHTML()`, `printInventoryReport()` | `#btn-print-inventory` |
 | Clearing-Ampel (Modul 3a) | `evaluateClearing(a)`, `renderClearing()`, `initClearing(d)`, `ensureAllClearing()`, `showInventoryTab(name)` | `#tab-clearing`, `#clearing-panel`, `#clearing-summary`, `.clear-card`, `[data-q]` |
@@ -244,3 +249,4 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v14 | Onboarding (2/n) – Phase-3-Prozess-Wizard (`#phase3-backdrop`, 4-stufiger Modal-Stepper): Modul-3-Karte „Phase 3 starten" erklärt erst den Clearing→Pseudonymisierung-Prozess (Worum geht es / Ablauf / Bereitschafts-Check mit Checkboxen / Nächste Schritte) und schlägt am Ende die Tools vor – „Risiko-Clearing öffnen" und (bei personenbezogenen Freitexten hervorgehoben) „Textbereinigung öffnen"; Tools bleiben über Sidebar direkt erreichbar |
 | v15 | Onboarding (3/n) – Phase-4/5-Erklär-Modal (`#phase45-backdrop`): Button „Was bedeuten Phase 4 & 5?" vor „Umsetzung besprechen" im Beratungs-Block öffnet einen Erklär-Dialog zu Pipeline (ETL/Container/CKAN) und zirkulärem Ökosystem (Feedback/Qualität) inkl. Begründung, warum Phase 4 & 5 Beratung statt generischer Software erfordern |
 | v16 | Daten-Kompass (Herzstück) – eigene View + Hero-Haupt-CTA (Topbar-„Loslegen" zeigt ebenfalls darauf): ausführliche Open-Data-Reifegrad-Checkliste nach ODRA / EU Open Data Maturity / 5-Sterne / DCAT-AP.de / DSGVO·FAIR (7 Dimensionen, Quellenangaben), Status je Item mit Score & Ampel, Vorbelegung aus dem App-Stand, adaptive Sprünge in die passenden Bausteine, Persistenz (`datenlotse_kompass`) und PDF-Export; leeres „Loslegen"-Platzhalter-Modal entfernt |
+| v17 | Weiterer Ausbau (1/4) – Inventar Suche, Filter & Sortierung: `renderInventory()` in `renderInventory()` + `renderInventoryBody()` aufgeteilt; `.inv-controls` (Volltextsuche + Schutzbedarf-/Clearing-Ampel-Filter + Sortierung Titel/Vollständigkeit) über `invFilter`-State und `filteredInventory()`; der echte `idx` wird durch den Filter mitgeführt, sodass Editieren über gefilterten Teilmengen weiterhin den richtigen Datensatz trifft; Live-Meta „X von Y" + Empty-State |

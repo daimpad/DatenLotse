@@ -227,6 +227,27 @@
     <!-- Tab: Inventar -->
     <div class="inventar-panel" id="inventar-panel">
       <p class="inventory-hint">Ergänze die offenen Pflichtfelder (Lizenz, Aktualisierungszyklus, Zugriffsrechte). Die Prozentanzeige zeigt die DCAT-AP.de-Vollständigkeit je Datensatz. Alles bleibt lokal im Browser.</p>
+      <div class="inv-controls">
+        <input type="search" id="inv-search" class="inv-search" placeholder="Suchen (Titel, Publisher, Quellsystem)…" aria-label="Inventar durchsuchen">
+        <select id="inv-filter-schutz" aria-label="Nach Schutzbedarf filtern">
+          <option value="">Schutzbedarf: alle</option>
+          <option value="dsgvo">DSGVO-relevant</option>
+          <option value="intern">Intern</option>
+          <option value="oeffentlich">Öffentlich</option>
+        </select>
+        <select id="inv-filter-ampel" aria-label="Nach Clearing-Ampel filtern">
+          <option value="">Clearing: alle</option>
+          <option value="gruen">Grün</option>
+          <option value="gelb">Gelb</option>
+          <option value="rot">Rot</option>
+        </select>
+        <select id="inv-sort" aria-label="Inventar sortieren">
+          <option value="">Sortierung: Original</option>
+          <option value="title">Titel A–Z</option>
+          <option value="complete-desc">Vollständigkeit ↓</option>
+          <option value="complete-asc">Vollständigkeit ↑</option>
+        </select>
+      </div>
       <div class="inventory-body" id="inventory-body"></div>
     </div>
 
@@ -382,7 +403,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v16</span>
+    <span class="footer-version">v17</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -524,6 +545,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=16"></script>
+  <script src="js/app.js?v=17"></script>
 </body>
 </html>
