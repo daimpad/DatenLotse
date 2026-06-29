@@ -87,6 +87,72 @@ function clearState() {
   kompassState = {};
 }
 
+/* ── Projekt-Export/-Import (kompletter Stand als .json) ──────────
+   Sichert/restauriert den gesamten Arbeitsstand portabel als eine
+   Datei – über LocalStorage hinaus (Gerätewechsel, Backup, Teilen).
+   Versionierter Umschlag; Import prüft Herkunft und füllt fehlende
+   Teile defensiv. grafRows wird mitgesichert (anders als im
+   LocalStorage), damit der Import-Kontext vollständig ist. */
+const PROJECT_SCHEMA = 1;
+
+function buildProjectJSON() {
+  return JSON.stringify({
+    app: 'DatenLotse',
+    schema: PROJECT_SCHEMA,
+    version: 'v20',
+    exportedAt: new Date().toISOString(),
+    data: { grafRows, inventory, governanceAnswers, kompassState }
+  }, null, 2);
+}
+
+function exportProject() {
+  const hasData = grafRows.length || inventory.length ||
+    Object.keys(governanceAnswers).length || Object.keys(kompassState).length;
+  if (!hasData) {
+    alert('Es gibt noch keinen Stand zum Speichern. Importiere zuerst eine DatenGraf-CSV oder lade das Beispiel.');
+    return;
+  }
+  const stamp = new Date().toISOString().slice(0, 10);
+  downloadBlob(buildProjectJSON(), `datenlotse-projekt-${stamp}.json`, 'application/json');
+}
+
+function importProject(text) {
+  let obj;
+  try { obj = JSON.parse(text); }
+  catch (e) { alert('Die Datei ist kein gültiges JSON.'); return false; }
+  if (!obj || obj.app !== 'DatenLotse' || !obj.data || typeof obj.data !== 'object') {
+    alert('Diese Datei ist kein DatenLotse-Projekt (.json).');
+    return false;
+  }
+  const hasData = inventory.length || Object.keys(governanceAnswers).length || Object.keys(kompassState).length;
+  if (hasData && !confirm('Aktuellen Stand durch das geladene Projekt ersetzen? Nicht exportierte Änderungen gehen verloren.')) {
+    return false;
+  }
+  const d = obj.data;
+  grafRows          = Array.isArray(d.grafRows) ? d.grafRows : [];
+  inventory         = Array.isArray(d.inventory) ? d.inventory : [];
+  governanceAnswers = (d.governanceAnswers && typeof d.governanceAnswers === 'object') ? d.governanceAnswers : {};
+  kompassState      = (d.kompassState && typeof d.kompassState === 'object') ? d.kompassState : {};
+  saveState();
+  if (inventory.length) renderInventory();   // sinnvolle Ansicht; sonst Startseite
+  else showView('home');
+  return true;
+}
+
+function pickAndImportProject() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.addEventListener('change', () => {
+    const f = input.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { if (importProject(r.result)) closeSidebar(); };
+    r.readAsText(f, 'utf-8');
+  });
+  input.click();
+}
+
 /* ── XSS-Schutz (wie DatenGraf) ───────────────────────────────── */
 function esc(v) {
   return String(v == null ? '' : v)
@@ -1474,7 +1540,9 @@ function printKompass() {
 }
 document.getElementById('kompass-print')?.addEventListener('click', printKompass);
 
-/* ── Persistenz: gespeicherten Stand laden / zurücksetzen ─────── */
+/* ── Persistenz: Projekt speichern/laden & zurücksetzen ───────── */
+document.getElementById('project-save-btn')?.addEventListener('click', () => { exportProject(); closeSidebar(); });
+document.getElementById('project-load-btn')?.addEventListener('click', pickAndImportProject);
 document.getElementById('reset-data-btn')?.addEventListener('click', () => {
   const hasData = inventory.length || Object.keys(governanceAnswers).length || Object.keys(kompassState).length;
   if (hasData && !confirm('Gespeicherte Daten (Inventar, Clearing, Governance, Kompass) wirklich löschen?')) return;

@@ -32,6 +32,7 @@
 | 🚦 | **Clearing-Ampel (Rot-Gelb-Grün)** | Transparenter, deterministischer Entscheidungsbaum je Datensatz (Schutzbedarf-Vorbelegung, Art.-9-/Rechtsgrundlage-/Anonymisierbarkeit-Prüfung) mit nachvollziehbarer Begründung, Gesamtübersicht und Ampel-Spalte im CSV-Export |
 | 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende, deterministische Bereinigung deutscher Verwaltungstexte (Namen anrede-getriggert, Adressen, PLZ+Ort, Aktenzeichen/Geschäftszeichen, IBAN, E-Mail, Telefon, Geburtsdatum im Kontext, **Steuer-ID**, **Sozialversicherungsnummer**, **Kfz-Kennzeichen**) mit konsistenten Platzhaltern, Mapping-Tabelle samt **CSV-Export** und Download – rein per Regex, nichts verlässt den Browser |
 | 👥 | **Governance & RACI** | 8-Fragen-Reifegrad-Check (gewichtet, 0–100) + automatisch aus dem Inventar abgeleitete RACI-Matrix (Domänen × Rollen) mit Lücken-Markierung; Export als CSV und PDF/Druck-Bericht |
+| 💾 | **Projekt speichern & laden (.json)** | Kompletter Arbeitsstand (Inventar inkl. Clearing, Governance, Kompass und importierte DatenGraf-Zeilen) als eine versionierte JSON-Datei exportier- und wieder importierbar – für Backup, Gerätewechsel oder zum Teilen; Import prüft Herkunft und fragt vor dem Überschreiben |
 | 🔒 | **Local-First / No-Database** | Alle Daten bleiben im Browser – kein Backend, kein Account, keine externen Laufzeit-Aufrufe |
 | 📱 | **Mobile-First** | Responsives Layout: Buttons in voller Breite, Grids brechen auf eine Spalte |
 

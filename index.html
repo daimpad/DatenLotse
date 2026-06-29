@@ -88,8 +88,12 @@
       <a href="https://datengraf.nozilla.net/" target="_blank" rel="noopener"><i class="fas fa-fw fa-circle-nodes"></i> Zu DatenGraf</a>
     </nav>
     <div class="app-sidebar-foot">
+      <div class="sidebar-project">
+        <button class="sidebar-proj-btn" id="project-save-btn"><i class="fas fa-file-arrow-down"></i> Projekt speichern (.json)</button>
+        <button class="sidebar-proj-btn" id="project-load-btn"><i class="fas fa-file-arrow-up"></i> Projekt laden (.json)</button>
+      </div>
       <button class="sidebar-reset" id="reset-data-btn"><i class="fas fa-trash-can"></i> Gespeicherte Daten löschen</button>
-      <p>Inventar, Clearing &amp; Governance werden lokal im Browser gespeichert (kein Server).</p>
+      <p>Inventar, Clearing, Governance &amp; Kompass werden lokal im Browser gespeichert (kein Server). „Projekt speichern" sichert den kompletten Stand als Datei – für Backup, Gerätewechsel oder zum Teilen.</p>
     </div>
   </aside>
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
@@ -500,7 +504,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v19</span>
+    <span class="footer-version">v20</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -642,6 +646,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=19"></script>
+  <script src="js/app.js?v=20"></script>
 </body>
 </html>
