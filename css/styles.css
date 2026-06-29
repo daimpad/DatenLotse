@@ -656,19 +656,19 @@ a { color: var(--c-accent); }
 /* ── Off-Canvas-Seitenleiste (Scaffold) ──────────────────────── */
 .app-sidebar {
   position: fixed;
-  top: 0; left: 0;
+  top: 0; right: 0;
   width: 290px;
   max-width: 84vw;
   height: 100vh;
   background: #fff;
-  border-right: 1px solid var(--glass-border);
+  border-left: 1px solid var(--glass-border);
   box-shadow: var(--shadow-lg);
   z-index: 300;
   display: flex;
   flex-direction: column;
   transition: transform 0.3s var(--ease-fluid);
 }
-.app-sidebar.collapsed { transform: translateX(-100%); }
+.app-sidebar.collapsed { transform: translateX(100%); }
 .app-sidebar-header {
   display: flex;
   align-items: center;
@@ -702,7 +702,7 @@ a { color: var(--c-accent); }
 .app-sidebar-nav a:hover {
   background: rgba(66,0,147,0.07);
   border-color: rgba(66,0,147,0.18);
-  transform: translateX(5px);
+  transform: translateX(-5px);
   box-shadow: var(--shadow-sm);
 }
 .app-sidebar-foot {
@@ -732,7 +732,7 @@ a { color: var(--c-accent); }
 .sidebar-proj-btn:hover {
   background: rgba(66,0,147,0.06);
   border-color: rgba(66,0,147,0.25);
-  transform: translateX(3px);
+  transform: translateX(-3px);
   box-shadow: var(--shadow-sm);
 }
 .sidebar-proj-btn i { width: 16px; text-align: center; }
