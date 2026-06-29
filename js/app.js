@@ -804,8 +804,26 @@ function showView(name) {
   document.getElementById('governance-view')?.classList.toggle('hidden', name !== 'governance');
   document.getElementById('pseudo-view')?.classList.toggle('hidden', name !== 'pseudo');
   document.getElementById('kompass-view')?.classList.toggle('hidden', name !== 'kompass');
+  // Der Phase-4&5-Beratungsblock gehört auf die Startseite; Unterseiten bekommen
+  // stattdessen ihren eigenen, kontextpassenden „Wie geht es weiter?"-Block.
+  const cta = document.querySelector('.consult-cta');
+  if (cta) cta.style.display = (name === 'home') ? '' : 'none';
   window.scrollTo({ top: 0 });
 }
+
+// Kontextuelle „Nächster Schritt"-Navigation (Phase-Badges, Zurück-Links, Weiter-Karten)
+function goTo(target) {
+  if (target === 'clearing') {
+    if (inventory.length) { renderInventory(); showInventoryTab('clearing'); }
+    else openInventoryModal();
+  } else if (target === 'phase45') {
+    showModal('phase45-backdrop', true);
+  } else {
+    navTo(target);
+  }
+}
+document.querySelectorAll('[data-go]').forEach(el =>
+  el.addEventListener('click', e => { e.preventDefault(); goTo(el.dataset.go); }));
 
 function navTo(target) {
   if (target === 'inventory') {

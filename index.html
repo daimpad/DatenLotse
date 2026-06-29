@@ -114,8 +114,8 @@
   <!-- ── Hero ──────────────────────────────────────────────────── -->
   <section class="hero" id="hero">
     <img src="logo.svg" alt="DatenLotse" class="hero-logo">
-    <h1 class="hero-headline">Von der Datenökosystem-Map zur Umsetzung</h1>
-    <p class="hero-sub">Der <strong>Daten-Kompass</strong> zeigt dir entlang anerkannter Open-Data-Reifegradmodelle, wo deine Organisation im Öffnungsprozess steht – und welche Bausteine als Nächstes dran sind.</p>
+    <h1 class="hero-headline">DatenLotse: Datenmanagement verstehen, aufbauen, vertiefen</h1>
+    <p class="hero-sub">Der <strong>DatenLotse</strong> begleitet deine Organisation dabei, ein umfassendes <strong>Datenmanagement zu verstehen</strong> und <strong>aufzubauen</strong> – und den <strong>Ist-Zustand</strong> deiner Datenlandschaft vertiefend einzusehen. Vom Überblick im Daten-Kompass über das Dateninventar nach DCAT-AP.de bis zu Risiko-Clearing und Pseudonymisierung – Schritt für Schritt, lokal im Browser, ohne Server.</p>
     <button class="btn btn-primary hero-cta" id="hero-kompass-btn"><i class="fas fa-compass"></i> Daten-Kompass starten</button>
     <p class="hero-from-graf">
       <i class="fas fa-file-csv"></i>
@@ -189,8 +189,8 @@
       <h2 class="module-title">Dateninventar</h2>
       <p class="module-desc">Importiere die DatenGraf-CSV und reichere jeden Datensatz um DCAT-AP.de-Metadaten an (Publisher, Lizenz, Aktualisierungszyklus). Export als DCAT-konformes JSON/CSV für GovData &amp; CKAN.</p>
       <div class="module-actions">
+        <button class="btn btn-secondary" data-sample="data/sample-kommune.csv"><i class="fas fa-flask"></i> Beispiel laden</button>
         <button class="btn btn-primary" id="open-inventory-btn"><i class="fas fa-boxes-stacked"></i> Dateninventar starten</button>
-        <button class="btn btn-secondary btn-sm" data-sample="data/sample-kommune.csv"><i class="fas fa-flask"></i> Beispiel laden</button>
       </div>
     </article>
 
@@ -209,7 +209,11 @@
   <section class="inventory-view hidden" id="inventory-view">
     <div class="inventory-header">
       <div>
-        <h2 class="inventory-title"><i class="fas fa-boxes-stacked"></i> Dateninventar</h2>
+        <div class="phase-row">
+          <span class="phase-badge">Phase 2 · Asset Management</span>
+          <button class="phase-back" data-go="governance"><i class="fas fa-arrow-left"></i> Phase 1: Governance</button>
+        </div>
+        <h2 class="inventory-title"><i class="fas fa-boxes-stacked"></i> Dateninventar nach DCAT-AP.de</h2>
         <span class="inventory-meta" id="inventory-meta"></span>
       </div>
       <div class="inventory-actions">
@@ -257,12 +261,40 @@
       <div class="clearing-summary" id="clearing-summary"></div>
       <div class="clearing-body" id="clearing-body"></div>
     </div>
+
+    <div class="view-next">
+      <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Wie geht es weiter?</h3>
+      <div class="view-next-cards">
+        <button class="next-card" data-go="clearing">
+          <div class="next-card-ic"><i class="fas fa-traffic-light"></i></div>
+          <div class="next-card-text">
+            <span class="next-card-phase">Phase 3 · Clearing</span>
+            <strong>Risiko-Clearing</strong>
+            <p>Jeden Datensatz per Ampel bewerten – direkt im zweiten Tab dieser Ansicht.</p>
+          </div>
+          <i class="fas fa-arrow-right next-card-arrow"></i>
+        </button>
+        <button class="next-card" data-go="pseudo">
+          <div class="next-card-ic"><i class="fas fa-user-shield"></i></div>
+          <div class="next-card-text">
+            <span class="next-card-phase">Phase 3 · Pseudonymisierung</span>
+            <strong>Textbereinigung</strong>
+            <p>Personenbezogene Daten in Freitexten strukturerhaltend ersetzen.</p>
+          </div>
+          <i class="fas fa-arrow-right next-card-arrow"></i>
+        </button>
+      </div>
+    </div>
   </section>
 
   <!-- ── Governance & Rollen (Modul 1) ─────────────────────────── -->
   <section class="governance-view hidden" id="governance-view">
     <div class="inventory-header">
       <div>
+        <div class="phase-row">
+          <span class="phase-badge">Phase 1 · Fundament</span>
+          <button class="phase-back" data-go="kompass"><i class="fas fa-arrow-left"></i> Daten-Kompass</button>
+        </div>
         <h2 class="inventory-title"><i class="fas fa-users-gear"></i> Governance &amp; Rollen</h2>
         <span class="inventory-meta">RACI-Matrix &amp; Reifegrad – aus deinem Dateninventar abgeleitet, lokal im Browser.</span>
       </div>
@@ -299,6 +331,21 @@
         <table class="gov-matrix" id="gov-matrix"></table>
       </div>
       <p class="gov-note"><i class="fas fa-circle-info"></i> Domänen sind aus den Publishern bzw. Quellsystemen des Inventars abgeleitet. <span class="gov-gap-dot"></span> markiert Rollen, die laut Fragebogen noch nicht (vollständig) besetzt sind. Datenschutz (DSB) ist bei DSGVO-relevanten Domänen <em>Consulted</em>, sonst <em>Informed</em>.</p>
+
+      <div class="view-next">
+        <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Wie geht es weiter?</h3>
+        <div class="view-next-cards">
+          <button class="next-card" data-go="inventory">
+            <div class="next-card-ic"><i class="fas fa-boxes-stacked"></i></div>
+            <div class="next-card-text">
+              <span class="next-card-phase">Phase 2 · Asset Management</span>
+              <strong>Dateninventar nach DCAT-AP.de</strong>
+              <p>Datenflüsse zu Datasets verdichten und mit Metadaten anreichern.</p>
+            </div>
+            <i class="fas fa-arrow-right next-card-arrow"></i>
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -306,7 +353,11 @@
   <section class="pseudo-view hidden" id="pseudo-view">
     <div class="inventory-header">
       <div>
-        <h2 class="inventory-title"><i class="fas fa-user-shield"></i> Textbereinigung</h2>
+        <div class="phase-row">
+          <span class="phase-badge">Phase 3 · Pseudonymisierung</span>
+          <button class="phase-back" data-go="inventory"><i class="fas fa-arrow-left"></i> Phase 2: Dateninventar</button>
+        </div>
+        <h2 class="inventory-title"><i class="fas fa-user-shield"></i> Risiko &amp; Pseudonymisierung</h2>
         <span class="inventory-meta">Pseudonymisierung deutscher Verwaltungstexte – strukturerhaltend, rein per Regex, lokal im Browser. Nichts wird übertragen.</span>
       </div>
       <div class="inventory-actions">
@@ -344,12 +395,30 @@
         <li><strong>CSV:</strong> Platzhalter enthalten keine Kommas, Anführungszeichen oder Zeilenumbrüche – die CSV-Struktur bleibt erhalten; Werte in gequoteten Feldern werden trotzdem ersetzt. Das <strong>Mapping</strong> (Platzhalter ↔ Original) lässt sich als CSV exportieren.</li>
       </ul>
     </div>
+
+    <div class="view-next">
+      <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Wie geht es weiter?</h3>
+      <div class="view-next-cards">
+        <button class="next-card next-card-accent" data-go="phase45">
+          <div class="next-card-ic"><i class="fas fa-arrows-spin"></i></div>
+          <div class="next-card-text">
+            <span class="next-card-phase">Phase 4 &amp; 5 · Betrieb</span>
+            <strong>Pipeline &amp; zirkuläres Ökosystem</strong>
+            <p>Vom einmaligen Export zum dauerhaften, automatisierten Betrieb – persönlich begleitet.</p>
+          </div>
+          <i class="fas fa-arrow-right next-card-arrow"></i>
+        </button>
+      </div>
+    </div>
   </section>
 
   <!-- ── Daten-Kompass (Open-Data-Reifegrad-Checkliste) ────────── -->
   <section class="kompass-view hidden" id="kompass-view">
     <div class="inventory-header">
       <div>
+        <div class="phase-row">
+          <span class="phase-badge">Überblick · Reifegrad</span>
+        </div>
         <h2 class="inventory-title"><i class="fas fa-compass"></i> Daten-Kompass</h2>
         <span class="inventory-meta">Wo steht deine Organisation im Open-Data-Öffnungsprozess? Hake ab, was zutrifft – der Kompass empfiehlt die nächsten Schritte.</span>
       </div>
@@ -373,18 +442,44 @@
         <li><strong>DSGVO</strong> &amp; <strong>FAIR-Prinzipien</strong> (Findable, Accessible, Interoperable, Reusable) – rechtliche und Nachnutzbarkeits-Anforderungen.</li>
       </ul>
     </details>
+
+    <div class="view-next">
+      <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Womit anfangen?</h3>
+      <div class="view-next-cards">
+        <button class="next-card" data-go="governance">
+          <div class="next-card-ic"><i class="fas fa-users-gear"></i></div>
+          <div class="next-card-text">
+            <span class="next-card-phase">Phase 1 · Fundament</span>
+            <strong>Governance &amp; Rollen</strong>
+            <p>Zuständigkeiten klären und den Reifegrad deines Datenmanagements bestimmen.</p>
+          </div>
+          <i class="fas fa-arrow-right next-card-arrow"></i>
+        </button>
+        <button class="next-card" data-go="inventory">
+          <div class="next-card-ic"><i class="fas fa-boxes-stacked"></i></div>
+          <div class="next-card-text">
+            <span class="next-card-phase">Phase 2 · Asset Management</span>
+            <strong>Dateninventar nach DCAT-AP.de</strong>
+            <p>DatenGraf-CSV importieren und das Inventar aufbauen.</p>
+          </div>
+          <i class="fas fa-arrow-right next-card-arrow"></i>
+        </button>
+      </div>
+    </div>
   </section>
 
   <!-- ── Beratungs-CTA (Phase 4–5) ─────────────────────────────── -->
   <section class="consult-cta">
-    <div class="consult-cta-inner">
-      <div>
-        <h2 class="consult-cta-headline">Phase 4 &amp; 5: Pipeline &amp; zirkuläres Ökosystem</h2>
-        <p class="consult-cta-sub">ETL-Automatisierung, Container-Infrastruktur, CKAN-Anbindung und Feedback-Schleifen begleiten wir persönlich — als Workshop oder maßgeschneiderte Umsetzung.</p>
+    <div class="consult-cards">
+      <div class="consult-card consult-card-info">
+        <h2 class="consult-card-headline">Phase 4 &amp; 5: Pipeline &amp; zirkuläres Ökosystem</h2>
+        <p class="consult-card-sub">ETL-Automatisierung, Container-Infrastruktur, CKAN-Anbindung und Feedback-Schleifen – der dauerhafte Betrieb nach der ersten Veröffentlichung.</p>
+        <button class="btn consult-info-btn" id="open-phase45-btn"><i class="fas fa-circle-info"></i> Was bedeuten Phase 4 &amp; 5?</button>
       </div>
-      <div class="consult-cta-actions">
-        <button class="btn consult-cta-info" id="open-phase45-btn"><i class="fas fa-circle-info"></i> Was bedeuten Phase 4 &amp; 5?</button>
-        <a class="btn consult-cta-btn" href="https://nozilla.de/kontakt/" target="_blank" rel="noopener">
+      <div class="consult-card consult-card-action">
+        <h2 class="consult-card-headline">Umsetzung besprechen</h2>
+        <p class="consult-card-sub">Phase 4 &amp; 5 begleiten wir persönlich – als Workshop oder maßgeschneiderte Umsetzung, abgestimmt auf eure IT-Landschaft, Fachverfahren und Rahmenbedingungen.</p>
+        <a class="btn consult-action-btn" href="https://nozilla.de/kontakt/" target="_blank" rel="noopener">
           <i class="fas fa-arrow-right"></i> Umsetzung besprechen
         </a>
       </div>
@@ -405,7 +500,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v18</span>
+    <span class="footer-version">v19</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -547,6 +642,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=18"></script>
+  <script src="js/app.js?v=19"></script>
 </body>
 </html>

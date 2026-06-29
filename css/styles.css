@@ -168,7 +168,8 @@ a { color: var(--c-accent); }
   font-size: 18px;
 }
 .module-title { font-size: 20px; font-weight: 800; color: var(--c-accent); letter-spacing: -0.3px; }
-.module-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.module-actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+.module-actions .btn { justify-content: center; }
 .gov-empty-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .module-desc { font-size: 13px; color: var(--c-muted); line-height: 1.6; flex: 1; }
 .module-badge-soon {
@@ -192,16 +193,125 @@ a { color: var(--c-accent); }
   flex-wrap: wrap;
   margin-bottom: 6px;
 }
-.inventory-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-.inventory-meta { font-size: 13px; color: var(--c-muted); }
-.inventory-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.inventory-hint {
-  font-size: 13px;
-  color: var(--c-muted);
-  line-height: 1.6;
-  margin: 8px 0 18px;
-  max-width: 720px;
+.inventory-title {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  color: var(--c-accent);
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  line-height: 1.12;
 }
+.inventory-title i { color: var(--c-accent); font-size: 0.92em; }
+.inventory-meta { font-size: 14px; color: var(--c-muted); display: block; margin-top: 4px; }
+.inventory-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Aktionsbuttons der Unterseiten (PDF/CSV/…) bleiben weiß – nur die feine
+   Rahmenlinie unterscheidet sie, kein Lila-Hover. */
+.inventory-actions .btn-secondary:hover {
+  border-color: var(--c-muted);
+  color: var(--c-text);
+  background: #faf9fc;
+  transform: translateY(-1px);
+}
+.inventory-hint {
+  font-size: 15.5px;
+  color: var(--c-text);
+  line-height: 1.75;
+  margin: 16px 0 22px;
+  max-width: none;
+  background: #fff;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 22px;
+}
+.inventory-hint strong { color: var(--c-accent); }
+
+/* ── Phase-Badge, Zurück-Link & „Wie geht es weiter?" ────────── */
+.phase-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.phase-badge {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--c-accent);
+  background: rgba(66, 0, 147, 0.08);
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+.phase-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-muted);
+  padding: 4px 4px;
+  transition: color 0.15s, transform 0.15s;
+}
+.phase-back:hover { color: var(--c-accent); transform: translateX(-3px); }
+
+.view-next { margin-top: 36px; }
+.view-next-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--c-accent);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+.view-next-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+.next-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.18s var(--ease-fluid), box-shadow 0.18s var(--ease-fluid), border-color 0.18s;
+}
+.next-card:hover { transform: translateY(-4px) scale(1.015); box-shadow: var(--shadow-lg); border-color: rgba(66,0,147,0.25); }
+.next-card-ic {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #420093 0%, #6c2fbf 100%);
+  color: #fff;
+  font-size: 18px;
+}
+.next-card-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.next-card-phase {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--c-accent);
+}
+.next-card-text strong { font-size: 15.5px; font-weight: 800; color: var(--c-text); }
+.next-card-text p { font-size: 13px; color: var(--c-muted); line-height: 1.5; margin: 2px 0 0; }
+.next-card-arrow { color: var(--c-accent); font-size: 15px; flex-shrink: 0; transition: transform 0.18s; }
+.next-card:hover .next-card-arrow { transform: translateX(4px); }
+.next-card-accent { background: linear-gradient(135deg, rgba(66,0,147,0.05), rgba(108,47,191,0.05)); }
 .inv-controls { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; align-items: center; }
 .inv-search {
   flex: 1 1 240px;
@@ -401,35 +511,45 @@ a { color: var(--c-accent); }
   margin: 0 auto 56px;
   padding: 28px 24px;
 }
-.consult-cta-inner {
-  background: linear-gradient(135deg, #420093 0%, #6c2fbf 100%);
+.consult-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.consult-card {
   border-radius: var(--radius);
-  padding: 28px 28px;
+  padding: 30px 28px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 16px;
+  gap: 14px;
+  box-shadow: var(--shadow-md);
 }
-.consult-cta-headline { font-size: 20px; font-weight: 700; color: #fff; }
-.consult-cta-sub { font-size: 14px; color: rgba(255,255,255,0.78); line-height: 1.55; }
-.consult-cta-btn {
+.consult-card-info { background: linear-gradient(135deg, #420093 0%, #6c2fbf 100%); }
+.consult-card-action { background: linear-gradient(150deg, #1a1626 0%, #0e0b16 100%); }
+.consult-card-headline { font-size: 21px; font-weight: 800; color: #fff; letter-spacing: -0.4px; line-height: 1.2; }
+.consult-card-sub { font-size: 14px; color: rgba(255,255,255,0.80); line-height: 1.6; flex: 1; }
+/* „Was bedeuten Phase 4 & 5?" – weißer Button */
+.consult-info-btn {
   background: #fff;
   color: var(--c-accent);
   font-weight: 700;
   padding: 12px 22px;
   border-radius: 10px;
 }
-.consult-cta-btn:hover { background: #f0e8ff; transform: translateY(-2px); }
-.consult-cta-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-.consult-cta-info {
-  background: rgba(255,255,255,0.12);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.45);
-  font-weight: 700;
-  padding: 12px 20px;
+.consult-info-btn:hover { background: #f0e8ff; transform: translateY(-2px); }
+/* „Umsetzung besprechen" – Haupt-CTA im schwarzen Block */
+.consult-action-btn {
+  background: #fff;
+  color: #0e0b16;
+  font-weight: 800;
+  padding: 12px 22px;
   border-radius: 10px;
 }
-.consult-cta-info:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
+.consult-action-btn:hover { background: #ece7f6; color: var(--c-accent); transform: translateY(-2px); }
+@media (max-width: 720px) {
+  .consult-cards { grid-template-columns: 1fr; }
+}
 
 /* ── Footer (identisch zu DatenGraf) ─────────────────────────── */
 .site-footer {
@@ -479,12 +599,10 @@ a { color: var(--c-accent); }
 .app-sidebar {
   position: fixed;
   top: 0; left: 0;
-  width: 280px;
+  width: 290px;
   max-width: 84vw;
   height: 100vh;
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: #fff;
   border-right: 1px solid var(--glass-border);
   box-shadow: var(--shadow-lg);
   z-index: 300;
@@ -508,20 +626,27 @@ a { color: var(--c-accent); }
   align-items: center;
   gap: 8px;
 }
-.app-sidebar-nav { display: flex; flex-direction: column; padding: 12px 10px; gap: 2px; flex: 1; }
+.app-sidebar-nav { display: flex; flex-direction: column; padding: 14px 12px; gap: 4px; flex: 1; }
 .app-sidebar-nav a {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  color: var(--c-text);
+  gap: 13px;
+  padding: 13px 14px;
+  border-radius: 10px;
+  color: var(--c-accent);
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 0.15s, color 0.15s;
+  font-size: 15.5px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: background 0.18s var(--ease-fluid), transform 0.18s var(--ease-fluid), box-shadow 0.18s var(--ease-fluid), border-color 0.18s;
 }
-.app-sidebar-nav a:hover { background: rgba(66,0,147,0.06); color: var(--c-accent); }
+.app-sidebar-nav a i { color: var(--c-accent); font-size: 1.05em; }
+.app-sidebar-nav a:hover {
+  background: rgba(66,0,147,0.07);
+  border-color: rgba(66,0,147,0.18);
+  transform: translateX(5px);
+  box-shadow: var(--shadow-sm);
+}
 .app-sidebar-foot {
   padding: 14px 18px;
   font-size: 12px;
