@@ -804,8 +804,26 @@ function showView(name) {
   document.getElementById('governance-view')?.classList.toggle('hidden', name !== 'governance');
   document.getElementById('pseudo-view')?.classList.toggle('hidden', name !== 'pseudo');
   document.getElementById('kompass-view')?.classList.toggle('hidden', name !== 'kompass');
+  // Der Phase-4&5-Beratungsblock gehört auf die Startseite; Unterseiten bekommen
+  // stattdessen ihren eigenen, kontextpassenden „Wie geht es weiter?"-Block.
+  const cta = document.querySelector('.consult-cta');
+  if (cta) cta.style.display = (name === 'home') ? '' : 'none';
   window.scrollTo({ top: 0 });
 }
+
+// Kontextuelle „Nächster Schritt"-Navigation (Phase-Badges, Zurück-Links, Weiter-Karten)
+function goTo(target) {
+  if (target === 'clearing') {
+    if (inventory.length) { renderInventory(); showInventoryTab('clearing'); }
+    else openInventoryModal();
+  } else if (target === 'phase45') {
+    showModal('phase45-backdrop', true);
+  } else {
+    navTo(target);
+  }
+}
+document.querySelectorAll('[data-go]').forEach(el =>
+  el.addEventListener('click', e => { e.preventDefault(); goTo(el.dataset.go); }));
 
 function navTo(target) {
   if (target === 'inventory') {
@@ -849,19 +867,25 @@ document.getElementById('topbar-brand')?.addEventListener('keydown', e => {
    ────────────────────────────────────────────────────────────── */
 const PSEUDO_LABELS = {
   name: 'Name', strasse: 'Adresse', plzort: 'PLZ + Ort', az: 'Aktenzeichen',
-  iban: 'IBAN', email: 'E-Mail', telefon: 'Telefon', geburtsdatum: 'Geburtsdatum'
+  iban: 'IBAN', email: 'E-Mail', telefon: 'Telefon', geburtsdatum: 'Geburtsdatum',
+  svnr: 'Sozialvers.-Nr.', steuerid: 'Steuer-ID', kfz: 'Kfz-Kennzeichen'
 };
 const PSEUDO_PH = {
   name: 'PERSON', strasse: 'ADRESSE', plzort: 'ORT', az: 'AZ',
-  iban: 'IBAN', email: 'EMAIL', telefon: 'TELEFON', geburtsdatum: 'GEBURTSDATUM'
+  iban: 'IBAN', email: 'EMAIL', telefon: 'TELEFON', geburtsdatum: 'GEBURTSDATUM',
+  svnr: 'SVNR', steuerid: 'STEUERID', kfz: 'KFZ'
 };
-// Reihenfolge = Priorität (spezifisch → allgemein)
+// Reihenfolge = Priorität (spezifisch → allgemein). Stark strukturierte bzw.
+// kontextgetriggerte Muster zuerst, damit sie greedy-Muster (Telefon) gewinnen.
 const PSEUDO_PATTERNS = [
   { type: 'iban',         re: /DE\d{2}\s?(?:\d{4}\s?){4}\d{2}/g },
+  { type: 'svnr',         re: /\b\d{2}\s?\d{6}\s?[A-Z]\s?\d{2,3}\b/g },
+  { type: 'steuerid',     re: /(?:Steuer-?(?:identifikationsnummer|ID|IdNr|nummer)|IdNr|St(?:euer)?\.?-?Nr)\.?\s*[:.]?\s*(\d{2}[\s.]?\d{3}[\s.]?\d{3}[\s.]?\d{3}|\d{11})/gid, group: 1 },
   { type: 'email',        re: /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g },
   { type: 'telefon',      re: /(?:\+49|0)[\d\s\/()\-]{4,}\d/g },
-  { type: 'az',           re: /\bAz\.?\s*[:\-]?\s*[\dIVXLC]+[\/\-][\dIVXLC]+(?:[\/\-]\d{2,4})?\b/g },
-  { type: 'geburtsdatum', re: /(?:geb\.?|geboren am)\s*(\d{1,2}\.\d{1,2}\.\d{2,4})/gid, group: 1 },
+  { type: 'kfz',          re: /\b[A-ZÄÖÜ]{1,3}-[A-ZÄÖÜ]{1,2}\s?\d{1,4}(?:E|H)?\b/g },
+  { type: 'az',           re: /\b(?:Az|Gz|Aktenzeichen|Geschäftszeichen)\.?\s*[:\-]?\s*[A-Z0-9]+(?:[\/\-.][A-Z0-9]+){1,3}\b/g },
+  { type: 'geburtsdatum', re: /(?:geb\.?|geboren am|Geburtsdatum|Geburtstag)\s*:?\s*(\d{1,2}\.\d{1,2}\.\d{2,4})/gid, group: 1 },
   { type: 'strasse',      re: /[A-ZÄÖÜ][a-zäöüß]+(?:straße|str\.|weg|gasse|allee|platz|ring|damm)\s+\d+[a-z]?/g },
   { type: 'plzort',       re: /\b\d{5}\s+[A-ZÄÖÜ][a-zäöüß]+(?:[\-\s][A-ZÄÖÜ][a-zäöüß]+)?/g },
   { type: 'name',         re: /(?:Herr|Frau|Hr\.|Fr\.|Dr\.|Prof\.)\s+([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)?)/gd, group: 1 },
@@ -929,12 +953,23 @@ function pseudonymize(text) {
 const PSEUDO_DEMO =
 `Sehr geehrter Herr Max Mustermann,
 
-in der Sache Az. 12/345/67 bestätigen wir den Eingang Ihres Antrags.
+in der Sache Az. 12/345/67 (Gz. AB-9/2024) bestätigen wir den Eingang Ihres Antrags.
 Herr Max Mustermann, wohnhaft Musterstraße 12a, 12345 Musterstadt,
 geb. 03.04.1985, wird um Rückmeldung gebeten.
+Steuer-ID: 12 345 678 901, Sozialversicherungsnummer 65 170839 M 003.
+Das Fahrzeug mit dem Kennzeichen M-AB 1234 ist betroffen.
 Zahlungen erfolgen auf IBAN DE12 3456 7890 1234 5678 90.
 Kontakt: max.mustermann@example.de, Tel. +49 30 1234567.
 Der Bescheid vom 15.03.2024 bleibt davon unberührt.`;
+
+/* Mapping (Platzhalter ↔ Original) als CSV – für die Reidentifizierung
+   bzw. revisionssichere Dokumentation. Bewusst lokal, nichts verlässt
+   den Browser. Falsy-sicher über csvCell(). */
+function buildPseudoMappingCSV(mapping) {
+  const head = ['Platzhalter', 'Typ', 'Original'].join(',');
+  const rows = mapping.map(m => [m.placeholder, m.label, m.original].map(csvCell).join(','));
+  return [head, ...rows].join('\n');
+}
 
 let lastPseudoText = null;
 
@@ -954,12 +989,15 @@ function runPseudonymize() {
   outEl.innerHTML = res.html;
   if (res.mapping.length) {
     mapEl.innerHTML =
-      `<div class="pseudo-map-head"><i class="fas fa-table-list"></i> Ersetzungen (${res.mapping.length})</div>` +
+      `<div class="pseudo-map-head"><span><i class="fas fa-table-list"></i> Ersetzungen (${res.mapping.length})</span>` +
+      `<button class="pseudo-mini-btn" id="pseudo-map-csv-btn"><i class="fas fa-file-csv"></i> Mapping als CSV</button></div>` +
       `<table class="pseudo-map"><thead><tr><th>Platzhalter</th><th>Typ</th><th>Original</th></tr></thead><tbody>` +
       res.mapping.map(m =>
         `<tr><td><code>${esc(m.placeholder)}</code></td><td>${esc(m.label)}</td><td>${esc(m.original)}</td></tr>`
       ).join('') +
       `</tbody></table>`;
+    document.getElementById('pseudo-map-csv-btn')?.addEventListener('click', () =>
+      downloadBlob(buildPseudoMappingCSV(res.mapping), 'pseudonymisierung-mapping.csv', 'text/csv'));
   } else {
     mapEl.innerHTML = '<div class="pseudo-map-head pseudo-map-empty"><i class="fas fa-circle-check"></i> Keine erkennbaren personenbezogenen Muster gefunden – bitte trotzdem manuell prüfen.</div>';
   }

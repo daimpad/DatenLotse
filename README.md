@@ -30,7 +30,7 @@
 | 🔍 | **Suche, Filter & Sortierung** | Inventar live durchsuchen (Titel/Publisher/Quellsystem), nach Schutzbedarf oder Clearing-Ampel filtern und nach Titel bzw. Vollständigkeit sortieren – Editieren bleibt auch über gefilterten Teilmengen korrekt |
 | 📤 | **DCAT-Export (JSON + CSV)** | DCAT-AP.de-konformes JSON-LD (`dcat:Catalog`/`dcat:Dataset` mit `@context`) zum Harvesting durch GovData/CKAN sowie eine flache CSV-Liste |
 | 🚦 | **Clearing-Ampel (Rot-Gelb-Grün)** | Transparenter, deterministischer Entscheidungsbaum je Datensatz (Schutzbedarf-Vorbelegung, Art.-9-/Rechtsgrundlage-/Anonymisierbarkeit-Prüfung) mit nachvollziehbarer Begründung, Gesamtübersicht und Ampel-Spalte im CSV-Export |
-| 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende, deterministische Bereinigung deutscher Verwaltungstexte (Namen anrede-getriggert, Adressen, PLZ+Ort, Aktenzeichen, IBAN, E-Mail, Telefon, Geburtsdatum im Kontext) mit konsistenten Platzhaltern, Mapping-Tabelle und Download – rein per Regex, nichts verlässt den Browser |
+| 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende, deterministische Bereinigung deutscher Verwaltungstexte (Namen anrede-getriggert, Adressen, PLZ+Ort, Aktenzeichen/Geschäftszeichen, IBAN, E-Mail, Telefon, Geburtsdatum im Kontext, **Steuer-ID**, **Sozialversicherungsnummer**, **Kfz-Kennzeichen**) mit konsistenten Platzhaltern, Mapping-Tabelle samt **CSV-Export** und Download – rein per Regex, nichts verlässt den Browser |
 | 👥 | **Governance & RACI** | 8-Fragen-Reifegrad-Check (gewichtet, 0–100) + automatisch aus dem Inventar abgeleitete RACI-Matrix (Domänen × Rollen) mit Lücken-Markierung; Export als CSV und PDF/Druck-Bericht |
 | 🔒 | **Local-First / No-Database** | Alle Daten bleiben im Browser – kein Backend, kein Account, keine externen Laufzeit-Aufrufe |
 | 📱 | **Mobile-First** | Responsives Layout: Buttons in voller Breite, Grids brechen auf eine Spalte |
@@ -140,7 +140,7 @@ Eine geordnete, deterministische Regelmenge bildet die Freigabeempfehlung je Dat
 <details>
 <summary><strong>Strukturerhaltende Pseudonymisierung</strong></summary>
 
-Ein Regex-Pack für DE-Verwaltungstexte (Namen anrede-getriggert, Adressen, Aktenzeichen, IBAN, E-Mail, Telefon, kontextgebundene Geburtsdaten) ersetzt erkannte Entitäten durch konsistente Platzhalter (`[PERSON_1]`, `[ADRESSE_1]` …). Pro Entitätstyp ein Zähler + Map `Originalwert → Platzhalter`: gleicher Wert ⇒ immer derselbe Platzhalter, deterministisch über das ganze Dokument. Erkannte Spans werden nach Position sortiert, Überlappungen verworfen (Longest-match-wins), erst dann ersetzt – so bleibt die relationale Maschinenlesbarkeit erhalten und nichts verlässt den Browser.
+Ein Regex-Pack für DE-Verwaltungstexte (Namen anrede-getriggert, Adressen, PLZ+Ort, Aktenzeichen/Geschäftszeichen, IBAN, E-Mail, Telefon, kontextgebundene Geburtsdaten, Steuer-ID kontextgetriggert, Sozialversicherungsnummer, Kfz-Kennzeichen) ersetzt erkannte Entitäten durch konsistente Platzhalter (`[PERSON_1]`, `[ADRESSE_1]`, `[STEUERID_1]` …). Pro Entitätstyp ein Zähler + Map `Originalwert → Platzhalter`: gleicher Wert ⇒ immer derselbe Platzhalter, deterministisch über das ganze Dokument. Erkannte Spans werden nach Position sortiert, Überlappungen verworfen (Longest-match-wins), erst dann ersetzt – so bleibt die relationale Maschinenlesbarkeit erhalten und nichts verlässt den Browser. Die Zuordnung Platzhalter ↔ Original lässt sich als CSV exportieren (für Reidentifizierung/Dokumentation).
 
 </details>
 
