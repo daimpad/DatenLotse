@@ -874,7 +874,70 @@ function showView(name) {
   // stattdessen ihren eigenen, kontextpassenden „Wie geht es weiter?"-Block.
   const cta = document.querySelector('.consult-cta');
   if (cta) cta.style.display = (name === 'home') ? '' : 'none';
+  if (name === 'home') refreshDashboard();
+  else { const dash = document.getElementById('dashboard'); if (dash) dash.classList.add('hidden'); }
   window.scrollTo({ top: 0 });
+}
+
+/* ── Status-Dashboard (Startseite): Überblick über alle Bausteine ──
+   Zeigt Live-Kennzahlen je Modul mit Schnellsprung. Erscheint nur,
+   wenn bereits Daten vorliegen (sonst sehen Erstnutzer Hero + Module). */
+function hasAnyData() {
+  return inventory.length || grafRows.length ||
+    Object.keys(governanceAnswers).length || Object.keys(kompassState).length;
+}
+function refreshDashboard() {
+  const dash = document.getElementById('dashboard');
+  if (!dash) return;
+  if (!hasAnyData()) { dash.classList.add('hidden'); return; }
+  dash.classList.remove('hidden');
+  renderDashboard();
+}
+function renderDashboard() {
+  const wrap = document.getElementById('dashboard-cards');
+  if (!wrap) return;
+  const kScore = kompassOverall();
+  const kAmp = kompassAmpel(kScore);
+  const gAnswered = Object.keys(governanceAnswers).length;
+  const g = reifegrad();
+  const gAmp = reifeAmpel(g.score);
+  const n = inventory.length;
+  const avg = n ? Math.round(inventory.reduce((s, d) => s + completeness(d), 0) / n) : 0;
+  const cc = { gruen: 0, gelb: 0, rot: 0 };
+  if (n) { ensureAllClearing(); inventory.forEach(d => { if (d.clearing) cc[d.clearing.ampel]++; }); }
+
+  const cards = [
+    { go: 'kompass', icon: 'fa-compass', phase: 'Überblick', title: 'Daten-Kompass',
+      metric: `${kScore}%`, amp: kAmp.cls, sub: kAmp.label },
+    { go: 'governance', icon: 'fa-users-gear', phase: 'Phase 1', title: 'Governance & Rollen',
+      metric: gAnswered ? `${g.score}%` : '–', amp: gAnswered ? gAmp.cls : '',
+      sub: gAnswered ? `Reifegrad: ${gAmp.label}` : 'Reifegrad-Check noch offen' },
+    { go: 'inventory', icon: 'fa-boxes-stacked', phase: 'Phase 2', title: 'Dateninventar',
+      metric: n ? `${n}` : '–', unit: n ? 'Datensätze' : '',
+      sub: n ? `Ø ${avg}% DCAT-AP.de-vollständig` : 'Noch kein Inventar' },
+    { go: 'clearing', icon: 'fa-traffic-light', phase: 'Phase 3', title: 'Risiko-Clearing',
+      clearing: n ? cc : null, sub: n ? `${cc.gruen + cc.gelb + cc.rot} von ${n} bewertet` : 'Noch kein Inventar' },
+  ];
+
+  wrap.innerHTML = cards.map(c => {
+    const metricHTML = c.clearing
+      ? `<div class="dash-clearing">
+           <span class="dash-amp dash-amp--gruen">${c.clearing.gruen}</span>
+           <span class="dash-amp dash-amp--gelb">${c.clearing.gelb}</span>
+           <span class="dash-amp dash-amp--rot">${c.clearing.rot}</span>
+         </div>`
+      : `<div class="dash-metric ${c.amp ? 'dash-' + c.amp : ''}">${esc(c.metric)}${c.unit ? `<span class="dash-unit">${esc(c.unit)}</span>` : ''}</div>`;
+    return `<button class="dash-card" data-go="${c.go}">
+      <div class="dash-card-top">
+        <div class="dash-ic"><i class="fas ${c.icon}"></i></div>
+        <span class="dash-phase">${esc(c.phase)}</span>
+      </div>
+      <strong class="dash-card-title">${esc(c.title)}</strong>
+      ${metricHTML}
+      <span class="dash-sub">${esc(c.sub)}</span>
+      <span class="dash-go">Öffnen <i class="fas fa-arrow-right"></i></span>
+    </button>`;
+  }).join('');
 }
 
 // Kontextuelle „Nächster Schritt"-Navigation (Phase-Badges, Zurück-Links, Weiter-Karten)
@@ -888,8 +951,11 @@ function goTo(target) {
     navTo(target);
   }
 }
-document.querySelectorAll('[data-go]').forEach(el =>
-  el.addEventListener('click', e => { e.preventDefault(); goTo(el.dataset.go); }));
+// Delegation, damit auch dynamisch gerenderte Elemente (Dashboard-Karten) greifen
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-go]');
+  if (el) { e.preventDefault(); goTo(el.dataset.go); }
+});
 
 function navTo(target) {
   if (target === 'inventory') {
@@ -1554,6 +1620,7 @@ document.getElementById('reset-data-btn')?.addEventListener('click', () => {
 
 // Beim Laden den gespeicherten Stand wiederherstellen (still – Daten sind über die Views erreichbar)
 loadState();
+refreshDashboard();   // Status-Dashboard auf der Startseite zeigen, falls bereits Daten vorliegen
 
 /* ──────────────────────────────────────────────────────────────
    ROADMAP / BAUAUFTRÄGE
