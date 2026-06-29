@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v19` (Script-Tag: `<script src="js/app.js?v=19">`)
+- **Aktuelle Version:** `v20` (Script-Tag: `<script src="js/app.js?v=20">`)
 
 ---
 
@@ -75,6 +75,8 @@ Präfix `datenlotse_` (analog DatenGrafs `datengraf_`). Immer try/catch um JSON-
 | `datenlotse_inventory` | Inventar inkl. Clearing-Antworten/-Ergebnis (`d._clearing`, `d.clearing`) als JSON |
 | `datenlotse_governance` | Governance-Fragebogen-Antworten (`governanceAnswers`) als JSON |
 | `datenlotse_kompass` | Daten-Kompass-Status je Checklisten-Item (`kompassState`, `"dim.item" → status`) als JSON |
+
+**Projekt-Export/-Import (.json):** `buildProjectJSON()` serialisiert den **gesamten** Arbeitsstand in einen versionierten Umschlag `{ app: 'DatenLotse', schema, version, exportedAt, data: { grafRows, inventory, governanceAnswers, kompassState } }` (inkl. `grafRows`, das im LocalStorage **nicht** liegt). `exportProject()` lädt das als Datei herunter (leerer Stand ⇒ Hinweis, kein Download). `importProject(text)` prüft Herkunft (`app === 'DatenLotse'`, `data`-Objekt), fragt bei vorhandenem Stand vor dem Überschreiben nach, füllt fehlende Teile defensiv, schreibt via `saveState()` und rendert die passende Ansicht. Einstiege in der Seitenleiste: `#project-save-btn` / `#project-load-btn` (Datei-Dialog via `pickAndImportProject()`).
 
 ---
 
@@ -214,6 +216,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | Governance/RACI (Modul 1) | `deriveDomains()`, `raciFor(d)`, `reifegrad()`, `renderGovernance()`, `buildRaciCSV()`, `printGovReport()` | `#governance-view`, `#gov-questions`, `#gov-matrix`, `#gov-score-badge`, `#open-gov-btn` |
 | Daten-Kompass | `renderKompass()`, `kompassStatus()`, `kompassDerived()`, `kompassOverall()`, `kompassAction()`, `buildKompassReportHTML()` | `#kompass-view`, `#kompass-score`, `#kompass-dims`, `#hero-kompass-btn`, `#cta-btn` |
 | Persistenz | `saveState()`, `loadState()`, `clearState()` | `datenlotse_*`, `#reset-data-btn` |
+| Projekt speichern & laden (.json) | `buildProjectJSON()`, `exportProject()`, `importProject(text)`, `pickAndImportProject()` | `#project-save-btn`, `#project-load-btn`, `.sidebar-project` |
 | Seitenleiste (Off-Canvas) | `openSidebar()`, `closeSidebar()` | `#app-sidebar`, `#sidebar-toggle-btn`, `#sidebar-overlay` |
 | Modals (FAQ/Inventar/Phase-3/Phase-4&5) | `showModal(id, show)`, `openInventoryModal()`, `openPhase3Wizard()` (+ Backdrop-Klick, Escape, Fokus-Management; `MODALS`-Liste) | `#faq-backdrop`, `#inventory-backdrop`, `#phase3-backdrop`, `#phase45-backdrop` |
 
@@ -253,4 +256,5 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v16 | Daten-Kompass (Herzstück) – eigene View + Hero-Haupt-CTA (Topbar-„Loslegen" zeigt ebenfalls darauf): ausführliche Open-Data-Reifegrad-Checkliste nach ODRA / EU Open Data Maturity / 5-Sterne / DCAT-AP.de / DSGVO·FAIR (7 Dimensionen, Quellenangaben), Status je Item mit Score & Ampel, Vorbelegung aus dem App-Stand, adaptive Sprünge in die passenden Bausteine, Persistenz (`datenlotse_kompass`) und PDF-Export; leeres „Loslegen"-Platzhalter-Modal entfernt |
 | v17 | Weiterer Ausbau (1/4) – Inventar Suche, Filter & Sortierung: `renderInventory()` in `renderInventory()` + `renderInventoryBody()` aufgeteilt; `.inv-controls` (Volltextsuche + Schutzbedarf-/Clearing-Ampel-Filter + Sortierung Titel/Vollständigkeit) über `invFilter`-State und `filteredInventory()`; der echte `idx` wird durch den Filter mitgeführt, sodass Editieren über gefilterten Teilmengen weiterhin den richtigen Datensatz trifft; Live-Meta „X von Y" + Empty-State |
 | v18 | Weiterer Ausbau (2/4) – Pseudonymisierung erweitert: drei neue Muster (Sozialversicherungsnummer, Steuer-ID *kontextgetriggert*, Kfz-Kennzeichen), Aktenzeichen um Geschäftszeichen/„Gz." und buchstabenhaltige Kerne erweitert, zusätzliche Geburtsdatum-Trigger („Geburtsdatum"/„Geburtstag"); Mapping-Export als CSV (`buildPseudoMappingCSV` + Button im Mapping-Kopf); Demo-Text und Grenzen-Liste aktualisiert; verifiziert auf Determinismus, Platzhalter-Konsistenz und Null-Falschtreffer auf neutralem Verwaltungstext |
+| v20 | Weiterer Ausbau (3/4) – Projekt speichern & laden (.json): kompletter Arbeitsstand (`grafRows`, `inventory` inkl. Clearing, `governanceAnswers`, `kompassState`) portabel als eine Datei. `buildProjectJSON()` (versionierter Umschlag), `exportProject()` (Datei-Download, leer ⇒ Hinweis), `importProject()` (Herkunfts-/Schema-Prüfung, Überschreib-Bestätigung, defensives Füllen, `saveState()` + Re-Render), `pickAndImportProject()`; Einstiege in der Seitenleiste (`#project-save-btn`/`#project-load-btn`). Verifiziert: Round-Trip-Restore (Karten/LocalStorage/Titel), Ablehnung fremder/ungültiger Dateien, Leer-Schutz |
 | v19 | UX-/Design-Überarbeitung der Unterseiten: neuer Hero-Text (DatenLotse im Vordergrund – Datenmanagement verstehen/aufbauen/vertiefen); Unterseiten-Überschriften größer & lila inkl. lila Icons; Phasen-Wegweiser je View (`.phase-badge` + `.phase-back`-Zurück-Link) und kontextueller `.view-next`-Block mit `.next-card`s statt global immer sichtbarem Phase-4&5-Block (`goTo`/`[data-go]`-Navigation, `.consult-cta` nur noch auf `home`); Intro-/Hinweistexte als gut lesbare weiße Karten (`.inventory-hint`); Unterseiten-Aktionsbuttons bleiben weiß (kein Lila-Hover); Phase-4&5 als zwei gleich breite Container (lila „Pipeline & zirkuläres Ökosystem" mit weißem Info-Button + schwarzer „Umsetzung besprechen"-CTA-Block); Seitenleiste mit weißem Hintergrund, größeren lila Menüpunkten (Icon+Text) und Kachel-artigem Hover; „Beispiel laden" über „Dateninventar starten" |

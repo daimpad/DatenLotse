@@ -654,7 +654,30 @@ a { color: var(--c-accent); }
   line-height: 1.5;
   border-top: 1px solid var(--c-border-s);
 }
-.app-sidebar-foot p { margin: 8px 0 0; }
+.app-sidebar-foot p { margin: 12px 0 0; }
+.sidebar-project { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.sidebar-proj-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: #fff;
+  border: 1px solid var(--c-border-s);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-accent);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.sidebar-proj-btn:hover {
+  background: rgba(66,0,147,0.06);
+  border-color: rgba(66,0,147,0.25);
+  transform: translateX(3px);
+  box-shadow: var(--shadow-sm);
+}
+.sidebar-proj-btn i { width: 16px; text-align: center; }
 .sidebar-reset {
   background: none;
   border: none;
