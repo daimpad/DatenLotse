@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v17` (Script-Tag: `<script src="js/app.js?v=17">`)
+- **Aktuelle Version:** `v18` (Script-Tag: `<script src="js/app.js?v=18">`)
 
 ---
 
@@ -128,11 +128,11 @@ Zweiter Tab in der Inventar-View (`#tab-clearing` → `#clearing-panel`), operie
 
 Eigene View „Textbereinigung" (`#pseudo-view`). **Reines Regex-Pack, kein ML/NER** (harte Sperre). `pseudonymize(text)` arbeitet in drei Schritten:
 
-1. **`collectSpans`** wendet `PSEUDO_PATTERNS` (in Prioritätsreihenfolge: IBAN, E-Mail, Telefon, Aktenzeichen, Geburtsdatum *im Kontext*, Straße+Hausnr., PLZ+Ort, Name *anrede-getriggert*) an und sammelt `{start, end, type, value}`. Bei Capture-Gruppen (Name, Geburtsdatum) wird via `d`-Flag nur der Kernwert erfasst (Anrede/„geb." bleiben stehen).
+1. **`collectSpans`** wendet `PSEUDO_PATTERNS` (in Prioritätsreihenfolge: IBAN, Sozialversicherungsnummer, Steuer-ID *kontextgetriggert*, E-Mail, Telefon, Kfz-Kennzeichen, Aktenzeichen/Geschäftszeichen, Geburtsdatum *im Kontext*, Straße+Hausnr., PLZ+Ort, Name *anrede-getriggert*) an und sammelt `{start, end, type, value}`. Bei Capture-Gruppen (Name, Geburtsdatum, Steuer-ID) wird via `d`-Flag nur der Kernwert erfasst (Anrede/„geb."/Schlüsselwort bleiben stehen). Stark strukturierte/kontextgetriggerte Muster stehen **vor** dem greedy Telefon-Muster, damit sie es bei Überlappung gewinnen.
 2. **`selectSpans`** sortiert nach Position, dann längstem Span, dann Priorität, und verwirft Überlappungen (Longest/First-match-wins) → **keine Doppel-Ersetzung**.
-3. Aufbau in **einem** Durchlauf: pro Entitätstyp ein Zähler + `Map(original → platzhalter)` → gleicher Wert ⇒ **immer derselbe** Platzhalter (`[PERSON_1]`, `[ADRESSE_1]`, `[ORT_1]`, `[AZ_1]`, `[IBAN_1]`, `[EMAIL_1]`, `[TELEFON_1]`, `[GEBURTSDATUM_1]`). Rückgabe: `{ text, html (hervorgehoben), mapping, count }`.
+3. Aufbau in **einem** Durchlauf: pro Entitätstyp ein Zähler + `Map(original → platzhalter)` → gleicher Wert ⇒ **immer derselbe** Platzhalter (`[PERSON_1]`, `[ADRESSE_1]`, `[ORT_1]`, `[AZ_1]`, `[IBAN_1]`, `[EMAIL_1]`, `[TELEFON_1]`, `[GEBURTSDATUM_1]`, `[SVNR_1]`, `[STEUERID_1]`, `[KFZ_1]`). Rückgabe: `{ text, html (hervorgehoben), mapping, count }`.
 
-**Deterministisch & strukturerhaltend:** identischer Input ⇒ identischer Output; Platzhalter enthalten keine Kommas/Quotes/Zeilenumbrüche → CSV-Struktur bleibt erhalten. **Freistehende Datumsangaben** (ohne „geb."/„geboren am") bleiben unangetastet. Grenzen-Liste ist im UI sichtbar; manuelle Nachkontrolle bleibt Pflicht. `PSEUDO_DEMO` liefert einen Beispieltext.
+**Deterministisch & strukturerhaltend:** identischer Input ⇒ identischer Output; Platzhalter enthalten keine Kommas/Quotes/Zeilenumbrüche → CSV-Struktur bleibt erhalten. **Freistehende Datumsangaben** (ohne „geb."/„geboren am"/„Geburtsdatum"/„Geburtstag") bleiben unangetastet. Grenzen-Liste ist im UI sichtbar; manuelle Nachkontrolle bleibt Pflicht. `PSEUDO_DEMO` liefert einen Beispieltext. **Mapping-Export:** `buildPseudoMappingCSV(mapping)` erzeugt eine CSV (`Platzhalter,Typ,Original`) für die Reidentifizierung/Dokumentation; Button erscheint im Mapping-Kopf, sobald Treffer vorliegen.
 
 > **Zukunft (NICHT gebaut):** optionales client-seitiges NER-Modell (Transformers.js/WASM) ist reiner Roadmap-Text – kein Code, auch nicht opt-in.
 
@@ -207,7 +207,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | DCAT-Export | `buildDcatJSON()`, `buildInventoryCSV()`, `csvCell(v)`, `downloadBlob()` | `#btn-export-json`, `#btn-export-csv` |
 | PDF-Bericht Inventar/Clearing | `buildInventoryReportHTML()`, `printInventoryReport()` | `#btn-print-inventory` |
 | Clearing-Ampel (Modul 3a) | `evaluateClearing(a)`, `renderClearing()`, `initClearing(d)`, `ensureAllClearing()`, `showInventoryTab(name)` | `#tab-clearing`, `#clearing-panel`, `#clearing-summary`, `.clear-card`, `[data-q]` |
-| Pseudonymisierung (Modul 3b) | `pseudonymize(text)`, `collectSpans`, `selectSpans`, `runPseudonymize()`, `showView(name)`, `navTo(target)` | `#pseudo-view`, `#pseudo-input`, `#pseudo-output`, `#pseudo-mapping` |
+| Pseudonymisierung (Modul 3b) | `pseudonymize(text)`, `collectSpans`, `selectSpans`, `runPseudonymize()`, `buildPseudoMappingCSV(mapping)`, `showView(name)`, `navTo(target)` | `#pseudo-view`, `#pseudo-input`, `#pseudo-output`, `#pseudo-mapping`, `#pseudo-map-csv-btn` |
 | Phase-3-Wizard (Modal-Stepper) | `openPhase3Wizard()`, `renderPhase3()`, `openClearing()` | `#open-phase3-btn`, `#phase3-backdrop`, `#p3-body`, `[data-check]` |
 | Governance/RACI (Modul 1) | `deriveDomains()`, `raciFor(d)`, `reifegrad()`, `renderGovernance()`, `buildRaciCSV()`, `printGovReport()` | `#governance-view`, `#gov-questions`, `#gov-matrix`, `#gov-score-badge`, `#open-gov-btn` |
 | Daten-Kompass | `renderKompass()`, `kompassStatus()`, `kompassDerived()`, `kompassOverall()`, `kompassAction()`, `buildKompassReportHTML()` | `#kompass-view`, `#kompass-score`, `#kompass-dims`, `#hero-kompass-btn`, `#cta-btn` |
@@ -250,3 +250,4 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v15 | Onboarding (3/n) – Phase-4/5-Erklär-Modal (`#phase45-backdrop`): Button „Was bedeuten Phase 4 & 5?" vor „Umsetzung besprechen" im Beratungs-Block öffnet einen Erklär-Dialog zu Pipeline (ETL/Container/CKAN) und zirkulärem Ökosystem (Feedback/Qualität) inkl. Begründung, warum Phase 4 & 5 Beratung statt generischer Software erfordern |
 | v16 | Daten-Kompass (Herzstück) – eigene View + Hero-Haupt-CTA (Topbar-„Loslegen" zeigt ebenfalls darauf): ausführliche Open-Data-Reifegrad-Checkliste nach ODRA / EU Open Data Maturity / 5-Sterne / DCAT-AP.de / DSGVO·FAIR (7 Dimensionen, Quellenangaben), Status je Item mit Score & Ampel, Vorbelegung aus dem App-Stand, adaptive Sprünge in die passenden Bausteine, Persistenz (`datenlotse_kompass`) und PDF-Export; leeres „Loslegen"-Platzhalter-Modal entfernt |
 | v17 | Weiterer Ausbau (1/4) – Inventar Suche, Filter & Sortierung: `renderInventory()` in `renderInventory()` + `renderInventoryBody()` aufgeteilt; `.inv-controls` (Volltextsuche + Schutzbedarf-/Clearing-Ampel-Filter + Sortierung Titel/Vollständigkeit) über `invFilter`-State und `filteredInventory()`; der echte `idx` wird durch den Filter mitgeführt, sodass Editieren über gefilterten Teilmengen weiterhin den richtigen Datensatz trifft; Live-Meta „X von Y" + Empty-State |
+| v18 | Weiterer Ausbau (2/4) – Pseudonymisierung erweitert: drei neue Muster (Sozialversicherungsnummer, Steuer-ID *kontextgetriggert*, Kfz-Kennzeichen), Aktenzeichen um Geschäftszeichen/„Gz." und buchstabenhaltige Kerne erweitert, zusätzliche Geburtsdatum-Trigger („Geburtsdatum"/„Geburtstag"); Mapping-Export als CSV (`buildPseudoMappingCSV` + Button im Mapping-Kopf); Demo-Text und Grenzen-Liste aktualisiert; verifiziert auf Determinismus, Platzhalter-Konsistenz und Null-Falschtreffer auf neutralem Verwaltungstext |

@@ -335,11 +335,13 @@
     <div class="pseudo-limits">
       <h3><i class="fas fa-triangle-exclamation"></i> Grenzen der automatischen Erkennung</h3>
       <ul>
+        <li><strong>Erkannte Muster:</strong> Name (anrede-getriggert), Adresse, PLZ + Ort, Aktenzeichen/Geschäftszeichen, IBAN, E-Mail, Telefon, Geburtsdatum (im Kontext), <strong>Steuer-ID</strong> (kontextgetriggert), <strong>Sozialversicherungsnummer</strong> und <strong>Kfz-Kennzeichen</strong>. Gleiche Werte erhalten konsistent denselben Platzhalter.</li>
         <li><strong>Namen</strong> werden nur <em>anrede-getriggert</em> erkannt (Herr/Frau/Hr./Fr./Dr./Prof. + Name). Freistehende Namen entgehen der Erkennung bewusst.</li>
-        <li><strong>Geburtsdaten</strong> nur im Kontext („geb."/„geboren am"). Andere Datumsangaben (Fristen, Bescheiddaten) bleiben absichtlich erhalten.</li>
+        <li><strong>Geburtsdaten</strong> nur im Kontext („geb."/„geboren am"/„Geburtsdatum"/„Geburtstag"). Andere Datumsangaben (Fristen, Bescheiddaten) bleiben absichtlich erhalten.</li>
+        <li><strong>Steuer-ID</strong> nur mit vorangehendem Schlüsselwort (Steuer-ID / IdNr / St.-Nr). <strong>Kfz-Kennzeichen</strong> rein nach Muster (Kürzel-Buchstaben Zahl) – seltene Sonderformen wie „DIN-A4" können fälschlich greifen, daher manuell prüfen.</li>
         <li><strong>Adressen</strong> nur bei gängigen Straßen-Endungen (-straße, -weg, -gasse, -allee, -platz, -ring, -damm); ungewöhnliche Schreibweisen können entgehen.</li>
         <li><strong>Reines Regex-Pack</strong>, kein ML/NER. Eine <strong>manuelle Nachkontrolle</strong> ist vor jeder Veröffentlichung zwingend.</li>
-        <li><strong>CSV:</strong> Platzhalter enthalten keine Kommas, Anführungszeichen oder Zeilenumbrüche – die CSV-Struktur bleibt erhalten; Werte in gequoteten Feldern werden trotzdem ersetzt.</li>
+        <li><strong>CSV:</strong> Platzhalter enthalten keine Kommas, Anführungszeichen oder Zeilenumbrüche – die CSV-Struktur bleibt erhalten; Werte in gequoteten Feldern werden trotzdem ersetzt. Das <strong>Mapping</strong> (Platzhalter ↔ Original) lässt sich als CSV exportieren.</li>
       </ul>
     </div>
   </section>
@@ -403,7 +405,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v17</span>
+    <span class="footer-version">v18</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -545,6 +547,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=17"></script>
+  <script src="js/app.js?v=18"></script>
 </body>
 </html>

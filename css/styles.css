@@ -841,9 +841,11 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
   color: var(--c-text);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   margin-bottom: 10px;
 }
+.pseudo-map-head > span { display: inline-flex; align-items: center; gap: 8px; }
 .pseudo-map-empty { color: var(--c-muted); font-weight: 600; }
 .pseudo-map-empty i { color: var(--ampel-gruen); }
 .pseudo-map {
