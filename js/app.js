@@ -737,7 +737,7 @@ function showModal(id, show) {
     modalOpener = null;
   }
 }
-const MODALS = ['faq-backdrop', 'inventory-backdrop', 'phase3-backdrop', 'phase45-backdrop'];
+const MODALS = ['faq-backdrop', 'inventory-backdrop', 'phase3-backdrop', 'phase45-backdrop', 'license-backdrop'];
 document.getElementById('faq-btn')?.addEventListener('click', () => showModal('faq-backdrop', true));
 document.getElementById('faq-close-btn')?.addEventListener('click', () => showModal('faq-backdrop', false));
 document.getElementById('cta-btn')?.addEventListener('click', () => navTo('kompass'));
@@ -846,6 +846,76 @@ document.getElementById('open-phase3-btn')?.addEventListener('click', openPhase3
 document.getElementById('phase3-close-btn')?.addEventListener('click', () => showModal('phase3-backdrop', false));
 document.getElementById('p3-next')?.addEventListener('click', () => { if (phase3Index < PHASE3_TITLES.length - 1) { phase3Index++; renderPhase3(); } });
 document.getElementById('p3-back')?.addEventListener('click', () => { if (phase3Index > 0) { phase3Index--; renderPhase3(); } });
+
+/* ── Lizenz-Wegweiser (Modal) ─────────────────────────────────────
+   Zwei Fragen (Namensnennung? nationaler vs. internationaler Fokus)
+   → deterministische Empfehlung einer OFFENEN Lizenz. Der Rückgabe-
+   schlüssel entspricht einem LICENSE_OPTIONS-Wert und lässt sich per
+   Klick auf alle Datensätze ohne Lizenz übernehmen. */
+const LICENSE_INFO = {
+  'dl-de/by-2-0': {
+    label: 'Datenlizenz Deutschland – Namensnennung 2.0',
+    url: 'https://www.govdata.de/dl-de/by-2-0',
+    why: 'Der De-facto-Standard für offene Verwaltungsdaten in Deutschland (GovData). Nachnutzung ist frei erlaubt und verlangt nur die Nennung der Quelle.'
+  },
+  'cc-by-4.0': {
+    label: 'Creative Commons BY 4.0',
+    url: 'https://creativecommons.org/licenses/by/4.0/deed.de',
+    why: 'International etabliert und maschinenlesbar. Nachnutzung frei, verlangt eine Namensnennung – ideal, wenn breite bzw. globale Nachnutzung im Vordergrund steht.'
+  },
+  'dl-de/zero-2-0': {
+    label: 'Datenlizenz Deutschland – Zero 2.0',
+    url: 'https://www.govdata.de/dl-de/zero-2-0',
+    why: 'Datenlizenz Deutschland ganz ohne Bedingungen – die Daten dürfen bedingungslos genutzt werden (auch ohne Quellenangabe). Passend im deutschen Verwaltungskontext.'
+  },
+  'cc-zero': {
+    label: 'Creative Commons Zero (CC0 1.0)',
+    url: 'https://creativecommons.org/publicdomain/zero/1.0/deed.de',
+    why: 'CC0 verzichtet weltweit auf alle Rechte (Public-Domain-Widmung) – maximale, bedingungslose Nachnutzbarkeit und international sofort verständlich.'
+  }
+};
+const licenseWiz = { attribution: 'ja', scope: 'de' };
+
+function recommendLicense() {
+  if (licenseWiz.attribution === 'ja') return licenseWiz.scope === 'de' ? 'dl-de/by-2-0' : 'cc-by-4.0';
+  return licenseWiz.scope === 'de' ? 'dl-de/zero-2-0' : 'cc-zero';
+}
+
+function renderLicenseWizard() {
+  document.querySelectorAll('#license-backdrop .lic-opt').forEach(btn =>
+    btn.classList.toggle('is-active', licenseWiz[btn.dataset.lic] === btn.dataset.val));
+  const key = recommendLicense();
+  const info = LICENSE_INFO[key];
+  const res = document.getElementById('lic-result');
+  if (res) res.innerHTML =
+    `<span class="lic-result-badge"><i class="fas fa-award"></i> Empfehlung</span>` +
+    `<strong class="lic-result-name">${esc(info.label)}</strong>` +
+    `<p class="lic-result-why">${esc(info.why)}</p>` +
+    `<a class="lic-result-link" href="${esc(info.url)}" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Lizenztext ansehen</a>`;
+  const emptyCount = inventory.filter(d => !d.license).length;
+  const actions = document.getElementById('lic-actions');
+  if (actions) {
+    actions.innerHTML = inventory.length
+      ? `<button class="btn btn-primary" id="lic-apply"${emptyCount ? '' : ' disabled'}><i class="fas fa-wand-magic-sparkles"></i> Für ${emptyCount} Datensätze ohne Lizenz übernehmen</button>`
+      : `<span class="lic-note"><i class="fas fa-circle-info"></i> Importiere zuerst ein Inventar, um die Lizenz direkt zu übernehmen.</span>`;
+    actions.querySelector('#lic-apply')?.addEventListener('click', () => {
+      const k = recommendLicense();
+      let n = 0;
+      inventory.forEach(d => { if (!d.license) { d.license = k; n++; } });
+      saveState();
+      if (!document.getElementById('inventory-view')?.classList.contains('hidden')) renderInventoryBody();
+      showModal('license-backdrop', false);
+      alert(`Lizenz „${LICENSE_INFO[k].label}" auf ${n} Datensätze ohne Lizenz übernommen.`);
+    });
+  }
+}
+
+function openLicenseWizard() { showModal('license-backdrop', true); renderLicenseWizard(); }
+
+document.querySelectorAll('#license-backdrop .lic-opt').forEach(btn =>
+  btn.addEventListener('click', () => { licenseWiz[btn.dataset.lic] = btn.dataset.val; renderLicenseWizard(); }));
+document.getElementById('btn-license-wizard')?.addEventListener('click', openLicenseWizard);
+document.getElementById('license-close-btn')?.addEventListener('click', () => showModal('license-backdrop', false));
 
 // Klick auf den Backdrop (außerhalb des Dialogs) schließt das Modal
 MODALS.forEach(id => {
