@@ -626,6 +626,78 @@ a { color: var(--c-accent); }
   20%, 60% { box-shadow: 0 0 0 3px rgba(66,0,147,0.35), var(--shadow-md); }
 }
 
+/* ── Wissens- & Methodik-Center ──────────────────────────────── */
+.wissen-view { max-width: 1040px; margin: 28px auto 0; padding: 0 24px 48px; }
+.wissen-view.hidden { display: none; }
+.know-section { margin-top: 30px; }
+.know-h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--c-accent);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.know-lead { font-size: 14px; color: var(--c-muted); margin: -4px 0 14px; }
+.know-glossary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+.know-term {
+  background: #fff;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 15px 17px;
+}
+.know-term dt { font-size: 14.5px; font-weight: 800; color: var(--c-accent); margin-bottom: 5px; }
+.know-term dd { font-size: 13px; color: var(--c-text); line-height: 1.6; margin: 0; }
+.know-laws {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.know-law {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #fff;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 15px 17px;
+  text-decoration: none;
+  transition: transform 0.15s var(--ease-fluid), box-shadow 0.15s var(--ease-fluid), border-color 0.15s;
+}
+.know-law:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: rgba(66,0,147,0.25); }
+.know-law-name { font-size: 14px; font-weight: 800; color: var(--c-accent); display: flex; align-items: center; gap: 8px; }
+.know-law-name i { font-size: 11px; }
+.know-law-sum { font-size: 12.5px; color: var(--c-text); line-height: 1.55; }
+.know-models {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.know-model {
+  background: #fff;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 15px 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.know-model strong { font-size: 14px; font-weight: 800; color: var(--c-text); }
+.know-model-by { font-size: 11px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; color: var(--c-accent); }
+.know-model p { font-size: 12.5px; color: var(--c-muted); line-height: 1.55; margin: 4px 0 0; }
+.know-empty { font-size: 14px; color: var(--c-muted); padding: 20px 4px; text-align: center; }
+.know-empty.hidden { display: none; }
+.know-section.hidden { display: none; }
+
 /* ── Beratungs-CTA (Phase 4–5) ───────────────────────────────── */
 .consult-cta {
   max-width: 980px;

@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=24">
-  <link rel="stylesheet" href="css/styles.css?v=24">
+  <link rel="stylesheet" href="css/tokens.css?v=25">
+  <link rel="stylesheet" href="css/styles.css?v=25">
 </head>
 <body>
 
@@ -84,6 +84,7 @@
       <a href="#" data-view="inventory"><i class="fas fa-fw fa-boxes-stacked"></i> Dateninventar</a>
       <a href="#" data-view="governance"><i class="fas fa-fw fa-users-gear"></i> Governance &amp; RACI</a>
       <a href="#" data-view="pseudo"><i class="fas fa-fw fa-user-shield"></i> Textbereinigung</a>
+      <a href="#" data-view="wissen"><i class="fas fa-fw fa-book-open-reader"></i> Wissen &amp; Methodik</a>
       <a href="#" data-view="about"><i class="fas fa-fw fa-circle-info"></i> Über DatenLotse</a>
       <a href="https://datengraf.nozilla.net/" target="_blank" rel="noopener"><i class="fas fa-fw fa-circle-nodes"></i> Zu DatenGraf</a>
     </nav>
@@ -490,6 +491,68 @@
     </div>
   </section>
 
+  <!-- ── Wissens- & Methodik-Center ────────────────────────────── -->
+  <section class="wissen-view hidden" id="wissen-view">
+    <div class="inventory-header">
+      <div>
+        <div class="phase-row">
+          <span class="phase-badge">Überblick · Wissen</span>
+          <button class="phase-back" data-go="home"><i class="fas fa-arrow-left"></i> Startseite</button>
+        </div>
+        <h2 class="inventory-title"><i class="fas fa-book-open-reader"></i> Wissen &amp; Methodik</h2>
+        <span class="inventory-meta">Begriffe, Rechtsgrundlagen und Reifegrad-Modelle rund um offene Verwaltungsdaten – kompakt erklärt, mit amtlichen Quellen.</span>
+      </div>
+    </div>
+
+    <p class="inventory-hint">Dieses Nachschlagewerk erklärt die zentralen Begriffe und den rechtlichen Rahmen der Open-Data-Umsetzung. Es dient der Orientierung und ist <strong>keine Rechtsberatung</strong> – neben dem Bund haben viele Länder eigene Open-Data- bzw. Transparenzgesetze.</p>
+
+    <div class="inv-controls">
+      <input type="search" id="wissen-search" class="inv-search" placeholder="Wissen durchsuchen (Begriff, Gesetz …)…" aria-label="Wissen durchsuchen">
+    </div>
+
+    <div id="wissen-noresult" class="know-empty hidden">Nichts passt zur Suche. Begriff anders formulieren?</div>
+
+    <section id="wissen-sec-glossary" class="know-section">
+      <h3 class="know-h3"><i class="fas fa-spell-check"></i> Glossar</h3>
+      <dl class="know-glossary" id="wissen-glossary"></dl>
+    </section>
+
+    <section id="wissen-sec-laws" class="know-section">
+      <h3 class="know-h3"><i class="fas fa-scale-balanced"></i> Rechtsgrundlagen</h3>
+      <div class="know-laws" id="wissen-laws"></div>
+    </section>
+
+    <section id="wissen-sec-models" class="know-section">
+      <h3 class="know-h3"><i class="fas fa-ruler-combined"></i> Reifegrad-Modelle &amp; Methodik</h3>
+      <p class="know-lead">Der <strong>Daten-Kompass</strong> stützt sich auf anerkannte Modelle:</p>
+      <div class="know-models" id="wissen-models"></div>
+    </section>
+
+    <div class="view-next">
+      <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Direkt anwenden</h3>
+      <div class="view-next-cards">
+        <button class="next-card" data-go="kompass">
+          <div class="next-card-ic"><i class="fas fa-compass"></i></div>
+          <div class="next-card-text">
+            <span class="next-card-phase">Überblick</span>
+            <strong>Daten-Kompass</strong>
+            <p>Den Reifegrad deiner Organisation entlang dieser Modelle bestimmen.</p>
+          </div>
+          <i class="fas fa-arrow-right next-card-arrow"></i>
+        </button>
+        <button class="next-card" data-go="inventory">
+          <div class="next-card-ic"><i class="fas fa-boxes-stacked"></i></div>
+          <div class="next-card-text">
+            <span class="next-card-phase">Phase 2 · Asset Management</span>
+            <strong>Dateninventar nach DCAT-AP.de</strong>
+            <p>Das Wissen direkt in strukturierte Metadaten überführen.</p>
+          </div>
+          <i class="fas fa-arrow-right next-card-arrow"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- ── Beratungs-CTA (Phase 4–5) ─────────────────────────────── -->
   <section class="consult-cta">
     <div class="consult-cards">
@@ -522,7 +585,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v24</span>
+    <span class="footer-version">v25</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -699,6 +762,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=24"></script>
+  <script src="js/app.js?v=25"></script>
 </body>
 </html>
