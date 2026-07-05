@@ -563,6 +563,69 @@ a { color: var(--c-accent); }
 .clear-empfehlung { font-size: 13px; color: var(--c-muted); line-height: 1.55; margin-top: 6px; }
 .clear-empfehlung i { color: var(--c-accent); margin-right: 3px; }
 
+/* ── DCAT-AP.de-Qualitätsprüfung ─────────────────────────────── */
+.quality-body { display: flex; flex-direction: column; gap: 12px; }
+.qual-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-left: 4px solid var(--c-border-s);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.qual-card--gruen { border-left-color: var(--ampel-gruen); }
+.qual-card--gelb  { border-left-color: var(--ampel-gelb); }
+.qual-card--rot   { border-left-color: var(--ampel-rot); }
+.qual-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.qual-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.qual-title { font-size: 15px; font-weight: 700; color: var(--c-text); }
+.qual-src { font-size: 12px; color: var(--c-muted); }
+.qual-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.qual-badge--gruen { color: var(--ampel-gruen); background: rgba(46,158,96,0.12); }
+.qual-badge--gelb  { color: var(--ampel-gelb);  background: rgba(212,130,10,0.12); }
+.qual-badge--rot   { color: var(--ampel-rot);   background: rgba(192,57,43,0.12); }
+.qual-issues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.qual-issue { font-size: 13px; line-height: 1.5; color: var(--c-text); display: flex; align-items: flex-start; gap: 8px; }
+.qual-issue i { margin-top: 2px; flex-shrink: 0; }
+.qual-issue--error i { color: var(--ampel-rot); }
+.qual-issue--warn i { color: var(--ampel-gelb); }
+.qual-ok { font-size: 13px; color: var(--ampel-gruen); font-weight: 600; display: flex; align-items: center; gap: 8px; margin: 0; }
+.qual-fix {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--c-accent);
+  background: #fff;
+  border: 1px solid var(--c-border-s);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.qual-fix:hover { border-color: var(--c-accent); background: rgba(66,0,147,0.05); }
+.inv-card--flash { animation: invFlash 1.6s ease; }
+@keyframes invFlash {
+  0%, 100% { box-shadow: var(--shadow-sm); }
+  20%, 60% { box-shadow: 0 0 0 3px rgba(66,0,147,0.35), var(--shadow-md); }
+}
+
 /* ── Beratungs-CTA (Phase 4–5) ───────────────────────────────── */
 .consult-cta {
   max-width: 980px;
