@@ -541,15 +541,127 @@ function updateClearingSummary() {
 
 /* ── Tab-Umschaltung Inventar ↔ Clearing ──────────────────────── */
 function showInventoryTab(name) {
-  const isClearing = name === 'clearing';
-  document.getElementById('inventar-panel')?.classList.toggle('hidden', isClearing);
-  document.getElementById('clearing-panel')?.classList.toggle('hidden', !isClearing);
-  document.getElementById('tab-inventar')?.classList.toggle('is-active', !isClearing);
-  document.getElementById('tab-clearing')?.classList.toggle('is-active', isClearing);
-  if (isClearing) renderClearing();
+  const tabs = ['inventar', 'clearing', 'quality'];
+  const panel = { inventar: 'inventar-panel', clearing: 'clearing-panel', quality: 'quality-panel' };
+  tabs.forEach(t => {
+    document.getElementById(panel[t])?.classList.toggle('hidden', t !== name);
+    document.getElementById('tab-' + t)?.classList.toggle('is-active', t === name);
+  });
+  if (name === 'clearing') renderClearing();
+  if (name === 'quality') renderQuality();
 }
 document.getElementById('tab-inventar')?.addEventListener('click', () => showInventoryTab('inventar'));
 document.getElementById('tab-clearing')?.addEventListener('click', () => showInventoryTab('clearing'));
+document.getElementById('tab-quality')?.addEventListener('click', () => showInventoryTab('quality'));
+
+/* ── DCAT-AP.de-Qualitätsprüfung (Publish-Ready-Check) ─────────────
+   Echte Validierung je Datensatz statt nur Vollständigkeits-%:
+   Pflichtfelder (Fehler), Empfehlungsfelder (Warnung) sowie Werte-/
+   Vokabular-/Formatprüfungen. Deterministisch, kein ML. */
+const DCAT_REQUIRED = [
+  ['title',        'Titel (dct:title)'],
+  ['publisher',    'Publisher (dct:publisher)'],
+  ['contactPoint', 'Ansprechpartner (dcat:contactPoint)'],
+  ['accessRights', 'Zugriffsrechte (dct:accessRights)'],
+  ['license',      'Lizenz (dct:license)'],
+];
+const DCAT_RECOMMENDED = [
+  ['description',        'Beschreibung (dct:description)'],
+  ['accrualPeriodicity', 'Aktualisierungszyklus (dct:accrualPeriodicity)'],
+  ['format',             'Format (dct:format)'],
+];
+const EMAIL_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/;
+
+function validateDataset(d) {
+  const issues = [];
+  const empty = v => v == null || String(v).trim() === '';
+  DCAT_REQUIRED.forEach(([k, label]) => {
+    if (empty(d[k])) issues.push({ sev: 'error', msg: `Pflichtfeld fehlt: ${label}` });
+  });
+  DCAT_RECOMMENDED.forEach(([k, label]) => {
+    if (empty(d[k])) issues.push({ sev: 'warn', msg: `Empfohlenes Feld fehlt: ${label}` });
+  });
+  // Wertetreue / kontrollierte Vokabulare / Formate
+  if (d.license === 'other-closed')
+    issues.push({ sev: 'warn', msg: 'Lizenz ist nicht offen – für Open Data ungeeignet (siehe Lizenz-Wegweiser).' });
+  if (!empty(d.accessRights) && !['PUBLIC', 'RESTRICTED', 'NON_PUBLIC'].includes(d.accessRights))
+    issues.push({ sev: 'error', msg: 'Zugriffsrechte nicht aus dem kontrollierten Vokabular (PUBLIC / RESTRICTED / NON_PUBLIC).' });
+  if (!empty(d.accrualPeriodicity) && !FREQ_OPTIONS.some(o => o[0] === d.accrualPeriodicity))
+    issues.push({ sev: 'warn', msg: 'Aktualisierungszyklus nicht aus dem kontrollierten Vokabular.' });
+  if (!empty(d.contactPoint) && !EMAIL_RE.test(d.contactPoint))
+    issues.push({ sev: 'warn', msg: 'Ansprechpartner enthält keine E-Mail-Adresse – für dcat:contactPoint empfohlen.' });
+  if (!empty(d.title) && d.title.trim().length < 3)
+    issues.push({ sev: 'warn', msg: 'Titel ist sehr kurz – aussagekräftigen dct:title vergeben.' });
+  if (!empty(d.description) && d.description.trim().length < 10)
+    issues.push({ sev: 'warn', msg: 'Beschreibung ist sehr kurz.' });
+  return issues;
+}
+
+function qualityStatus(issues) {
+  if (issues.some(i => i.sev === 'error')) return 'rot';
+  if (issues.length) return 'gelb';
+  return 'gruen';
+}
+const QUALITY_LABEL = { gruen: 'Publikationsbereit', gelb: 'Mit Warnungen', rot: 'Fehler beheben' };
+
+function renderQuality() {
+  const body = document.getElementById('quality-body');
+  const sum = document.getElementById('quality-summary');
+  if (!body) return;
+
+  const rows = inventory.map((d, idx) => {
+    const issues = validateDataset(d);
+    return { d, idx, issues, status: qualityStatus(issues) };
+  });
+  const c = { gruen: 0, gelb: 0, rot: 0 };
+  rows.forEach(r => c[r.status]++);
+  if (sum) sum.innerHTML =
+    `<span class="clear-stat clear-stat--gruen"><span class="clear-dot"></span>${c.gruen} publikationsbereit</span>` +
+    `<span class="clear-stat clear-stat--gelb"><span class="clear-dot"></span>${c.gelb} mit Warnungen</span>` +
+    `<span class="clear-stat clear-stat--rot"><span class="clear-dot"></span>${c.rot} mit Fehlern</span>`;
+
+  // schlechteste zuerst: Fehler → Warnungen → bereit
+  const order = { rot: 0, gelb: 1, gruen: 2 };
+  rows.sort((a, b) => order[a.status] - order[b.status] || b.issues.length - a.issues.length);
+
+  body.innerHTML = rows.map(({ d, idx, issues, status }) => {
+    const list = issues.length
+      ? `<ul class="qual-issues">${issues.map(i =>
+          `<li class="qual-issue qual-issue--${i.sev}"><i class="fas ${i.sev === 'error' ? 'fa-circle-xmark' : 'fa-triangle-exclamation'}"></i> ${esc(i.msg)}</li>`).join('')}</ul>`
+      : `<p class="qual-ok"><i class="fas fa-circle-check"></i> Alle Pflicht- und Empfehlungsfelder erfüllt – bereit für die Veröffentlichung.</p>`;
+    return `
+    <div class="qual-card qual-card--${status}">
+      <div class="qual-card-head">
+        <div class="qual-head-text">
+          <span class="qual-title">${esc(d.title || '(ohne Titel)')}</span>
+          <span class="qual-src"><i class="fas fa-database"></i> ${esc(d.sourceSystem || '—')}</span>
+        </div>
+        <span class="qual-badge qual-badge--${status}"><span class="clear-dot"></span>${QUALITY_LABEL[status]}</span>
+      </div>
+      ${list}
+      ${issues.length ? `<button class="qual-fix" data-fix="${idx}"><i class="fas fa-pen"></i> Im Inventar bearbeiten</button>` : ''}
+    </div>`;
+  }).join('');
+
+  body.querySelectorAll('.qual-fix').forEach(btn =>
+    btn.addEventListener('click', () => jumpToInventoryCard(+btn.dataset.fix)));
+}
+
+// In den Inventar-Tab wechseln und die Karte hervorheben (Filter zurücksetzen,
+// damit die Zielkarte garantiert sichtbar ist)
+function jumpToInventoryCard(idx) {
+  invFilter.q = ''; invFilter.schutz = ''; invFilter.ampel = '';
+  const search = document.getElementById('inv-search'); if (search) search.value = '';
+  ['inv-filter-schutz', 'inv-filter-ampel'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  showInventoryTab('inventar');
+  renderInventoryBody();
+  const card = document.querySelector(`#inventory-body .inv-card[data-idx="${idx}"]`);
+  if (card) {
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('inv-card--flash');
+    setTimeout(() => card.classList.remove('inv-card--flash'), 1600);
+  }
+}
 
 /* ── Export: DCAT-AP.de JSON ──────────────────────────────────── */
 function buildDcatJSON() {
