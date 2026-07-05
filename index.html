@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=22">
-  <link rel="stylesheet" href="css/styles.css?v=22">
+  <link rel="stylesheet" href="css/tokens.css?v=23">
+  <link rel="stylesheet" href="css/styles.css?v=23">
 </head>
 <body>
 
@@ -231,6 +231,7 @@
       </div>
       <div class="inventory-actions">
         <button class="btn btn-secondary" id="btn-import-again"><i class="fas fa-rotate"></i> Andere CSV</button>
+        <button class="btn btn-secondary" id="btn-license-wizard"><i class="fas fa-id-card"></i> Lizenz-Wegweiser</button>
         <button class="btn btn-secondary" id="btn-print-inventory"><i class="fas fa-print"></i> PDF</button>
         <button class="btn btn-secondary" id="btn-export-csv"><i class="fas fa-file-csv"></i> CSV</button>
         <button class="btn btn-primary" id="btn-export-json"><i class="fas fa-file-export"></i> DCAT-AP.de JSON</button>
@@ -513,7 +514,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v22</span>
+    <span class="footer-version">v23</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -655,6 +656,41 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=22"></script>
+  <!-- ── Lizenz-Wegweiser-Modal ────────────────────────────────── -->
+  <div class="modal-backdrop hidden" id="license-backdrop">
+    <div class="faq-modal" role="dialog" aria-modal="true" aria-labelledby="license-title">
+      <div class="faq-modal-header">
+        <h2 id="license-title"><i class="fas fa-id-card"></i> Lizenz-Wegweiser</h2>
+        <button class="icon-close" id="license-close-btn" aria-label="Schließen"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="faq-modal-body">
+        <p>Offene Daten brauchen eine <strong>offene Lizenz</strong> – nur so ist rechtssicher klar, wie sie nachgenutzt werden dürfen. Zwei Fragen genügen für eine passende Empfehlung.</p>
+
+        <div class="lic-q">
+          <span class="lic-q-label">1 · Möchtest du bei der Nachnutzung eine <strong>Namensnennung</strong> (Quellenangabe) verlangen?</span>
+          <div class="lic-seg" role="group" aria-label="Namensnennung">
+            <button class="lic-opt" data-lic="attribution" data-val="ja">Ja, Namensnennung</button>
+            <button class="lic-opt" data-lic="attribution" data-val="nein">Nein, keine Bedingungen</button>
+          </div>
+        </div>
+
+        <div class="lic-q">
+          <span class="lic-q-label">2 · Wo liegt der <strong>Schwerpunkt der Nachnutzung</strong>?</span>
+          <div class="lic-seg" role="group" aria-label="Schwerpunkt">
+            <button class="lic-opt" data-lic="scope" data-val="de">Deutschland / Verwaltung</button>
+            <button class="lic-opt" data-lic="scope" data-val="intl">International / breit</button>
+          </div>
+        </div>
+
+        <div class="lic-result" id="lic-result"></div>
+
+        <p class="modal-privacy"><i class="fas fa-circle-info"></i> <strong>Nicht „offen":</strong> Lizenzen mit <em>NC</em> (nicht-kommerziell), <em>ND</em> (keine Bearbeitung) oder <em>Share-Alike</em> gelten nicht als offene Daten und werden von GovData nicht als „offen" geführt.</p>
+
+        <div class="modal-cta-row" id="lic-actions"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js?v=23"></script>
 </body>
 </html>
