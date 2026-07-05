@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=25">
-  <link rel="stylesheet" href="css/styles.css?v=25">
+  <link rel="stylesheet" href="css/tokens.css?v=26">
+  <link rel="stylesheet" href="css/styles.css?v=26">
 </head>
 <body>
 
@@ -85,6 +85,7 @@
       <a href="#" data-view="governance"><i class="fas fa-fw fa-users-gear"></i> Governance &amp; RACI</a>
       <a href="#" data-view="pseudo"><i class="fas fa-fw fa-user-shield"></i> Textbereinigung</a>
       <a href="#" data-view="wissen"><i class="fas fa-fw fa-book-open-reader"></i> Wissen &amp; Methodik</a>
+      <a href="#" data-view="vorlagen"><i class="fas fa-fw fa-file-lines"></i> Vorlagen &amp; Dokumente</a>
       <a href="#" data-view="about"><i class="fas fa-fw fa-circle-info"></i> Über DatenLotse</a>
       <a href="https://datengraf.nozilla.net/" target="_blank" rel="noopener"><i class="fas fa-fw fa-circle-nodes"></i> Zu DatenGraf</a>
     </nav>
@@ -553,6 +554,87 @@
     </div>
   </section>
 
+  <!-- ── Vorlagen & Musterdokumente ────────────────────────────── -->
+  <section class="vorlagen-view hidden" id="vorlagen-view">
+    <div class="inventory-header">
+      <div>
+        <div class="phase-row">
+          <span class="phase-badge">Service · Vorlagen</span>
+          <button class="phase-back" data-go="home"><i class="fas fa-arrow-left"></i> Startseite</button>
+        </div>
+        <h2 class="inventory-title"><i class="fas fa-file-lines"></i> Vorlagen &amp; Musterdokumente</h2>
+        <span class="inventory-meta">Fertige Dokumente für die Open-Data-Umsetzung – teils aus deinem Inventar generiert, als PDF druckbar oder als Datei ladbar. Alles lokal.</span>
+      </div>
+    </div>
+
+    <p class="inventory-hint">Diese Vorlagen sind <strong>Muster ohne Gewähr</strong> und ersetzen keine Rechtsberatung – bitte an die Gegebenheiten deiner Organisation und die geltenden (Landes-)Gesetze anpassen. Die datengetriebenen Dokumente (Freigabe, VVT) werden aus deinem aktuellen Inventar &amp; Clearing erzeugt.</p>
+
+    <div class="vorlagen-grid">
+      <article class="vorlage-card">
+        <div class="vorlage-ic"><i class="fas fa-scroll"></i></div>
+        <h3>Open-Data-Richtlinie</h3>
+        <p>Muster einer organisationsweiten Richtlinie: Grundsätze (Open by default), Rollen, Prozess und Freigabe.</p>
+        <div class="vorlage-actions">
+          <button class="btn btn-secondary" data-doc="policy" data-fmt="pdf"><i class="fas fa-print"></i> Als PDF</button>
+          <button class="btn btn-secondary" data-doc="policy" data-fmt="md"><i class="fas fa-file-lines"></i> Markdown</button>
+        </div>
+      </article>
+
+      <article class="vorlage-card">
+        <div class="vorlage-ic"><i class="fas fa-file-circle-check"></i></div>
+        <h3>Veröffentlichungs-Freigabe</h3>
+        <p>Formular je Datensatz mit Metadaten, Clearing-Ergebnis und Freigabefeldern (Datenschutz &amp; Leitung). Aus dem Inventar generiert.</p>
+        <div class="vorlage-actions">
+          <button class="btn btn-secondary" data-doc="freigabe" data-fmt="pdf"><i class="fas fa-print"></i> Als PDF</button>
+        </div>
+      </article>
+
+      <article class="vorlage-card">
+        <div class="vorlage-ic"><i class="fas fa-list-check"></i></div>
+        <h3>VVT-Auszug (Art. 30 DSGVO)</h3>
+        <p>Startpunkt fürs Verzeichnis von Verarbeitungstätigkeiten: DSGVO-relevante Datensätze mit offenen Spalten zum Ergänzen.</p>
+        <div class="vorlage-actions">
+          <button class="btn btn-secondary" data-doc="vvt" data-fmt="pdf"><i class="fas fa-print"></i> Als PDF</button>
+          <button class="btn btn-secondary" data-doc="vvt" data-fmt="csv"><i class="fas fa-file-csv"></i> CSV</button>
+        </div>
+      </article>
+
+      <article class="vorlage-card">
+        <div class="vorlage-ic"><i class="fas fa-shield-halved"></i></div>
+        <h3>DSFA-Kurz-Checkliste</h3>
+        <p>Vorprüfung nach Art. 35 DSGVO: Muss für eine Verarbeitung eine Datenschutz-Folgenabschätzung erstellt werden?</p>
+        <div class="vorlage-actions">
+          <button class="btn btn-secondary" data-doc="dsfa" data-fmt="pdf"><i class="fas fa-print"></i> Als PDF</button>
+          <button class="btn btn-secondary" data-doc="dsfa" data-fmt="md"><i class="fas fa-file-lines"></i> Markdown</button>
+        </div>
+      </article>
+    </div>
+
+    <div class="view-next">
+      <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Woraus entstehen die Dokumente?</h3>
+      <div class="view-next-cards">
+        <button class="next-card" data-go="inventory">
+          <div class="next-card-ic"><i class="fas fa-boxes-stacked"></i></div>
+          <div class="next-card-text">
+            <span class="next-card-phase">Phase 2 · Asset Management</span>
+            <strong>Dateninventar &amp; Clearing</strong>
+            <p>Freigabe-Formular und VVT-Auszug speisen sich aus Inventar und Risiko-Clearing.</p>
+          </div>
+          <i class="fas fa-arrow-right next-card-arrow"></i>
+        </button>
+        <button class="next-card" data-go="governance">
+          <div class="next-card-ic"><i class="fas fa-users-gear"></i></div>
+          <div class="next-card-text">
+            <span class="next-card-phase">Phase 1 · Fundament</span>
+            <strong>Governance &amp; Rollen</strong>
+            <p>Die Richtlinie verankert die Rollen aus der RACI-Matrix organisatorisch.</p>
+          </div>
+          <i class="fas fa-arrow-right next-card-arrow"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- ── Beratungs-CTA (Phase 4–5) ─────────────────────────────── -->
   <section class="consult-cta">
     <div class="consult-cards">
@@ -585,7 +667,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v25</span>
+    <span class="footer-version">v26</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -762,6 +844,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=25"></script>
+  <script src="js/app.js?v=26"></script>
 </body>
 </html>

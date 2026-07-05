@@ -698,6 +698,43 @@ a { color: var(--c-accent); }
 .know-empty.hidden { display: none; }
 .know-section.hidden { display: none; }
 
+/* ── Vorlagen & Musterdokumente ──────────────────────────────── */
+.vorlagen-view { max-width: 1040px; margin: 28px auto 0; padding: 0 24px 48px; }
+.vorlagen-view.hidden { display: none; }
+.vorlagen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  margin-top: 6px;
+}
+.vorlage-card {
+  background: #fff;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  transition: transform 0.18s var(--ease-fluid), box-shadow 0.18s var(--ease-fluid);
+}
+.vorlage-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.vorlage-ic {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #420093 0%, #6c2fbf 100%);
+  color: #fff;
+  font-size: 18px;
+}
+.vorlage-card h3 { font-size: 16px; font-weight: 800; color: var(--c-accent); letter-spacing: -0.2px; }
+.vorlage-card p { font-size: 13px; color: var(--c-muted); line-height: 1.6; flex: 1; margin: 0; }
+.vorlage-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.vorlage-actions .btn-secondary:hover { border-color: var(--c-muted); color: var(--c-text); background: #faf9fc; transform: translateY(-1px); }
+
 /* ── Beratungs-CTA (Phase 4–5) ───────────────────────────────── */
 .consult-cta {
   max-width: 980px;

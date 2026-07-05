@@ -1053,6 +1053,7 @@ function showView(name) {
   document.getElementById('pseudo-view')?.classList.toggle('hidden', name !== 'pseudo');
   document.getElementById('kompass-view')?.classList.toggle('hidden', name !== 'kompass');
   document.getElementById('wissen-view')?.classList.toggle('hidden', name !== 'wissen');
+  document.getElementById('vorlagen-view')?.classList.toggle('hidden', name !== 'vorlagen');
   // Der Phase-4&5-Beratungsblock gehört auf die Startseite; Unterseiten bekommen
   // stattdessen ihren eigenen, kontextpassenden „Wie geht es weiter?"-Block.
   const cta = document.querySelector('.consult-cta');
@@ -1155,6 +1156,8 @@ function navTo(target) {
   } else if (target === 'wissen') {
     showView('wissen');
     renderWissen();
+  } else if (target === 'vorlagen') {
+    showView('vorlagen');
   } else if (target === 'about') {
     showView('home');
     const det = document.querySelector('#about-accordion details');
@@ -1259,6 +1262,248 @@ function renderWissen() {
 }
 
 document.getElementById('wissen-search')?.addEventListener('input', e => { wissenFilter.q = e.target.value; renderWissen(); });
+
+/* ──────────────────────────────────────────────────────────────
+   Vorlagen & Musterdokumente (Service-Center)
+
+   Generiert fertige, herunterladbare bzw. druckbare Dokumente aus dem
+   aktuellen Arbeitsstand: statische Muster (Open-Data-Richtlinie,
+   DSFA-Checkliste) sowie datengetriebene Formulare (Veröffentlichungs-
+   Freigabe, VVT-Auszug) aus Inventar + Clearing. Print → PDF, Download
+   als Markdown/CSV. Alles lokal, keine Übertragung.
+   ────────────────────────────────────────────────────────────── */
+function orgName() {
+  const counts = {};
+  inventory.forEach(d => { const p = (d.publisher || '').trim(); if (p) counts[p] = (counts[p] || 0) + 1; });
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return top ? top[0] : 'Ihre Organisation';
+}
+function docDate() { return new Date().toLocaleDateString('de-DE'); }
+
+const DOC_CSS = `body{font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#1e1b2e;margin:32px;font-size:12.5px;line-height:1.6}
+h1{color:#420093;font-size:22px;margin:0 0 2px} h2{color:#420093;font-size:15px;margin:22px 0 8px}
+h3{font-size:13px;margin:16px 0 4px} .muted{color:#7a7591} ul,ol{margin:6px 0 6px 4px;padding-left:20px} li{margin:4px 0}
+table{border-collapse:collapse;width:100%;margin-top:6px} th,td{border:1px solid #d9d2e8;padding:6px 9px;text-align:left;vertical-align:top}
+th{background:#f3eefb;color:#420093;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.sign{margin-top:14px;color:#555} .sign span{display:inline-block;min-width:230px;border-bottom:1px solid #999;margin-left:6px}
+.form-card{border:1px solid #d9d2e8;border-radius:8px;padding:12px 14px;margin:10px 0;page-break-inside:avoid}
+.amp{font-weight:700} @media print{body{margin:12mm}}`;
+
+function docShell(title, bodyHTML) {
+  return `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>DatenLotse – ${esc(title)}</title>
+    <style>${DOC_CSS}</style></head><body>${bodyHTML}
+    <p class="muted" style="margin-top:26px;border-top:1px solid #eee;padding-top:8px">Lokal erzeugt mit DatenLotse – keine Datenübertragung. Muster ohne Gewähr, keine Rechtsberatung; an die Gegebenheiten Ihrer Organisation und die jeweils geltenden (Landes-)Gesetze anzupassen.</p>
+    </body></html>`;
+}
+function printDoc(html) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
+  const go = () => { w.focus(); w.print(); };
+  if (w.document.readyState === 'complete') go();
+  else w.addEventListener('load', go);
+}
+
+/* — Open-Data-Richtlinie (Muster) — */
+function policyBodyHTML() {
+  const org = esc(orgName());
+  return `<h1>Open-Data-Richtlinie (Muster)</h1>
+  <p class="muted">${org} · Stand: ${esc(docDate())}</p>
+  <h2>1. Zweck &amp; Geltungsbereich</h2>
+  <p>Diese Richtlinie regelt die Bereitstellung offener Daten (Open Data) der ${org}. Sie gilt für alle Organisationseinheiten, die Daten erheben, verarbeiten oder veröffentlichen.</p>
+  <h2>2. Grundsätze</h2>
+  <ul>
+    <li><strong>Open by default:</strong> Daten werden grundsätzlich offen bereitgestellt, sofern keine rechtlichen, datenschutz- oder sicherheitsbezogenen Gründe entgegenstehen.</li>
+    <li><strong>Maschinenlesbarkeit &amp; offene Formate</strong> (CSV, JSON, GeoJSON, XML …) nach DCAT-AP.de.</li>
+    <li><strong>Offene Lizenzierung</strong> (DL-DE-BY-2.0 oder offener; keine NC-/ND-/Share-Alike-Einschränkungen).</li>
+    <li><strong>Datenschutz:</strong> personenbezogene Daten werden vor einer Veröffentlichung geprüft (Risiko-Clearing) und bei Bedarf anonymisiert bzw. pseudonymisiert.</li>
+  </ul>
+  <h2>3. Rollen &amp; Verantwortlichkeiten</h2>
+  <ul>
+    <li><strong>Data Owner</strong> – fachliche Verantwortung je Datendomäne.</li>
+    <li><strong>Data Steward</strong> – operative Pflege und Metadatenqualität.</li>
+    <li><strong>Datenschutzbeauftragte:r</strong> – Prüfung bei DSGVO-Relevanz.</li>
+    <li><strong>Leitung</strong> – Freigabe zur Veröffentlichung.</li>
+  </ul>
+  <h2>4. Prozess</h2>
+  <ol>
+    <li>Inventarisierung nach DCAT-AP.de.</li>
+    <li>Risiko-Clearing (Rot/Gelb/Grün).</li>
+    <li>Aufbereitung (Pseudonymisierung/Aggregation) bei Bedarf.</li>
+    <li>Freigabe und Veröffentlichung über GovData/CKAN.</li>
+    <li>Pflege, Monitoring und Rückkopplung (zirkuläres Ökosystem).</li>
+  </ol>
+  <h2>5. Qualität &amp; Aktualität</h2>
+  <p>Metadaten werden vollständig gepflegt; Datensätze erhalten einen dokumentierten Aktualisierungszyklus. Die Publish-Ready-Prüfung wird vor jeder Veröffentlichung durchlaufen.</p>
+  <h2>6. Inkrafttreten</h2>
+  <p class="sign">Ort, Datum:<span></span></p>
+  <p class="sign">Unterschrift (Leitung):<span></span></p>`;
+}
+function policyMarkdown() {
+  const org = orgName();
+  return `# Open-Data-Richtlinie (Muster)
+
+_${org} · Stand: ${docDate()}_
+
+## 1. Zweck & Geltungsbereich
+Diese Richtlinie regelt die Bereitstellung offener Daten (Open Data) der ${org}. Sie gilt für alle Organisationseinheiten, die Daten erheben, verarbeiten oder veröffentlichen.
+
+## 2. Grundsätze
+- **Open by default:** Daten werden grundsätzlich offen bereitgestellt, sofern keine rechtlichen, datenschutz- oder sicherheitsbezogenen Gründe entgegenstehen.
+- **Maschinenlesbarkeit & offene Formate** (CSV, JSON, GeoJSON, XML …) nach DCAT-AP.de.
+- **Offene Lizenzierung** (DL-DE-BY-2.0 oder offener; keine NC-/ND-/Share-Alike-Einschränkungen).
+- **Datenschutz:** personenbezogene Daten werden vor einer Veröffentlichung geprüft (Risiko-Clearing) und bei Bedarf anonymisiert bzw. pseudonymisiert.
+
+## 3. Rollen & Verantwortlichkeiten
+- **Data Owner** – fachliche Verantwortung je Datendomäne.
+- **Data Steward** – operative Pflege und Metadatenqualität.
+- **Datenschutzbeauftragte:r** – Prüfung bei DSGVO-Relevanz.
+- **Leitung** – Freigabe zur Veröffentlichung.
+
+## 4. Prozess
+1. Inventarisierung nach DCAT-AP.de.
+2. Risiko-Clearing (Rot/Gelb/Grün).
+3. Aufbereitung (Pseudonymisierung/Aggregation) bei Bedarf.
+4. Freigabe und Veröffentlichung über GovData/CKAN.
+5. Pflege, Monitoring und Rückkopplung.
+
+## 5. Qualität & Aktualität
+Metadaten werden vollständig gepflegt; Datensätze erhalten einen dokumentierten Aktualisierungszyklus. Die Publish-Ready-Prüfung wird vor jeder Veröffentlichung durchlaufen.
+
+## 6. Inkrafttreten
+Ort, Datum: ____________________
+
+Unterschrift (Leitung): ____________________
+
+---
+_Muster ohne Gewähr, keine Rechtsberatung; an die Gegebenheiten Ihrer Organisation und die geltenden (Landes-)Gesetze anzupassen._
+`;
+}
+
+/* — DSFA-Kurz-Checkliste (Muster) — */
+const DSFA_ITEMS = [
+  'Werden personenbezogene Daten verarbeitet? Wenn nein: keine DSFA erforderlich.',
+  'Umfangreiche Verarbeitung besonderer Kategorien (Art. 9 DSGVO)?',
+  'Systematische umfangreiche Überwachung öffentlich zugänglicher Bereiche?',
+  'Scoring/Profiling oder automatisierte Entscheidungen mit Rechtswirkung?',
+  'Zusammenführung/Abgleich von Datensätzen aus verschiedenen Quellen?',
+  'Betroffene besonders schutzbedürftig (z. B. Kinder, Beschäftigte)?',
+  'Einsatz neuer Technologien mit hohem Risiko?',
+  'Rechtsgrundlage der Verarbeitung dokumentiert?',
+  'Technische & organisatorische Maßnahmen (TOM) festgelegt?',
+  'Löschkonzept/Aufbewahrungsfristen definiert?',
+];
+function dsfaBodyHTML() {
+  const org = esc(orgName());
+  return `<h1>DSFA – Kurz-Checkliste (Muster)</h1>
+  <p class="muted">${org} · Stand: ${esc(docDate())} · Vorprüfung nach Art. 35 DSGVO</p>
+  <p>Diese Kurz-Checkliste dient der <strong>Vorprüfung</strong>, ob für eine Verarbeitung eine Datenschutz-Folgenabschätzung (DSFA) erforderlich ist. Mehrere „Ja" deuten auf ein hohes Risiko und damit auf eine DSFA-Pflicht hin – im Zweifel die/den Datenschutzbeauftragte:n einbeziehen.</p>
+  <table><thead><tr><th style="width:70%">Prüfpunkt</th><th style="text-align:center">Ja</th><th style="text-align:center">Nein</th></tr></thead>
+  <tbody>${DSFA_ITEMS.map(i => `<tr><td>${esc(i)}</td><td style="text-align:center">☐</td><td style="text-align:center">☐</td></tr>`).join('')}</tbody></table>
+  <h3>Ergebnis</h3>
+  <p>☐ Keine DSFA erforderlich &nbsp;&nbsp; ☐ DSFA erforderlich &nbsp;&nbsp; ☐ Rücksprache DSB</p>
+  <p class="sign">Bearbeiter:in / Datum:<span></span></p>
+  <p class="sign">Datenschutzbeauftragte:r:<span></span></p>`;
+}
+function dsfaMarkdown() {
+  const org = orgName();
+  return `# DSFA – Kurz-Checkliste (Muster)
+
+_${org} · Stand: ${docDate()} · Vorprüfung nach Art. 35 DSGVO_
+
+Diese Kurz-Checkliste dient der **Vorprüfung**, ob eine Datenschutz-Folgenabschätzung erforderlich ist. Mehrere „Ja" deuten auf DSFA-Pflicht hin – im Zweifel die/den Datenschutzbeauftragte:n einbeziehen.
+
+${DSFA_ITEMS.map(i => `- [ ] ${i}`).join('\n')}
+
+## Ergebnis
+- [ ] Keine DSFA erforderlich
+- [ ] DSFA erforderlich
+- [ ] Rücksprache DSB
+
+Bearbeiter:in / Datum: ____________________
+
+Datenschutzbeauftragte:r: ____________________
+
+---
+_Muster ohne Gewähr, keine Rechtsberatung._
+`;
+}
+
+/* — Veröffentlichungs-Freigabe-Formular (datengetrieben) — */
+function freigabeBodyHTML() {
+  const org = esc(orgName());
+  const accessLabel = { PUBLIC: 'Öffentlich', RESTRICTED: 'Eingeschränkt', NON_PUBLIC: 'Nicht öffentlich' };
+  const ampLabel = { gruen: 'Grün · Freigabe', gelb: 'Gelb · Prüfen', rot: 'Rot · Sperren' };
+  const ampColor = { gruen: '#2e9e60', gelb: '#d4820a', rot: '#c0392b' };
+  const cards = inventory.map(d => {
+    const amp = d.clearing?.ampel;
+    return `<div class="form-card">
+      <h3>${esc(d.title || '(ohne Titel)')}</h3>
+      <p class="muted" style="margin:0 0 6px">${esc(d.sourceSystem || '—')} · ${esc(d.publisher || '—')} · ${esc(d.contactPoint || 'kein Kontakt')}</p>
+      <p style="margin:0"><strong>Lizenz:</strong> ${esc(d.license || '—')} &nbsp;·&nbsp; <strong>Zugriffsrechte:</strong> ${esc(accessLabel[d.accessRights] || d.accessRights || '—')} &nbsp;·&nbsp; <strong>Vollständigkeit:</strong> ${completeness(d)} %</p>
+      <p style="margin:6px 0 0"><strong>Risiko-Clearing:</strong> <span class="amp" style="color:${ampColor[amp] || '#7a7591'}">${ampLabel[amp] || '—'}</span>${d.clearing?.empfehlung ? ` – ${esc(d.clearing.empfehlung)}` : ''}</p>
+      <p style="margin:8px 0 0">Freigabe zur Veröffentlichung: ☐ Ja&nbsp;&nbsp;☐ Nein&nbsp;&nbsp;☐ Nur aggregiert/anonymisiert</p>
+      <p class="sign" style="margin-top:8px">Datenschutz geprüft (Datum/Name):<span></span></p>
+      <p class="sign">Freigegeben (Leitung, Datum):<span></span></p>
+    </div>`;
+  }).join('');
+  return `<h1>Veröffentlichungs-Freigabe</h1>
+  <p class="muted">${org} · Stand: ${esc(docDate())} · ${inventory.length} Datensätze</p>
+  <p>Dokumentiert je Datensatz die Metadaten, das Ergebnis des Risiko-Clearings und die formale Freigabe zur Open-Data-Veröffentlichung.</p>
+  ${cards}`;
+}
+
+/* — VVT-Auszug: DSGVO-relevante Datensätze (Bezug zu Art. 30 DSGVO) — */
+function vvtRows() {
+  return inventory
+    .map((d, i) => ({ d, i, dsgvo: /dsgvo/i.test(d._grafSchutzbedarf || '') || ['rot', 'gelb'].includes(d.clearing?.ampel) }))
+    .filter(r => r.dsgvo);
+}
+function vvtBodyHTML() {
+  const org = esc(orgName());
+  const rows = vvtRows();
+  const ampLabel = { gruen: 'Grün', gelb: 'Gelb', rot: 'Rot' };
+  const body = rows.length ? rows.map(({ d }) => `<tr>
+      <td>${esc(d.title || '—')}</td>
+      <td>${esc(d.sourceSystem || '—')}</td>
+      <td>${esc(d._grafSchutzbedarf || '—')}</td>
+      <td>${esc(ampLabel[d.clearing?.ampel] || '—')}</td>
+      <td></td><td></td><td></td>
+    </tr>`).join('') : `<tr><td colspan="7" class="muted">Keine DSGVO-relevanten Datensätze erkannt (weder DSGVO-Schutzbedarf noch Clearing Gelb/Rot).</td></tr>`;
+  return `<h1>VVT-Auszug – DSGVO-relevante Datensätze</h1>
+  <p class="muted">${org} · Stand: ${esc(docDate())} · Bezug zu Art. 30 DSGVO (Verzeichnis von Verarbeitungstätigkeiten)</p>
+  <p>Startpunkt für das Verzeichnis von Verarbeitungstätigkeiten: aufgeführt sind Datensätze mit DSGVO-Schutzbedarf bzw. Clearing-Ampel Gelb/Rot. Die offenen Spalten (Zweck, Rechtsgrundlage, Löschfrist) sind organisationsspezifisch zu ergänzen.</p>
+  <table><thead><tr><th>Datensatz</th><th>Quellsystem</th><th>Schutzbedarf</th><th>Clearing</th><th>Zweck</th><th>Rechtsgrundlage</th><th>Löschfrist</th></tr></thead>
+  <tbody>${body}</tbody></table>`;
+}
+function vvtCSV() {
+  const head = ['Datensatz', 'Quellsystem', 'Schutzbedarf', 'ClearingAmpel', 'Zweck', 'Rechtsgrundlage', 'Loeschfrist'].join(',');
+  const rows = vvtRows().map(({ d }) =>
+    [d.title, d.sourceSystem, d._grafSchutzbedarf, d.clearing?.ampel || '', '', '', ''].map(csvCell).join(','));
+  return [head, ...rows].join('\n');
+}
+
+function generateDoc(doc, fmt) {
+  if (doc === 'policy') {
+    if (fmt === 'md') downloadBlob(policyMarkdown(), 'open-data-richtlinie-muster.md', 'text/markdown');
+    else printDoc(docShell('Open-Data-Richtlinie (Muster)', policyBodyHTML()));
+  } else if (doc === 'dsfa') {
+    if (fmt === 'md') downloadBlob(dsfaMarkdown(), 'dsfa-checkliste-muster.md', 'text/markdown');
+    else printDoc(docShell('DSFA-Kurz-Checkliste (Muster)', dsfaBodyHTML()));
+  } else if (doc === 'freigabe') {
+    if (!inventory.length) { alert('Bitte zuerst ein Dateninventar importieren – das Freigabe-Formular wird daraus erzeugt.'); return; }
+    ensureAllClearing();
+    printDoc(docShell('Veröffentlichungs-Freigabe', freigabeBodyHTML()));
+  } else if (doc === 'vvt') {
+    if (!inventory.length) { alert('Bitte zuerst ein Dateninventar importieren – der VVT-Auszug wird daraus erzeugt.'); return; }
+    ensureAllClearing();
+    if (fmt === 'csv') downloadBlob(vvtCSV(), 'vvt-auszug-dsgvo.csv', 'text/csv');
+    else printDoc(docShell('VVT-Auszug (DSGVO-relevante Datensätze)', vvtBodyHTML()));
+  }
+}
+document.querySelectorAll('#vorlagen-view [data-doc]').forEach(btn =>
+  btn.addEventListener('click', () => generateDoc(btn.dataset.doc, btn.dataset.fmt)));
 
 /* ──────────────────────────────────────────────────────────────
    Modul 3b: Client-Side-Pseudonymisierung (reines Regex-Pack)
