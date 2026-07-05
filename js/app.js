@@ -1052,6 +1052,7 @@ function showView(name) {
   document.getElementById('governance-view')?.classList.toggle('hidden', name !== 'governance');
   document.getElementById('pseudo-view')?.classList.toggle('hidden', name !== 'pseudo');
   document.getElementById('kompass-view')?.classList.toggle('hidden', name !== 'kompass');
+  document.getElementById('wissen-view')?.classList.toggle('hidden', name !== 'wissen');
   // Der Phase-4&5-Beratungsblock gehört auf die Startseite; Unterseiten bekommen
   // stattdessen ihren eigenen, kontextpassenden „Wie geht es weiter?"-Block.
   const cta = document.querySelector('.consult-cta');
@@ -1151,6 +1152,9 @@ function navTo(target) {
     renderGovernance();
   } else if (target === 'pseudo') {
     showView('pseudo');
+  } else if (target === 'wissen') {
+    showView('wissen');
+    renderWissen();
   } else if (target === 'about') {
     showView('home');
     const det = document.querySelector('#about-accordion details');
@@ -1169,6 +1173,92 @@ document.getElementById('topbar-brand')?.addEventListener('click', () => navTo('
 document.getElementById('topbar-brand')?.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navTo('home'); }
 });
+
+/* ──────────────────────────────────────────────────────────────
+   Wissens- & Methodik-Center (reiner Content-Service)
+
+   Statische, lokal gerenderte Wissensbasis: Glossar zentraler Open-
+   Data-Begriffe, Rechtsgrundlagen-Bibliothek (Bund/EU) mit amtlichen
+   Quellen sowie die Reifegrad-Modelle hinter dem Daten-Kompass. Ein
+   Live-Filter durchsucht Begriffe und Gesetze zugleich.
+   ────────────────────────────────────────────────────────────── */
+const GLOSSARY = [
+  { term: 'Open Data', def: 'Daten, die von jedem frei genutzt, weiterverwendet und geteilt werden dürfen – maschinenlesbar und unter einer offenen Lizenz bereitgestellt.' },
+  { term: 'DCAT-AP.de', def: 'Deutsches Metadaten-Anwendungsprofil (auf Basis von W3C DCAT bzw. DCAT-AP der EU) zur einheitlichen Beschreibung von Datensätzen – Grundlage für das Harvesting durch GovData.' },
+  { term: 'GovData', def: 'Das Datenportal für Deutschland (Bund, Länder, Kommunen): bündelt die Metadaten offener Verwaltungsdaten und macht sie zentral auffindbar.' },
+  { term: 'CKAN', def: 'Verbreitete Open-Source-Software für Datenportale (Katalog, API, Harvesting). Viele Open-Data-Portale in Deutschland und der EU setzen darauf.' },
+  { term: 'Metadaten', def: '„Daten über Daten": beschreibende Angaben (Titel, Herausgeber, Lizenz, Format, Aktualisierung …), die Datensätze auffindbar und nachnutzbar machen.' },
+  { term: 'Dataset & Distribution', def: 'Ein Dataset ist die inhaltliche Einheit (z. B. „Baumkataster"), eine Distribution die konkrete Repräsentation davon (z. B. die CSV-Datei).' },
+  { term: 'Harvesting', def: 'Das automatische Einsammeln von Metadaten durch ein Portal – z. B. holt GovData die Kataloge von Kommunen und Ländern regelmäßig ab.' },
+  { term: 'Offene Lizenz', def: 'Erlaubt Nutzung, Bearbeitung und Weitergabe (auch kommerziell), höchstens mit Namensnennung. NC (nicht-kommerziell), ND (keine Bearbeitung) und Share-Alike gelten nicht als offen.' },
+  { term: '5-Sterne-Open-Data', def: 'Reifegradmodell von Tim Berners-Lee: ★ offen lizenziert · ★★ strukturiert · ★★★ offenes Format · ★★★★ URIs · ★★★★★ Linked Open Data.' },
+  { term: 'FAIR-Prinzipien', def: 'Findable, Accessible, Interoperable, Reusable – Leitprinzipien für auffindbare und nachnutzbare Daten (ursprünglich aus der Forschung).' },
+  { term: 'Linked Open Data / RDF', def: 'Offene Daten, die per RDF und URIs miteinander verknüpft sind und so maschinell in Beziehung gesetzt werden können (5. Stern).' },
+  { term: 'Personenbezogene Daten', def: 'Art. 4 DSGVO: alle Informationen, die sich auf eine identifizierte oder identifizierbare natürliche Person beziehen.' },
+  { term: 'Besondere Kategorien (Art. 9 DSGVO)', def: 'Besonders schützenswerte Daten (Gesundheit, Religion, ethnische Herkunft, Biometrie, Gewerkschaft, Sexualleben) mit strengeren Voraussetzungen.' },
+  { term: 'Pseudonymisierung', def: 'Ersetzen identifizierender Merkmale durch Platzhalter; eine Re-Identifizierung ist nur mit Zusatzwissen möglich. Die Daten bleiben personenbezogen.' },
+  { term: 'Anonymisierung', def: 'Daten so verändern, dass eine Re-Identifizierung praktisch ausgeschlossen ist – anonyme Daten fallen nicht mehr unter die DSGVO.' },
+  { term: 'Schutzbedarf', def: 'Einstufung, wie schützenswert Daten sind (öffentlich / intern / DSGVO-relevant). Im DatenLotsen steuert er die Vorbelegung des Risiko-Clearings.' },
+  { term: 'Verzeichnis von Verarbeitungstätigkeiten (VVT)', def: 'Art. 30 DSGVO: Pflichtdokumentation aller Verarbeitungen personenbezogener Daten in einer Organisation.' },
+  { term: 'Data Owner & Data Steward', def: 'Owner = fachlich verantwortlich für eine Datendomäne; Steward = zuständig für operative Pflege und Datenqualität.' },
+  { term: 'RACI', def: 'Verantwortungsmatrix: Responsible (führt aus), Accountable (rechenschaftspflichtig), Consulted (wird befragt), Informed (wird informiert).' },
+  { term: 'Accrual Periodicity', def: 'Der Aktualisierungszyklus eines Datensatzes (täglich, monatlich, jährlich …) – ein wichtiges DCAT-AP.de-Metadatum für Nachnutzende.' },
+];
+
+const LEGAL_BASIS = [
+  { name: 'Open-Data-Gesetz (§ 12a EGovG)', summary: 'Verpflichtet Bundesbehörden, unbearbeitete Daten maschinenlesbar und offen bereitzustellen.', url: 'https://www.gesetze-im-internet.de/egovg/__12a.html' },
+  { name: 'E-Government-Gesetz (EGovG)', summary: 'Rechtsrahmen für die elektronische Verwaltung des Bundes – enthält u. a. die Open-Data-Pflicht (§ 12a).', url: 'https://www.gesetze-im-internet.de/egovg/' },
+  { name: 'Datennutzungsgesetz (DNG)', summary: 'Setzt die EU-Open-Data-Richtlinie um und regelt die Weiterverwendung von Verwaltungsdaten; löste das IWG ab.', url: 'https://www.gesetze-im-internet.de/dng/' },
+  { name: 'EU Open Data Directive (2019/1024)', summary: 'EU-Richtlinie zur offenen Bereitstellung und Weiterverwendung von Daten des öffentlichen Sektors (vormals PSI-Richtlinie).', url: 'https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32019L1024' },
+  { name: 'Informationsfreiheitsgesetz (IFG)', summary: 'Gibt jeder Person einen Anspruch auf Zugang zu amtlichen Informationen des Bundes.', url: 'https://www.gesetze-im-internet.de/ifg/' },
+  { name: 'DSGVO (VO (EU) 2016/679)', summary: 'EU-Datenschutz-Grundverordnung – Grundlage für den rechtmäßigen Umgang mit personenbezogenen Daten.', url: 'https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32016R0679' },
+  { name: 'Bundesdatenschutzgesetz (BDSG)', summary: 'Ergänzt die DSGVO national und konkretisiert sie für Deutschland (u. a. Behörden, Beschäftigtendatenschutz).', url: 'https://www.gesetze-im-internet.de/bdsg_2018/' },
+  { name: 'Geodatenzugangsgesetz (GeoZG) / INSPIRE', summary: 'Regelt den Zugang zu Geodaten und setzt die EU-INSPIRE-Richtlinie zur Geodateninfrastruktur um.', url: 'https://www.gesetze-im-internet.de/geozg/' },
+];
+
+const METHOD_MODELS = [
+  { name: 'Open Data Readiness Assessment (ODRA)', by: 'World Bank', desc: 'Bewertet die organisatorische, rechtliche und infrastrukturelle Bereitschaft für Open Data.' },
+  { name: 'Open Data Maturity Report', by: 'data.europa.eu (EU)', desc: 'Jährlicher EU-Reifegradvergleich entlang der Dimensionen Policy, Portal, Impact, Quality.' },
+  { name: '5-Sterne-Open-Data', by: 'Tim Berners-Lee', desc: 'Technische Offenheit von ★ (offen lizenziert) bis ★★★★★ (Linked Open Data).' },
+  { name: 'DCAT-AP.de', by: 'GovData / IT-Planungsrat', desc: 'Metadaten-Anwendungsprofil für einheitliche, harvestbare Datensatzbeschreibungen.' },
+  { name: 'DSGVO & FAIR', by: 'EU', desc: 'Rechtliche Leitplanken (Datenschutz) und Nachnutzbarkeits-Prinzipien (Findable, Accessible, Interoperable, Reusable).' },
+];
+
+const wissenFilter = { q: '' };
+
+function renderWissen() {
+  const q = wissenFilter.q.toLowerCase().trim();
+  const match = (...parts) => !q || parts.some(p => (p || '').toLowerCase().includes(q));
+
+  const glossary = GLOSSARY.filter(g => match(g.term, g.def));
+  const laws = LEGAL_BASIS.filter(l => match(l.name, l.summary));
+  const models = METHOD_MODELS.filter(m => match(m.name, m.by, m.desc));
+
+  const gEl = document.getElementById('wissen-glossary');
+  if (gEl) gEl.innerHTML = glossary.length
+    ? glossary.map(g => `<div class="know-term"><dt>${esc(g.term)}</dt><dd>${esc(g.def)}</dd></div>`).join('')
+    : '<p class="know-empty">Keine Begriffe passen zur Suche.</p>';
+
+  const lEl = document.getElementById('wissen-laws');
+  if (lEl) lEl.innerHTML = laws.length
+    ? laws.map(l => `<a class="know-law" href="${esc(l.url)}" target="_blank" rel="noopener">
+        <span class="know-law-name">${esc(l.name)} <i class="fas fa-arrow-up-right-from-square"></i></span>
+        <span class="know-law-sum">${esc(l.summary)}</span></a>`).join('')
+    : '<p class="know-empty">Keine Rechtsgrundlagen passen zur Suche.</p>';
+
+  const mEl = document.getElementById('wissen-models');
+  if (mEl) mEl.innerHTML = models.length
+    ? models.map(m => `<div class="know-model"><strong>${esc(m.name)}</strong><span class="know-model-by">${esc(m.by)}</span><p>${esc(m.desc)}</p></div>`).join('')
+    : '<p class="know-empty">Keine Modelle passen zur Suche.</p>';
+
+  // Abschnitts-Sichtbarkeit je nach Treffern
+  document.getElementById('wissen-sec-glossary')?.classList.toggle('hidden', glossary.length === 0);
+  document.getElementById('wissen-sec-laws')?.classList.toggle('hidden', laws.length === 0);
+  document.getElementById('wissen-sec-models')?.classList.toggle('hidden', models.length === 0);
+  document.getElementById('wissen-noresult')?.classList.toggle('hidden', glossary.length + laws.length + models.length > 0);
+}
+
+document.getElementById('wissen-search')?.addEventListener('input', e => { wissenFilter.q = e.target.value; renderWissen(); });
 
 /* ──────────────────────────────────────────────────────────────
    Modul 3b: Client-Side-Pseudonymisierung (reines Regex-Pack)
