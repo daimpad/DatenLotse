@@ -433,7 +433,7 @@ a { color: var(--c-accent); }
   padding: 2px 8px;
   border-radius: 20px;
 }
-.inv-fields { display: flex; flex-direction: column; gap: 8px; }
+.inv-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 10px; }
 .inv-fields label {
   display: flex;
   flex-direction: column;
@@ -441,7 +441,9 @@ a { color: var(--c-accent); }
   font-size: 11px;
   font-weight: 600;
   color: var(--c-muted);
+  min-width: 0;
 }
+.inv-field-wide { grid-column: 1 / -1; }
 .inv-fields input,
 .inv-fields select {
   font-family: inherit;
@@ -451,9 +453,31 @@ a { color: var(--c-accent); }
   border: 1px solid var(--c-border-s);
   border-radius: 7px;
   background: #fff;
+  max-width: 100%;
 }
 .inv-fields input:focus,
 .inv-fields select:focus { outline: none; border-color: var(--c-accent); }
+.inv-desc-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-muted);
+}
+.inv-desc-label textarea {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--c-text);
+  padding: 7px 9px;
+  border: 1px solid var(--c-border-s);
+  border-radius: 7px;
+  background: #fff;
+  resize: vertical;
+  min-height: 42px;
+  line-height: 1.5;
+}
+.inv-desc-label textarea:focus { outline: none; border-color: var(--c-accent); }
 
 /* ── Tabs Inventar ↔ Clearing ────────────────────────────────── */
 .inv-tabs {

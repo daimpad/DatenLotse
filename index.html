@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=26">
-  <link rel="stylesheet" href="css/styles.css?v=26">
+  <link rel="stylesheet" href="css/tokens.css?v=27">
+  <link rel="stylesheet" href="css/styles.css?v=27">
 </head>
 <body>
 
@@ -247,7 +247,7 @@
 
     <!-- Tab: Inventar -->
     <div class="inventar-panel" id="inventar-panel">
-      <p class="inventory-hint">Ergänze die offenen Pflichtfelder (Lizenz, Aktualisierungszyklus, Zugriffsrechte). Die Prozentanzeige zeigt die DCAT-AP.de-Vollständigkeit je Datensatz. Alles bleibt lokal im Browser.</p>
+      <p class="inventory-hint">Ergänze je Datensatz die DCAT-AP.de-Metadaten – Pflichtfelder (Beschreibung, Lizenz, Zugriffsrechte, Ansprechpartner, Aktualisierungszyklus) und Empfehlungen (Kategorie, Schlagwörter, Info-URL). Die Lizenz wählst du aus dem vollständigen DCAT-AP.de-Register oder per <strong>Lizenz-Wegweiser</strong>. Die Prozentanzeige zeigt die Vollständigkeit; der Tab <strong>Qualitätsprüfung</strong> prüft die Veröffentlichungsreife. Alles bleibt lokal im Browser.</p>
       <div class="inv-controls">
         <input type="search" id="inv-search" class="inv-search" placeholder="Suchen (Titel, Publisher, Quellsystem)…" aria-label="Inventar durchsuchen">
         <select id="inv-filter-schutz" aria-label="Nach Schutzbedarf filtern">
@@ -667,7 +667,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v26</span>
+    <span class="footer-version">v27</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -837,13 +837,13 @@
 
         <div class="lic-result" id="lic-result"></div>
 
-        <p class="modal-privacy"><i class="fas fa-circle-info"></i> <strong>Nicht „offen":</strong> Lizenzen mit <em>NC</em> (nicht-kommerziell), <em>ND</em> (keine Bearbeitung) oder <em>Share-Alike</em> gelten nicht als offene Daten und werden von GovData nicht als „offen" geführt.</p>
+        <p class="modal-privacy"><i class="fas fa-circle-info"></i> <strong>Nicht „offen":</strong> Lizenzen mit <em>NC</em> (nicht-kommerziell) oder <em>ND</em> (keine Bearbeitung) gelten <strong>nicht</strong> als offene Daten. <em>Share-Alike</em> (z. B. CC BY-SA, ODbL) ist zwar offen, verlangt aber die Weitergabe unter gleicher Lizenz – für maximale Nachnutzung empfiehlt GovData möglichst offene Lizenzen (DL-DE-BY oder offener). Das vollständige Lizenz-Register steht im Inventar-Dropdown „Lizenz" zur Verfügung.</p>
 
         <div class="modal-cta-row" id="lic-actions"></div>
       </div>
     </div>
   </div>
 
-  <script src="js/app.js?v=26"></script>
+  <script src="js/app.js?v=27"></script>
 </body>
 </html>

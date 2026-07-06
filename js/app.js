@@ -30,21 +30,85 @@ const FREQ_OPTIONS = [
   ['IRREG',     'Unregelmäßig'],
   ['NEVER',     'Einmalig / statisch']
 ];
-// dct:license – gängige offene Lizenzen für DE-Verwaltung
-const LICENSE_OPTIONS = [
-  ['',                       '— bitte wählen —'],
-  ['dl-de/by-2-0',           'Datenlizenz Deutschland – Namensnennung 2.0'],
-  ['dl-de/zero-2-0',         'Datenlizenz Deutschland – Zero 2.0'],
-  ['cc-by-4.0',              'Creative Commons BY 4.0'],
-  ['cc-zero',                'Creative Commons Zero (CC0)'],
-  ['other-closed',           'Nicht offen / eingeschränkt']
+/* dct:license – Lizenz-Register nach DCAT-AP.de (Auszug der gängigen
+   Lizenzen). Jede Lizenz trägt: id (interner, rückwärtskompatibler
+   Schlüssel = gespeicherter Wert), label, open (Open-Definition-konform:
+   NC/ND sind NICHT offen; Share-Alike/Copyleft IST offen), uri (offizielle
+   dct:license-URI für den DCAT-Export) und url (menschenlesbarer Lizenztext).
+   Reihenfolge/Gruppen steuern das Dropdown (Optgroups). */
+const DCATDE_LIC = 'http://dcat-ap.de/def/licenses/';
+const LICENSE_CATALOG = [
+  { group: 'Offene Lizenzen (für Open Data empfohlen)', items: [
+    { id: 'dl-de/by-2-0',    label: 'Datenlizenz Deutschland – Namensnennung 2.0', open: true, uri: DCATDE_LIC + 'dl-by-de/2.0', url: 'https://www.govdata.de/dl-de/by-2-0' },
+    { id: 'dl-de/zero-2-0',  label: 'Datenlizenz Deutschland – Zero 2.0', open: true, uri: DCATDE_LIC + 'dl-zero-de/2.0', url: 'https://www.govdata.de/dl-de/zero-2-0' },
+    { id: 'cc-by-4.0',       label: 'Creative Commons Namensnennung 4.0 (CC BY 4.0)', open: true, uri: DCATDE_LIC + 'cc-by/4.0', url: 'https://creativecommons.org/licenses/by/4.0/deed.de' },
+    { id: 'cc-zero',         label: 'Creative Commons Zero 1.0 (CC0 – Gemeinfreiheit)', open: true, uri: DCATDE_LIC + 'cc-zero', url: 'https://creativecommons.org/publicdomain/zero/1.0/deed.de' },
+    { id: 'cc-by-sa-4.0',    label: 'Creative Commons Namensnennung – Weitergabe unter gleichen Bedingungen 4.0 (CC BY-SA 4.0)', open: true, uri: DCATDE_LIC + 'cc-by-sa/4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0/deed.de' },
+    { id: 'dl-de/by-1-0',    label: 'Datenlizenz Deutschland – Namensnennung 1.0', open: true, uri: DCATDE_LIC + 'dl-by-de/1.0', url: 'https://www.govdata.de/dl-de/by-1-0' },
+    { id: 'cc-by-3.0-de',    label: 'Creative Commons Namensnennung 3.0 Deutschland (CC BY 3.0 DE)', open: true, uri: DCATDE_LIC + 'cc-by/3.0/de', url: 'https://creativecommons.org/licenses/by/3.0/de/deed.de' },
+    { id: 'geonutzv-de-2013', label: 'Nutzungsbestimmungen für Geodaten des Bundes (GeoNutzV)', open: true, uri: DCATDE_LIC + 'geonutz/20130319', url: 'https://www.gesetze-im-internet.de/geonutzv/' },
+    { id: 'official-work',   label: 'Amtliches Werk – lizenzfrei nach § 5 UrhG', open: true, uri: DCATDE_LIC + 'officialWork', url: 'https://www.gesetze-im-internet.de/urhg/__5.html' },
+    { id: 'odc-by',          label: 'Open Data Commons – Namensnennung (ODC-BY 1.0)', open: true, uri: 'https://opendatacommons.org/licenses/by/1-0/', url: 'https://opendatacommons.org/licenses/by/1-0/' },
+    { id: 'odc-odbl',        label: 'Open Data Commons – Open Database License (ODbL 1.0)', open: true, uri: 'https://opendatacommons.org/licenses/odbl/1-0/', url: 'https://opendatacommons.org/licenses/odbl/1-0/' },
+    { id: 'odc-pddl',        label: 'Open Data Commons – Public Domain Dedication (PDDL 1.0)', open: true, uri: 'https://opendatacommons.org/licenses/pddl/1-0/', url: 'https://opendatacommons.org/licenses/pddl/1-0/' },
+    { id: 'gfdl',            label: 'GNU Free Documentation License (GFDL)', open: true, uri: DCATDE_LIC + 'gfdl', url: 'https://www.gnu.org/licenses/fdl-1.3.html' },
+    { id: 'other-open',      label: 'Andere offene Lizenz', open: true, uri: DCATDE_LIC + 'other-open', url: 'https://opendefinition.org/licenses/' },
+  ]},
+  { group: 'Eingeschränkte Lizenzen (nicht „offen“ i. S. der Open Definition)', items: [
+    { id: 'cc-by-nc-4.0',    label: 'CC Namensnennung – Nicht kommerziell 4.0 (CC BY-NC 4.0)', open: false, uri: DCATDE_LIC + 'cc-by-nc/4.0', url: 'https://creativecommons.org/licenses/by-nc/4.0/deed.de' },
+    { id: 'cc-by-nd-4.0',    label: 'CC Namensnennung – Keine Bearbeitung 4.0 (CC BY-ND 4.0)', open: false, uri: DCATDE_LIC + 'cc-by-nd/4.0', url: 'https://creativecommons.org/licenses/by-nd/4.0/deed.de' },
+    { id: 'cc-by-nc-sa-4.0', label: 'CC Namensnennung – Nicht kommerziell – Weitergabe 4.0 (CC BY-NC-SA 4.0)', open: false, uri: DCATDE_LIC + 'cc-by-nc-sa/4.0', url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/deed.de' },
+    { id: 'cc-by-nc-nd-4.0', label: 'CC Namensnennung – Nicht kommerziell – Keine Bearbeitung 4.0 (CC BY-NC-ND 4.0)', open: false, uri: DCATDE_LIC + 'cc-by-nc-nd/4.0', url: 'https://creativecommons.org/licenses/by-nc-nd/4.0/deed.de' },
+    { id: 'dl-de/by-nc-1-0', label: 'Datenlizenz Deutschland – Namensnennung – nicht kommerziell 1.0', open: false, uri: DCATDE_LIC + 'dl-by-nc-de/1.0', url: 'https://www.govdata.de/lizenzen' },
+    { id: 'other-closed',    label: 'Andere / nicht offene Lizenz', open: false, uri: DCATDE_LIC + 'other-closed', url: '' },
+  ]},
 ];
+// Nachschlage-Map id → Metadaten und flache Optionsliste (Rückwärtskompatibilität)
+const LICENSE_META = {};
+LICENSE_CATALOG.forEach(g => g.items.forEach(l => { LICENSE_META[l.id] = l; }));
+const LICENSE_OPTIONS = [['', '— bitte wählen —'], ...LICENSE_CATALOG.flatMap(g => g.items.map(l => [l.id, l.label]))];
+
+function licenseIsOpen(id) { return !!(LICENSE_META[id] && LICENSE_META[id].open); }
+
+// Dropdown mit <optgroup>; ein unbekannter (z. B. legacy) Wert bleibt erhalten
+function licenseSelectHTML(selected) {
+  let html = `<option value=""${selected ? '' : ' selected'}>— bitte wählen —</option>`;
+  html += LICENSE_CATALOG.map(g =>
+    `<optgroup label="${esc(g.group)}">` +
+    g.items.map(l => `<option value="${esc(l.id)}"${l.id === selected ? ' selected' : ''}>${esc(l.label)}</option>`).join('') +
+    `</optgroup>`).join('');
+  if (selected && !LICENSE_META[selected])
+    html += `<option value="${esc(selected)}" selected>${esc(selected)} (unbekannte Lizenz)</option>`;
+  return html;
+}
+
 // dct:accessRights – EU Access-Right NAL
 const ACCESS_OPTIONS = [
   ['',           '— bitte wählen —'],
   ['PUBLIC',     'Öffentlich'],
   ['RESTRICTED', 'Eingeschränkt'],
   ['NON_PUBLIC', 'Nicht öffentlich']
+];
+const ACCESS_NAL = 'http://publications.europa.eu/resource/authority/access-right/';
+const FREQ_NAL = 'http://publications.europa.eu/resource/authority/frequency/';
+
+// dcat:theme – EU-Datenthemen (Data Theme NAL, von GovData/DCAT-AP.de genutzt)
+const THEME_NAL = 'http://publications.europa.eu/resource/authority/data-theme/';
+const DCAT_THEMES = [
+  ['',     '— bitte wählen —'],
+  ['AGRI', 'Landwirtschaft, Fischerei, Forstwirtschaft & Nahrung'],
+  ['ECON', 'Wirtschaft & Finanzen'],
+  ['EDUC', 'Bildung, Kultur & Sport'],
+  ['ENER', 'Energie'],
+  ['ENVI', 'Umwelt'],
+  ['GOVE', 'Regierung & öffentlicher Sektor'],
+  ['HEAL', 'Gesundheit'],
+  ['INTR', 'Internationale Themen'],
+  ['JUST', 'Justiz, Rechtssystem & öffentliche Sicherheit'],
+  ['REGI', 'Regionen & Städte'],
+  ['SOCO', 'Bevölkerung & Gesellschaft'],
+  ['TECH', 'Wissenschaft & Technologie'],
+  ['TRAN', 'Verkehr']
 ];
 
 /* ── Globaler State ───────────────────────────────────────────── */
@@ -221,9 +285,12 @@ function deriveInventory(rows) {
       sourceSystem:       r.Quelle || '',
       format:             r.Format || '',
       // Nacherfassung:
+      keywords:           '',
+      theme:              guessTheme(r),
       accrualPeriodicity: mapHaeufigkeit(r['Häufigkeit']),
       license:            '',
       accessRights:       mapSchutzToAccess(r.Schutzbedarf),
+      landingPage:        '',
       _grafSchutzbedarf:  r.Schutzbedarf || '',
       _recipients:        new Set(r.Ziel ? [r.Ziel] : [])
     });
@@ -245,6 +312,26 @@ function mapSchutzToAccess(schutz) {
   return '';
 }
 
+// Konservativer Vorschlag für dcat:theme aus Datentyp/Bereich/Quelle.
+// Nur bei eindeutigen Stichwörtern; sonst leer (Nutzer wählt).
+function guessTheme(r) {
+  const t = `${r.Datentyp || ''} ${r.QuelleBereich || ''} ${r.Quelle || ''} ${r.QuelleAbteilung || ''}`.toLowerCase();
+  const rules = [
+    ['ENVI', /umwelt|geo|baum|grün|gruen|bebauung|natur|klima|luft|wasser|abfall|entsorg/],
+    ['TRAN', /verkehr|mobil|fahrgast|fahrplan|parken|straße|strasse|ÖPNV|oepnv|bus|bahn/],
+    ['ECON', /haushalt|finanz|wirtschaft|steuer|vergabe|kämmer|kaemmer|beschaffung/],
+    ['SOCO', /sozial|kita|betreuung|senior|jugend|familie|bevölker|bevoelker|einwohner|melde/],
+    ['EDUC', /bildung|schule|biblio|kultur|sport|museum|ausleih|volkshochschule/],
+    ['HEAL', /gesundheit|medizin|pflege|impf|klinik/],
+    ['ENER', /energie|strom|gas|solar|photovoltaik|wärme|waerme/],
+    ['JUST', /polizei|ordnung|sicherheit|justiz|gericht|bußgeld|bussgeld/],
+    ['GOVE', /rat|gremium|beschluss|verwaltung|personal|organigramm|wahl|sitzung/],
+    ['REGI', /stadtplan|flächennutzung|flaechennutzung|quartier|bezirk|bebauungsplan/],
+  ];
+  for (const [code, re] of rules) if (re.test(t)) return code;
+  return '';
+}
+
 function mapHaeufigkeit(h) {
   if (!h) return '';
   if (/täglich|taeglich|daily/i.test(h)) return 'DAILY';
@@ -257,7 +344,7 @@ function mapHaeufigkeit(h) {
 }
 
 /* ── DCAT-AP.de Vollständigkeit je Dataset ────────────────────── */
-const REQUIRED_FIELDS = ['title', 'publisher', 'contactPoint', 'accrualPeriodicity', 'license', 'accessRights'];
+const REQUIRED_FIELDS = ['title', 'description', 'publisher', 'contactPoint', 'accrualPeriodicity', 'license', 'accessRights'];
 function completeness(d) {
   const filled = REQUIRED_FIELDS.filter(f => d[f] && d[f] !== '').length;
   return Math.round((filled / REQUIRED_FIELDS.length) * 100);
@@ -407,6 +494,9 @@ function renderInventoryBody() {
         <span class="inv-src"><i class="fas fa-database"></i> ${esc(d.sourceSystem || '—')}</span>
         ${d.format ? `<span class="inv-fmt">${esc(d.format)}</span>` : ''}
       </div>
+      <label class="inv-desc-label">Beschreibung
+        <textarea data-field="description" rows="2" placeholder="Kurze Beschreibung des Datensatzes (Pflichtfeld)">${esc(d.description)}</textarea>
+      </label>
       <div class="inv-fields">
         <label>Publisher
           <input data-field="publisher" value="${esc(d.publisher)}" placeholder="Organisation">
@@ -414,14 +504,23 @@ function renderInventoryBody() {
         <label>Ansprechpartner
           <input data-field="contactPoint" value="${esc(d.contactPoint)}" placeholder="Name / E-Mail">
         </label>
+        <label>Kategorie (dcat:theme)
+          <select data-field="theme">${optionsHTML(DCAT_THEMES, d.theme)}</select>
+        </label>
+        <label>Schlagwörter
+          <input data-field="keywords" value="${esc(d.keywords || '')}" placeholder="komma, getrennt">
+        </label>
         <label>Aktualisierungszyklus
           <select data-field="accrualPeriodicity">${optionsHTML(FREQ_OPTIONS, d.accrualPeriodicity)}</select>
         </label>
-        <label>Lizenz
-          <select data-field="license">${optionsHTML(LICENSE_OPTIONS, d.license)}</select>
-        </label>
         <label>Zugriffsrechte
           <select data-field="accessRights">${optionsHTML(ACCESS_OPTIONS, d.accessRights)}</select>
+        </label>
+        <label class="inv-field-wide">Lizenz
+          <select data-field="license">${licenseSelectHTML(d.license)}</select>
+        </label>
+        <label class="inv-field-wide">Info-/Zugriffs-URL
+          <input data-field="landingPage" value="${esc(d.landingPage || '')}" placeholder="https://…">
         </label>
       </div>
     </div>`;
@@ -560,17 +659,21 @@ document.getElementById('tab-quality')?.addEventListener('click', () => showInve
    Vokabular-/Formatprüfungen. Deterministisch, kein ML. */
 const DCAT_REQUIRED = [
   ['title',        'Titel (dct:title)'],
+  ['description',  'Beschreibung (dct:description)'],
   ['publisher',    'Publisher (dct:publisher)'],
   ['contactPoint', 'Ansprechpartner (dcat:contactPoint)'],
   ['accessRights', 'Zugriffsrechte (dct:accessRights)'],
   ['license',      'Lizenz (dct:license)'],
 ];
 const DCAT_RECOMMENDED = [
-  ['description',        'Beschreibung (dct:description)'],
+  ['theme',              'Kategorie (dcat:theme)'],
+  ['keywords',           'Schlagwörter (dcat:keyword)'],
   ['accrualPeriodicity', 'Aktualisierungszyklus (dct:accrualPeriodicity)'],
   ['format',             'Format (dct:format)'],
+  ['landingPage',        'Info-/Zugriffs-URL (dcat:landingPage)'],
 ];
 const EMAIL_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/;
+const URL_RE = /^https?:\/\/.+/i;
 
 function validateDataset(d) {
   const issues = [];
@@ -582,14 +685,18 @@ function validateDataset(d) {
     if (empty(d[k])) issues.push({ sev: 'warn', msg: `Empfohlenes Feld fehlt: ${label}` });
   });
   // Wertetreue / kontrollierte Vokabulare / Formate
-  if (d.license === 'other-closed')
-    issues.push({ sev: 'warn', msg: 'Lizenz ist nicht offen – für Open Data ungeeignet (siehe Lizenz-Wegweiser).' });
+  if (!empty(d.license) && !licenseIsOpen(d.license))
+    issues.push({ sev: 'warn', msg: 'Lizenz ist nicht offen (NC/ND bzw. geschlossen) – für Open Data ungeeignet (siehe Lizenz-Wegweiser).' });
   if (!empty(d.accessRights) && !['PUBLIC', 'RESTRICTED', 'NON_PUBLIC'].includes(d.accessRights))
     issues.push({ sev: 'error', msg: 'Zugriffsrechte nicht aus dem kontrollierten Vokabular (PUBLIC / RESTRICTED / NON_PUBLIC).' });
+  if (!empty(d.theme) && !DCAT_THEMES.some(o => o[0] === d.theme))
+    issues.push({ sev: 'warn', msg: 'Kategorie nicht aus dem EU-Datenthemen-Vokabular.' });
   if (!empty(d.accrualPeriodicity) && !FREQ_OPTIONS.some(o => o[0] === d.accrualPeriodicity))
     issues.push({ sev: 'warn', msg: 'Aktualisierungszyklus nicht aus dem kontrollierten Vokabular.' });
   if (!empty(d.contactPoint) && !EMAIL_RE.test(d.contactPoint))
     issues.push({ sev: 'warn', msg: 'Ansprechpartner enthält keine E-Mail-Adresse – für dcat:contactPoint empfohlen.' });
+  if (!empty(d.landingPage) && !URL_RE.test(d.landingPage))
+    issues.push({ sev: 'warn', msg: 'Info-/Zugriffs-URL ist keine gültige http(s)-Adresse.' });
   if (!empty(d.title) && d.title.trim().length < 3)
     issues.push({ sev: 'warn', msg: 'Titel ist sehr kurz – aussagekräftigen dct:title vergeben.' });
   if (!empty(d.description) && d.description.trim().length < 10)
@@ -664,28 +771,38 @@ function jumpToInventoryCard(idx) {
 }
 
 /* ── Export: DCAT-AP.de JSON ──────────────────────────────────── */
+function keywordList(d) {
+  return (d.keywords || '').split(',').map(s => s.trim()).filter(Boolean);
+}
 function buildDcatJSON() {
   return {
     '@context': 'https://www.dcat-ap.de/def/dcatde/2.0/context.jsonld',
     '@type': 'dcat:Catalog',
     'dct:title': 'Dateninventar (DatenLotse-Export)',
-    'dct:publisher': inventory[0]?.publisher || '',
-    'dcat:dataset': inventory.map(d => ({
-      '@type': 'dcat:Dataset',
-      'dct:identifier': d.id,
-      'dct:title': d.title,
-      'dct:description': d.description || d.title,
-      'dct:publisher': { '@type': 'foaf:Organization', 'foaf:name': d.publisher },
-      'dcat:contactPoint': { '@type': 'vcard:Organization', 'vcard:fn': d.contactPoint },
-      'dct:accrualPeriodicity': d.accrualPeriodicity,
-      'dct:accessRights': d.accessRights,
-      'dcat:distribution': [{
-        '@type': 'dcat:Distribution',
-        'dct:format': d.format,
-        'dct:license': d.license
-      }],
-      'dcatde:sourceSystem': d.sourceSystem
-    }))
+    'dct:publisher': { '@type': 'foaf:Organization', 'foaf:name': orgName() },
+    'dcat:dataset': inventory.map(d => {
+      const ds = {
+        '@type': 'dcat:Dataset',
+        'dct:identifier': d.id,
+        'dct:title': d.title,
+        'dct:description': d.description || d.title,
+        'dct:publisher': { '@type': 'foaf:Organization', 'foaf:name': d.publisher },
+        'dcatde:sourceSystem': d.sourceSystem
+      };
+      if (d.contactPoint) ds['dcat:contactPoint'] = { '@type': 'vcard:Organization', 'vcard:fn': d.contactPoint };
+      const kw = keywordList(d);
+      if (kw.length) ds['dcat:keyword'] = kw;
+      if (d.theme) ds['dcat:theme'] = [THEME_NAL + d.theme];
+      if (d.accrualPeriodicity) ds['dct:accrualPeriodicity'] = FREQ_NAL + d.accrualPeriodicity;
+      if (d.accessRights) ds['dct:accessRights'] = ACCESS_NAL + d.accessRights;
+      if (d.landingPage) ds['dcat:landingPage'] = d.landingPage;
+      const dist = { '@type': 'dcat:Distribution' };
+      if (d.landingPage) dist['dcat:accessURL'] = d.landingPage;
+      if (d.format) dist['dct:format'] = d.format;
+      if (d.license) dist['dct:license'] = (LICENSE_META[d.license] && LICENSE_META[d.license].uri) || d.license;
+      ds['dcat:distribution'] = [dist];
+      return ds;
+    })
   };
 }
 
@@ -693,7 +810,8 @@ function buildDcatJSON() {
 function buildInventoryCSV() {
   ensureAllClearing();   // Ampel auch ohne Besuch des Clearing-Tabs befüllen
   const cols = ['id', 'title', 'description', 'publisher', 'contactPoint',
-                'sourceSystem', 'format', 'accrualPeriodicity', 'license', 'accessRights'];
+                'sourceSystem', 'format', 'keywords', 'theme', 'accrualPeriodicity',
+                'license', 'accessRights', 'landingPage'];
   const head = [...cols, 'clearingAmpel', 'clearingEmpfehlung'].join(',');
   const rows = inventory.map(d => {
     const cells = cols.map(c => csvCell(d[c]));
