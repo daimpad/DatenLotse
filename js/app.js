@@ -244,12 +244,39 @@ function splitCSVLine(line) {
   return out;
 }
 
+/* Datensätze zeichenweise trennen – ein Zeilenumbruch INNERHALB eines
+   gequoteten Feldes beendet den Datensatz nicht. Ein reines
+   text.split(/\r?\n/) erzeugte hier Phantom-Zeilen; betroffen war auch der
+   eigene Export, sobald eine Beschreibung einen Umbruch enthielt. */
+function parseCSVRecords(text) {
+  const rows = [];
+  let row = [], cur = '', inQ = false, started = false;
+  const endField = () => { row.push(cur); cur = ''; };
+  const endRow = () => { endField(); rows.push(row); row = []; started = false; };
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    started = true;
+    if (inQ) {
+      if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cur += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') endField();
+      else if (c === '\r') { /* vor \n ignorieren */ }
+      else if (c === '\n') endRow();
+      else cur += c;
+    }
+  }
+  if (started || cur !== '' || row.length) endRow();
+  return rows;
+}
+
 function parseCSV(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-  if (!lines.length) return [];
-  const header = splitCSVLine(lines[0]).map(h => h.trim());
-  return lines.slice(1).map(line => {
-    const cells = splitCSVLine(line);
+  const recs = parseCSVRecords(text).filter(r => r.some(c => c.trim() !== ''));
+  if (!recs.length) return [];
+  const header = recs[0].map(h => h.trim());
+  return recs.slice(1).map(cells => {
     const row = {};
     header.forEach((h, i) => { row[h] = (cells[i] || '').trim(); });
     return row;
@@ -295,7 +322,18 @@ function deriveInventory(rows) {
       _recipients:        new Set(r.Ziel ? [r.Ziel] : [])
     });
   }
-  return [...seen.values()];
+  // `id` enthält die Quelle nicht, dedupliziert wird aber über Quelle+Datentyp:
+  // zwei Quellsysteme derselben Organisation mit gleichem Datentyp ergäben sonst
+  // denselben dct:identifier (Kollision beim Harvesting). Deterministisch
+  // durchnummerieren statt die id länger und unleserlicher zu machen.
+  const list = [...seen.values()];
+  const used = new Map();
+  list.forEach(d => {
+    const n = (used.get(d.id) || 0) + 1;
+    used.set(d.id, n);
+    if (n > 1) d.id = `${d.id}-${n}`;
+  });
+  return list;
 }
 
 function slug(s) {
@@ -359,7 +397,26 @@ function mapHaeufigkeit(h) {
 }
 
 /* ── DCAT-AP.de Vollständigkeit je Dataset ────────────────────── */
-const REQUIRED_FIELDS = ['title', 'description', 'publisher', 'contactPoint', 'accrualPeriodicity', 'license', 'accessRights'];
+/* Einzige Quelle der Wahrheit für „Pflicht“ vs. „Empfehlung“ nach DCAT-AP.de.
+   Vollständigkeits-% (completeness) und Qualitätsprüfung (validateDataset)
+   leiten beide hieraus ab – vorher wichen sie voneinander ab
+   (accrualPeriodicity zählte als Pflicht, description nicht). */
+const DCAT_REQUIRED = [
+  ['title',        'Titel (dct:title)'],
+  ['description',  'Beschreibung (dct:description)'],
+  ['publisher',    'Publisher (dct:publisher)'],
+  ['contactPoint', 'Ansprechpartner (dcat:contactPoint)'],
+  ['accessRights', 'Zugriffsrechte (dct:accessRights)'],
+  ['license',      'Lizenz (dct:license)'],
+];
+const DCAT_RECOMMENDED = [
+  ['theme',              'Kategorie (dcat:theme)'],
+  ['keywords',           'Schlagwörter (dcat:keyword)'],
+  ['accrualPeriodicity', 'Aktualisierungszyklus (dct:accrualPeriodicity)'],
+  ['format',             'Format (dct:format)'],
+  ['landingPage',        'Info-/Zugriffs-URL (dcat:landingPage)'],
+];
+const REQUIRED_FIELDS = DCAT_REQUIRED.map(([k]) => k);
 function completeness(d) {
   const filled = REQUIRED_FIELDS.filter(f => d[f] && d[f] !== '').length;
   return Math.round((filled / REQUIRED_FIELDS.length) * 100);
@@ -660,7 +717,10 @@ function showInventoryTab(name) {
   const panel = { inventar: 'inventar-panel', clearing: 'clearing-panel', quality: 'quality-panel' };
   tabs.forEach(t => {
     document.getElementById(panel[t])?.classList.toggle('hidden', t !== name);
-    document.getElementById('tab-' + t)?.classList.toggle('is-active', t === name);
+    const btn = document.getElementById('tab-' + t);
+    btn?.classList.toggle('is-active', t === name);
+    // Der aktive Zustand war bisher nur visuell – Screenreader konnten ihn nicht erkennen
+    btn?.setAttribute('aria-selected', String(t === name));
   });
   if (name === 'clearing') renderClearing();
   if (name === 'quality') renderQuality();
@@ -668,26 +728,22 @@ function showInventoryTab(name) {
 document.getElementById('tab-inventar')?.addEventListener('click', () => showInventoryTab('inventar'));
 document.getElementById('tab-clearing')?.addEventListener('click', () => showInventoryTab('clearing'));
 document.getElementById('tab-quality')?.addEventListener('click', () => showInventoryTab('quality'));
+// Pfeiltasten-Navigation, wie es die ARIA-Tablist-Semantik erwartet
+document.querySelector('.inv-tabs')?.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const order = ['inventar', 'clearing', 'quality'];
+  const cur = order.findIndex(t => document.getElementById('tab-' + t)?.classList.contains('is-active'));
+  if (cur < 0) return;
+  e.preventDefault();
+  const next = order[(cur + (e.key === 'ArrowRight' ? 1 : order.length - 1)) % order.length];
+  showInventoryTab(next);
+  document.getElementById('tab-' + next)?.focus();
+});
 
 /* ── DCAT-AP.de-Qualitätsprüfung (Publish-Ready-Check) ─────────────
    Echte Validierung je Datensatz statt nur Vollständigkeits-%:
    Pflichtfelder (Fehler), Empfehlungsfelder (Warnung) sowie Werte-/
    Vokabular-/Formatprüfungen. Deterministisch, kein ML. */
-const DCAT_REQUIRED = [
-  ['title',        'Titel (dct:title)'],
-  ['description',  'Beschreibung (dct:description)'],
-  ['publisher',    'Publisher (dct:publisher)'],
-  ['contactPoint', 'Ansprechpartner (dcat:contactPoint)'],
-  ['accessRights', 'Zugriffsrechte (dct:accessRights)'],
-  ['license',      'Lizenz (dct:license)'],
-];
-const DCAT_RECOMMENDED = [
-  ['theme',              'Kategorie (dcat:theme)'],
-  ['keywords',           'Schlagwörter (dcat:keyword)'],
-  ['accrualPeriodicity', 'Aktualisierungszyklus (dct:accrualPeriodicity)'],
-  ['format',             'Format (dct:format)'],
-  ['landingPage',        'Info-/Zugriffs-URL (dcat:landingPage)'],
-];
 const EMAIL_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/;
 const URL_RE = /^https?:\/\/.+/i;
 
@@ -960,10 +1016,16 @@ document.getElementById('btn-export-csv')?.addEventListener('click', () => {
 function openSidebar() {
   document.getElementById('app-sidebar')?.classList.remove('collapsed');
   document.getElementById('sidebar-overlay')?.classList.add('show');
+  document.getElementById('sidebar-toggle-btn')?.setAttribute('aria-expanded', 'true');
+  document.querySelector('.app-sidebar-nav a')?.focus();
 }
 function closeSidebar() {
-  document.getElementById('app-sidebar')?.classList.add('collapsed');
+  const sb = document.getElementById('app-sidebar');
+  // Fokus zurückholen, bevor die Leiste unsichtbar (und damit unfokussierbar) wird
+  if (sb && sb.contains(document.activeElement)) document.getElementById('sidebar-toggle-btn')?.focus();
+  sb?.classList.add('collapsed');
   document.getElementById('sidebar-overlay')?.classList.remove('show');
+  document.getElementById('sidebar-toggle-btn')?.setAttribute('aria-expanded', 'false');
 }
 document.getElementById('sidebar-toggle-btn')?.addEventListener('click', openSidebar);
 document.getElementById('sidebar-close-btn')?.addEventListener('click', closeSidebar);
@@ -971,14 +1033,33 @@ document.getElementById('sidebar-overlay')?.addEventListener('click', closeSideb
 document.querySelectorAll('.app-sidebar-nav a').forEach(a => a.addEventListener('click', closeSidebar));
 
 let modalOpener = null;
+const FOCUSABLE = 'a[href], button:not([disabled]), select, input, textarea, [tabindex]:not([tabindex="-1"])';
+
+/* Fokus im Dialog halten: ohne diese Falle wanderte der Fokus beim Tabben aus
+   dem Modal heraus auf Elemente hinter dem Backdrop (u. a. die Seitenleiste). */
+function trapFocus(e) {
+  if (e.key !== 'Tab') return;
+  const dialog = document.querySelector('.modal-backdrop:not(.hidden) [role="dialog"]');
+  if (!dialog) return;
+  const items = [...dialog.querySelectorAll(FOCUSABLE)].filter(el => el.offsetParent !== null);
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  else if (!dialog.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+}
+document.addEventListener('keydown', trapFocus);
+
 function showModal(id, show) {
   const el = document.getElementById(id);
   if (!el) return;
+  const wasOpen = !el.classList.contains('hidden');
   el.classList.toggle('hidden', !show);
   if (show) {
     modalOpener = document.activeElement;
     el.querySelector('.icon-close, button, [href], select, input')?.focus();
-  } else {
+  } else if (wasOpen) {
+    // nur zurückgeben, wenn dieses Modal wirklich offen war – Escape läuft über alle
     if (modalOpener && typeof modalOpener.focus === 'function') modalOpener.focus();
     modalOpener = null;
   }
@@ -1128,8 +1209,11 @@ function recommendLicense() {
 }
 
 function renderLicenseWizard() {
-  document.querySelectorAll('#license-backdrop .lic-opt').forEach(btn =>
-    btn.classList.toggle('is-active', licenseWiz[btn.dataset.lic] === btn.dataset.val));
+  document.querySelectorAll('#license-backdrop .lic-opt').forEach(btn => {
+    const on = licenseWiz[btn.dataset.lic] === btn.dataset.val;
+    btn.classList.toggle('is-active', on);
+    btn.setAttribute('aria-pressed', String(on));   // vorher nur farblich erkennbar
+  });
   const key = recommendLicense();
   const info = LICENSE_INFO[key];
   const res = document.getElementById('lic-result');
@@ -1149,7 +1233,13 @@ function renderLicenseWizard() {
       let n = 0;
       inventory.forEach(d => { if (!d.license) { d.license = k; n++; } });
       saveState();
-      if (!document.getElementById('inventory-view')?.classList.contains('hidden')) renderInventoryBody();
+      // auch den aktiven Tab aktualisieren – sonst meldet die Qualitätsprüfung
+      // weiterhin „Pflichtfeld fehlt: Lizenz“ für alle Datensätze
+      if (!document.getElementById('inventory-view')?.classList.contains('hidden')) {
+        renderInventoryBody();
+        if (!document.getElementById('quality-panel')?.classList.contains('hidden')) renderQuality();
+        if (!document.getElementById('clearing-panel')?.classList.contains('hidden')) renderClearing();
+      }
       showModal('license-backdrop', false);
       alert(`Lizenz „${LICENSE_INFO[k].label}" auf ${n} Datensätze ohne Lizenz übernommen.`);
     });
@@ -1668,12 +1758,23 @@ const PSEUDO_PATTERNS = [
   { type: 'email',        re: /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g },
   { type: 'az',           re: /\b(?:Az|Gz|Aktenzeichen|Geschäftszeichen)\.?\s*[:\-]?\s*[A-Z0-9]+(?:[\/\-.][A-Z0-9]+){1,3}\b/g },
   { type: 'geburtsdatum', re: /(?:geb\.?|geboren am|Geburtsdatum|Geburtstag)\s*:?\s*(\d{1,2}\.\d{1,2}\.\d{2,4})/gid, group: 1 },
-  { type: 'kfz',          re: /\b[A-ZÄÖÜ]{1,3}-[A-ZÄÖÜ]{1,2}\s?\d{1,4}(?:E|H)?\b/g },
+  // Kfz nur KONTEXTGETRIGGERT: das reine Muster traf sonst Lizenz-/Normkürzel
+  // („DL-DE 2.0“, „CC-BY 4.0“, „DIN-EN 1090“). Ein Ausschluss per Kürzel-Liste
+  // scheidet aus, weil DL und EN echte Unterscheidungszeichen sind.
+  { type: 'kfz',          re: /(?:Kennzeichen|Kfz|KFZ|Nummernschild|Fahrzeug|Pkw|PKW|Lkw|LKW)\s*:?\s*(?:amtliches\s+)?([A-ZÄÖÜ]{1,3}-[A-ZÄÖÜ]{1,2}\s?\d{1,4}[EH]?)\b/gd, group: 1 },
   { type: 'strasse',      re: /[A-ZÄÖÜ][a-zäöüß]+(?:straße|str\.|weg|gasse|allee|platz|ring|damm)\s+\d+[a-z]?/g },
-  { type: 'plzort',       re: /\b\d{5}\s+[A-ZÄÖÜ][a-zäöüß]+(?:[\-\s][A-ZÄÖÜ][a-zäöüß]+)?/g },
+  // PLZ+Ort: das Muster traf jede 5-stellige Zahl vor einem Substantiv
+  // („50000 Datensätze“, „12345 Einwohner“). Ausgeschlossen werden deshalb
+  // gängige Zähl-/Maßeinheiten. Bewusst KEINE Positionsregel (nur nach Komma):
+  // die hätte „wohnhaft in 12345 Musterstadt“ übersehen – ein Falsch-Negativ
+  // wiegt hier schwerer als ein Falschtreffer.
+  { type: 'plzort',       re: /\b\d{5}\s+(?!(?:Einwohner|Datensätze|Datensatz|Euro|Personen|Bürger|Haushalte|Fälle|Anträge|Stück|Meter|Kilometer|Quadratmeter|Besucher|Nutzer|Zeilen|Zugriffe|Exemplare|Dokumente|Objekte|Beschäftigte|Mitarbeitende|Stunden|Tonnen)\b)[A-ZÄÖÜ][a-zäöüß]+(?:[\-\s][A-ZÄÖÜ][a-zäöüß]+)?/g },
   // Anrede (+ optionale akademische Titel) triggert; erfasst wird nur der Name.
   { type: 'name',         re: /(?:Herr|Frau|Hr\.|Fr\.|Dr\.|Prof\.)(?:\s+(?:Dr|Prof|Dipl|Ing|Mag|habil|med|rer|nat|phil|jur|h\.\s?c)\.?)*\s+([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)?)/gd, group: 1 },
-  { type: 'telefon',      re: /(?:\+49|0)[\d\s\/()\-]{4,}\d/g },
+  // Bindestrich nur direkt vor einer Ziffer: „0800 - 1600 Uhr“ ist eine
+  // Zeitspanne, keine Rufnummer. Verbleibende Grenze: freistehende
+  // Ziffernblöcke wie Kontonummern sind ohne Kontext nicht unterscheidbar.
+  { type: 'telefon',      re: /(?:\+49|0)(?:[\d\s\/()]|-(?=\d)){4,}\d/g },
 ];
 
 /* Belegte Textstellen werden für nachfolgende (unspezifischere) Muster
@@ -1909,19 +2010,16 @@ function reifeAmpel(score) {
 }
 
 function renderGovernance() {
-  const empty = document.getElementById('gov-empty');
-  const content = document.getElementById('gov-content');
-  if (!empty || !content) return;
-  if (!inventory.length) {
-    empty.classList.remove('hidden');
-    content.classList.add('hidden');
-    return;
-  }
-  empty.classList.add('hidden');
-  content.classList.remove('hidden');
+  // Der Reifegrad-Check speist sich allein aus governanceAnswers und bleibt
+  // deshalb IMMER nutzbar – vorher sperrte der Inventar-Guard die komplette
+  // Phase 1, obwohl nur die RACI-Matrix Datendomänen braucht.
+  const hasInventory = inventory.length > 0;
+  document.getElementById('gov-empty')?.classList.toggle('hidden', hasInventory);
+  document.getElementById('gov-raci')?.classList.toggle('hidden', !hasInventory);
+  document.getElementById('gov-content')?.classList.remove('hidden');
   renderGovQuestions();
   renderGovScore();
-  renderRaciMatrix();
+  if (hasInventory) renderRaciMatrix();
 }
 
 function renderGovQuestions() {
@@ -2200,7 +2298,7 @@ function renderKompassDims() {
       const stCls = ['erfuellt', 'teilweise', 'na'].includes(st) ? st : 'offen';
       return `<div class="kompass-item kompass-item--${stCls}">
         <span class="kompass-item-label">${esc(it.label)}</span>
-        <select class="kompass-item-sel" data-dim="${esc(dim.id)}" data-item="${esc(it.id)}">${optionsHTML(KOMPASS_STATUS, st)}</select>
+        <select class="kompass-item-sel" aria-label="Status: ${esc(it.label)}" data-dim="${esc(dim.id)}" data-item="${esc(it.id)}">${optionsHTML(KOMPASS_STATUS, st)}</select>
       </div>`;
     }).join('');
     const incomplete = ds != null && ds < 100;

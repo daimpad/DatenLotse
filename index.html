@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=28">
-  <link rel="stylesheet" href="css/styles.css?v=28">
+  <link rel="stylesheet" href="css/tokens.css?v=29">
+  <link rel="stylesheet" href="css/styles.css?v=29">
 </head>
 <body>
 
@@ -158,13 +158,11 @@
             <div class="feature-ic"><i class="fas fa-traffic-light"></i></div>
             <h3>Clearing-Ampel</h3>
             <p>Transparenter Rot/Gelb/Grün-Entscheidungsbaum je Datensatz.</p>
-            <span class="feature-soon">geplant</span>
           </article>
           <article class="feature-card">
             <div class="feature-ic"><i class="fas fa-user-shield"></i></div>
             <h3>Pseudonymisierung</h3>
             <p>Deutsche Verwaltungstexte strukturerhaltend bereinigen — nichts verlässt den Browser.</p>
-            <span class="feature-soon">geplant</span>
           </article>
           <article class="feature-card">
             <div class="feature-ic"><i class="fas fa-lock"></i></div>
@@ -177,12 +175,14 @@
   </section>
 
   <!-- ── Status-Dashboard (erscheint, sobald Daten vorliegen) ──── -->
-  <section class="dashboard hidden" id="dashboard">
-    <div class="dashboard-head">
-      <h2 class="dashboard-title"><i class="fas fa-gauge-high"></i> Dein Fortschritt</h2>
-      <p class="dashboard-sub">Überblick über alle Bausteine – mit Sprung direkt zum Weiterarbeiten.</p>
+  <section class="dashboard hidden" id="dashboard" aria-labelledby="dashboard-title">
+    <div class="dashboard-panel">
+      <div class="dashboard-head">
+        <h2 class="dashboard-title" id="dashboard-title"><i class="fas fa-gauge-high"></i> Dein Fortschritt</h2>
+        <p class="dashboard-sub">Überblick über alle Bausteine – mit Sprung direkt zum Weiterarbeiten.</p>
+      </div>
+      <div class="dashboard-cards" id="dashboard-cards"></div>
     </div>
-    <div class="dashboard-cards" id="dashboard-cards"></div>
   </section>
 
   <!-- ── Modul-Grid ────────────────────────────────────────────── -->
@@ -240,14 +240,14 @@
       </div>
     </div>
     <div class="inv-tabs" role="tablist">
-      <button class="inv-tab is-active" id="tab-inventar" role="tab"><i class="fas fa-boxes-stacked"></i> Inventar</button>
-      <button class="inv-tab" id="tab-clearing" role="tab"><i class="fas fa-traffic-light"></i> Risiko-Clearing</button>
-      <button class="inv-tab" id="tab-quality" role="tab"><i class="fas fa-clipboard-check"></i> Qualitätsprüfung</button>
+      <button class="inv-tab is-active" id="tab-inventar" role="tab" aria-selected="true" aria-controls="inventar-panel"><i class="fas fa-boxes-stacked"></i> Inventar</button>
+      <button class="inv-tab" id="tab-clearing" role="tab" aria-selected="false" aria-controls="clearing-panel"><i class="fas fa-traffic-light"></i> Risiko-Clearing</button>
+      <button class="inv-tab" id="tab-quality" role="tab" aria-selected="false" aria-controls="quality-panel"><i class="fas fa-clipboard-check"></i> Qualitätsprüfung</button>
     </div>
 
     <!-- Tab: Inventar -->
-    <div class="inventar-panel" id="inventar-panel">
-      <p class="inventory-hint">Ergänze je Datensatz die DCAT-AP.de-Metadaten – Pflichtfelder (Beschreibung, Lizenz, Zugriffsrechte, Ansprechpartner, Aktualisierungszyklus) und Empfehlungen (Kategorie, Schlagwörter, Info-URL). Die Lizenz wählst du aus dem vollständigen DCAT-AP.de-Register oder per <strong>Lizenz-Wegweiser</strong>. Die Prozentanzeige zeigt die Vollständigkeit; der Tab <strong>Qualitätsprüfung</strong> prüft die Veröffentlichungsreife. Alles bleibt lokal im Browser.</p>
+    <div class="inventar-panel" id="inventar-panel" role="tabpanel" aria-labelledby="tab-inventar">
+      <p class="inventory-hint">Ergänze je Datensatz die DCAT-AP.de-Metadaten – <strong>Pflichtfelder</strong> (Titel, Beschreibung, Publisher, Ansprechpartner, Zugriffsrechte, Lizenz) und <strong>Empfehlungen</strong> (Kategorie, Schlagwörter, Aktualisierungszyklus, Format, Info-URL). Die Lizenz wählst du aus dem vollständigen DCAT-AP.de-Register oder per <strong>Lizenz-Wegweiser</strong>. Die Prozentanzeige zeigt die Vollständigkeit; der Tab <strong>Qualitätsprüfung</strong> prüft die Veröffentlichungsreife. Alles bleibt lokal im Browser.</p>
       <div class="inv-controls">
         <input type="search" id="inv-search" class="inv-search" placeholder="Suchen (Titel, Publisher, Quellsystem)…" aria-label="Inventar durchsuchen">
         <select id="inv-filter-schutz" aria-label="Nach Schutzbedarf filtern">
@@ -273,15 +273,15 @@
     </div>
 
     <!-- Tab: Risiko-Clearing (Modul 3a) -->
-    <div class="clearing-panel hidden" id="clearing-panel">
+    <div class="clearing-panel hidden" id="clearing-panel" role="tabpanel" aria-labelledby="tab-clearing">
       <p class="inventory-hint">Beantworte je Datensatz den kurzen Fragebogen. Die Ampel folgt einem transparenten, deterministischen Entscheidungsbaum (kein ML). Bei Unklarheit gilt <strong>Gelb · manuelle Prüfung</strong> – nie automatisch Grün. Frage&nbsp;1 ist aus dem DatenGraf-Schutzbedarf vorbelegt. Alles bleibt lokal im Browser.</p>
       <div class="clearing-summary" id="clearing-summary"></div>
       <div class="clearing-body" id="clearing-body"></div>
     </div>
 
     <!-- Tab: DCAT-AP.de-Qualitätsprüfung -->
-    <div class="quality-panel hidden" id="quality-panel">
-      <p class="inventory-hint">Der <strong>Publish-Ready-Check</strong> prüft jeden Datensatz gegen DCAT-AP.de: fehlende <strong>Pflichtfelder</strong> (Titel, Publisher, Ansprechpartner, Zugriffsrechte, Lizenz) sind <span style="color:var(--ampel-rot);font-weight:700">Fehler</span>, fehlende <strong>Empfehlungsfelder</strong> und Werteprüfungen (offene Lizenz, kontrolliertes Vokabular, E-Mail im Ansprechpartner) sind <span style="color:var(--ampel-gelb);font-weight:700">Warnungen</span>. Deterministisch, lokal im Browser.</p>
+    <div class="quality-panel hidden" id="quality-panel" role="tabpanel" aria-labelledby="tab-quality">
+      <p class="inventory-hint">Der <strong>Publish-Ready-Check</strong> prüft jeden Datensatz gegen DCAT-AP.de: fehlende <strong>Pflichtfelder</strong> (Titel, Beschreibung, Publisher, Ansprechpartner, Zugriffsrechte, Lizenz) sind <span style="color:var(--ampel-rot);font-weight:700">Fehler</span>, fehlende <strong>Empfehlungsfelder</strong> und Werteprüfungen (offene Lizenz, kontrolliertes Vokabular, E-Mail im Ansprechpartner) sind <span style="color:var(--ampel-gelb);font-weight:700">Warnungen</span>. Deterministisch, lokal im Browser.</p>
       <div class="clearing-summary" id="quality-summary"></div>
       <div class="quality-body" id="quality-body"></div>
     </div>
@@ -328,20 +328,11 @@
       </div>
     </div>
 
-    <div class="gov-empty hidden" id="gov-empty">
-      <i class="fas fa-boxes-stacked"></i>
-      <p>Für die RACI-Matrix werden die Datendomänen aus dem Inventar abgeleitet. Bitte zuerst eine DatenGraf-CSV importieren – oder lade den Beispieldatensatz, um die Matrix sofort zu sehen.</p>
-      <div class="gov-empty-actions">
-        <button class="btn btn-primary" id="gov-import-btn"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
-        <button class="btn btn-secondary" data-sample="data/sample-kommune.csv"><i class="fas fa-flask"></i> Beispiel laden</button>
-      </div>
-    </div>
-
     <div id="gov-content">
       <div class="gov-grid">
         <div class="gov-quiz">
           <h3 class="gov-h3">Reifegrad-Check</h3>
-          <p class="inventory-hint">Acht gewichtete Fragen zu Zuständigkeiten, Stewardship und Prozessen. Der Reifegrad (0–100) errechnet sich nachvollziehbar aus den Antworten (Ja = voll, Teilweise = halb, Nein = 0).</p>
+          <p class="inventory-hint">Acht gewichtete Fragen zu Zuständigkeiten, Stewardship und Prozessen. Der Reifegrad (0–100) errechnet sich nachvollziehbar aus den Antworten (Ja = voll, Teilweise = halb, Nein = 0). Dieser Check ist unabhängig vom Inventar – du kannst ihn sofort ausfüllen.</p>
           <div class="gov-questions" id="gov-questions"></div>
         </div>
         <aside class="gov-score">
@@ -350,11 +341,22 @@
         </aside>
       </div>
 
-      <h3 class="gov-h3">RACI-Matrix <span class="gov-legend">R&nbsp;Responsible · A&nbsp;Accountable · C&nbsp;Consulted · I&nbsp;Informed</span></h3>
-      <div class="gov-matrix-wrap">
-        <table class="gov-matrix" id="gov-matrix"></table>
+      <div class="gov-empty hidden" id="gov-empty">
+        <i class="fas fa-boxes-stacked"></i>
+        <p>Für die <strong>RACI-Matrix</strong> werden die Datendomänen aus dem Inventar abgeleitet. Importiere dafür eine DatenGraf-CSV – oder lade den Beispieldatensatz. Den Reifegrad-Check oben kannst du unabhängig davon schon ausfüllen.</p>
+        <div class="gov-empty-actions">
+          <button class="btn btn-primary" id="gov-import-btn"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
+          <button class="btn btn-secondary" data-sample="data/sample-kommune.csv"><i class="fas fa-flask"></i> Beispiel laden</button>
+        </div>
       </div>
-      <p class="gov-note"><i class="fas fa-circle-info"></i> Domänen sind aus den Publishern bzw. Quellsystemen des Inventars abgeleitet. <span class="gov-gap-dot"></span> markiert Rollen, die laut Fragebogen noch nicht (vollständig) besetzt sind. Datenschutz (DSB) ist bei DSGVO-relevanten Domänen <em>Consulted</em>, sonst <em>Informed</em>.</p>
+
+      <div id="gov-raci" class="hidden">
+        <h3 class="gov-h3">RACI-Matrix <span class="gov-legend">R&nbsp;Responsible · A&nbsp;Accountable · C&nbsp;Consulted · I&nbsp;Informed</span></h3>
+        <div class="gov-matrix-wrap">
+          <table class="gov-matrix" id="gov-matrix"></table>
+        </div>
+        <p class="gov-note"><i class="fas fa-circle-info"></i> Domänen sind aus den Publishern bzw. Quellsystemen des Inventars abgeleitet. <span class="gov-gap-dot"></span> markiert Rollen, die laut Fragebogen noch nicht (vollständig) besetzt sind. Datenschutz (DSB) ist bei DSGVO-relevanten Domänen <em>Consulted</em>, sonst <em>Informed</em>.</p>
+      </div>
 
       <div class="view-next">
         <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Wie geht es weiter?</h3>
@@ -667,7 +669,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v28</span>
+    <span class="footer-version">v29</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -711,7 +713,7 @@
         <details class="faq-item">
           <summary class="faq-q">Was kommt als Nächstes?</summary>
           <div class="faq-a">
-            <p>Geplant sind die Clearing-Ampel (Risikobewertung je Datensatz), die client-seitige Pseudonymisierung deutscher Verwaltungstexte sowie ein Governance-/RACI-Modul.</p>
+            <p>Clearing-Ampel, Pseudonymisierung und das Governance-/RACI-Modul sind fertig und direkt nutzbar – ebenso Daten-Kompass, Qualitätsprüfung, Wissens-Center und die Vorlagen. Offen sind bewusst die <strong>Phasen 4 &amp; 5</strong> (ETL-Pipeline, Container-Betrieb, CKAN-Anbindung, Feedback-Schleifen): Sie hängen an eurer IT-Landschaft und werden als Beratung begleitet statt als generische Software ausgeliefert.</p>
           </div>
         </details>
       </div>
@@ -844,6 +846,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=28"></script>
+  <script src="js/app.js?v=29"></script>
 </body>
 </html>
