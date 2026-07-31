@@ -1,0 +1,44 @@
+# End-to-End-Tests (Playwright) – laufen gegen die ausgelieferte App,
+# also gegen genau die Dateien, die GitHub Pages später statisch serviert.
+name: Tests
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Kein Lockfile im Repo (siehe .gitignore) – @playwright/test ist
+      # in package.json exakt gepinnt, `npm install` ist damit reproduzierbar.
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tests
+        run: npx playwright test
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

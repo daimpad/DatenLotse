@@ -76,6 +76,19 @@ Beziehung,Ziel,Datentyp,Häufigkeit,Format,Schutzbedarf,Erfassungsart,Anmerkunge
 
 Importiere deine Datei über den Button **DatenGraf-CSV importieren**. Jede eindeutige `(Quelle | Datentyp)`-Kombination wird zu einem DCAT-AP.de-Dataset-Kandidaten.
 
+### Option D – Tests ausführen
+
+Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwright installiert.
+
+```bash
+npm install                      # nur Dev: @playwright/test
+npx playwright install chromium
+npm test                         # 100 Tests, ~30 s
+npm run test:ui                  # interaktiver Modus
+```
+
+Getestet wird die **ausgelieferte** App – genau die Dateien, die GitHub Pages statisch serviert. Die Konfiguration startet den Webserver selbst, es muss also nichts vorab laufen. Die Suite deckt Import und Ableitung, Inventar und Qualitätsprüfung, Risiko-Clearing, Pseudonymisierung, Governance und Kompass, Exporte und Persistenz sowie Barrierefreiheit und Responsive-Verhalten ab; jeder frühere Review-Befund ist als Regressionstest hinterlegt. CI läuft bei jedem Push auf `main` und jedem Pull Request.
+
 ---
 
 ## Von der Map zur Umsetzung
@@ -142,6 +155,7 @@ Die Ausgabe erfolgt als JSON-LD mit `@context` auf das DCAT-AP.de-Profil sowie a
 | **FileReader API** | — | Lokaler CSV-/Textimport ohne Upload |
 | **LocalStorage API** | — | Persistenz ohne Backend |
 | **Blob API** | — | DCAT-JSON-, CSV- und Text-Downloads |
+| **Playwright** | 1.62 (nur Dev) | End-to-End-Tests gegen die ausgelieferte App |
 
 > Keine Build-Tools, keine Runtime-Library nötig – nur HTML, CSS und JS. Inter und Font Awesome werden lokal aus `assets/fonts/` ausgeliefert, nicht per CDN.
 
@@ -211,6 +225,18 @@ datenlotse/
 ├── data/
 │   ├── sample-kommune.csv      # Beispiel: fiktive Stadtverwaltung (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
+├── tests/                      # Playwright-End-to-End-Tests (100 Tests)
+│   ├── helpers.js              # openApp/loadSample/Download-Helfer
+│   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
+│   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection
+│   ├── inventory.spec.js       # Karten, Filter, Lizenz-Register & -Wegweiser
+│   ├── clearing.spec.js        # Entscheidungsbaum Modul 3a
+│   ├── pseudonymize.spec.js    # Regex-Pack Modul 3b
+│   ├── quality.spec.js         # DCAT-AP.de-Publish-Ready-Check
+│   ├── governance.spec.js      # Modul 1, Kompass, Wissen, Vorlagen
+│   ├── export.spec.js          # DCAT-URIs, Downloads, Persistenz
+│   └── a11y.spec.js            # Fokus, ARIA, Kontrast, Responsive
+├── playwright.config.js        # Testkonfiguration (startet den Webserver selbst)
 ├── assets/
 │   └── fonts/
 │       ├── fa/all.min.css      # Font Awesome 6.7.2 CSS
@@ -218,7 +244,8 @@ datenlotse/
 │       └── inter/              # Inter-Schriftdateien (woff2) + inter.css
 ├── .github/
 │   ├── workflows/
-│   │   └── static.yml          # GitHub Pages Deployment
+│   │   ├── static.yml          # GitHub Pages Deployment
+│   │   └── tests.yml           # Playwright-Tests (Push auf main + Pull Requests)
 │   └── CONTRIBUTING.md         # Beitragsrichtlinien
 ├── logo.svg                    # Marken-Logo (Topbar + Hero)
 ├── favicon.svg / .ico / *.png  # Favicon-Set
