@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=29">
-  <link rel="stylesheet" href="css/styles.css?v=29">
+  <link rel="stylesheet" href="css/tokens.css?v=30">
+  <link rel="stylesheet" href="css/styles.css?v=30">
 </head>
 <body>
 
@@ -115,13 +115,35 @@
     <button class="btn btn-secondary btn-icon" id="sidebar-toggle-btn" aria-label="Menü öffnen" title="Menü"><i class="fas fa-bars"></i></button>
   </header>
 
-  <main id="main-content">
+  <main id="main-content" tabindex="-1">
 
   <!-- ── Hero ──────────────────────────────────────────────────── -->
   <section class="hero" id="hero">
     <img src="logo.svg" alt="DatenLotse" class="hero-logo">
     <h1 class="hero-headline">DatenLotse: Datenmanagement verstehen, aufbauen, vertiefen</h1>
-    <p class="hero-sub">Der <strong>DatenLotse</strong> begleitet deine Organisation dabei, ein umfassendes <strong>Datenmanagement zu verstehen</strong> und <strong>aufzubauen</strong> – und den <strong>Ist-Zustand</strong> deiner Datenlandschaft vertiefend einzusehen. Vom Überblick im Daten-Kompass über das Dateninventar nach DCAT-AP.de bis zu Risiko-Clearing und Pseudonymisierung – Schritt für Schritt, lokal im Browser, ohne Server.</p>
+    <p class="hero-sub">Der <strong>DatenLotse</strong> begleitet deine Organisation dabei, ein umfassendes <strong>Datenmanagement zu verstehen</strong> und <strong>aufzubauen</strong> – und den <strong>Ist-Zustand</strong> deiner Datenlandschaft vertiefend einzusehen.</p>
+
+    <ol class="hero-steps" aria-label="Die vier Schritte des DatenLotsen">
+      <li><button class="hero-step" data-go="kompass">
+        <span class="hero-step-ic"><i class="fas fa-compass"></i></span>
+        <span class="hero-step-text"><strong>Überblick</strong><span>Daten-Kompass</span></span>
+      </button></li>
+      <li><button class="hero-step" data-go="inventory">
+        <span class="hero-step-ic"><i class="fas fa-boxes-stacked"></i></span>
+        <span class="hero-step-text"><strong>Inventar</strong><span>nach DCAT-AP.de</span></span>
+      </button></li>
+      <li><button class="hero-step" data-go="clearing">
+        <span class="hero-step-ic"><i class="fas fa-traffic-light"></i></span>
+        <span class="hero-step-text"><strong>Risiko-Clearing</strong><span>Rot · Gelb · Grün</span></span>
+      </button></li>
+      <li><button class="hero-step" data-go="pseudo">
+        <span class="hero-step-ic"><i class="fas fa-user-shield"></i></span>
+        <span class="hero-step-text"><strong>Pseudonymisierung</strong><span>Texte bereinigen</span></span>
+      </button></li>
+    </ol>
+
+    <p class="hero-trust"><i class="fas fa-lock"></i> Alles lokal im Browser · kein Server · keine Datenübertragung</p>
+
     <button class="btn btn-primary hero-cta" id="hero-kompass-btn"><i class="fas fa-compass"></i> Daten-Kompass starten</button>
     <p class="hero-from-graf">
       <i class="fas fa-file-csv"></i>
@@ -228,7 +250,7 @@
           <span class="phase-badge">Phase 2 · Asset Management</span>
           <button class="phase-back" data-go="governance"><i class="fas fa-arrow-left"></i> Phase 1: Governance</button>
         </div>
-        <h2 class="inventory-title"><i class="fas fa-boxes-stacked"></i> Dateninventar nach DCAT-AP.de</h2>
+        <h1 class="inventory-title"><i class="fas fa-boxes-stacked"></i> Dateninventar nach DCAT-AP.de</h1>
         <span class="inventory-meta" id="inventory-meta"></span>
       </div>
       <div class="inventory-actions">
@@ -290,21 +312,21 @@
       <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Wie geht es weiter?</h3>
       <div class="view-next-cards">
         <button class="next-card" data-go="clearing">
-          <div class="next-card-ic"><i class="fas fa-traffic-light"></i></div>
-          <div class="next-card-text">
+          <span class="next-card-ic"><i class="fas fa-traffic-light"></i></span>
+          <span class="next-card-text">
             <span class="next-card-phase">Phase 3 · Clearing</span>
             <strong>Risiko-Clearing</strong>
-            <p>Jeden Datensatz per Ampel bewerten – direkt im zweiten Tab dieser Ansicht.</p>
-          </div>
+            <span class="next-card-desc">Jeden Datensatz per Ampel bewerten – direkt im zweiten Tab dieser Ansicht.</span>
+          </span>
           <i class="fas fa-arrow-right next-card-arrow"></i>
         </button>
         <button class="next-card" data-go="pseudo">
-          <div class="next-card-ic"><i class="fas fa-user-shield"></i></div>
-          <div class="next-card-text">
+          <span class="next-card-ic"><i class="fas fa-user-shield"></i></span>
+          <span class="next-card-text">
             <span class="next-card-phase">Phase 3 · Pseudonymisierung</span>
             <strong>Textbereinigung</strong>
-            <p>Personenbezogene Daten in Freitexten strukturerhaltend ersetzen.</p>
-          </div>
+            <span class="next-card-desc">Personenbezogene Daten in Freitexten strukturerhaltend ersetzen.</span>
+          </span>
           <i class="fas fa-arrow-right next-card-arrow"></i>
         </button>
       </div>
@@ -319,7 +341,7 @@
           <span class="phase-badge">Phase 1 · Fundament</span>
           <button class="phase-back" data-go="kompass"><i class="fas fa-arrow-left"></i> Daten-Kompass</button>
         </div>
-        <h2 class="inventory-title"><i class="fas fa-users-gear"></i> Governance &amp; Rollen</h2>
+        <h1 class="inventory-title"><i class="fas fa-users-gear"></i> Governance &amp; Rollen</h1>
         <span class="inventory-meta">RACI-Matrix &amp; Reifegrad – aus deinem Dateninventar abgeleitet, lokal im Browser.</span>
       </div>
       <div class="inventory-actions">
@@ -362,12 +384,12 @@
         <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Wie geht es weiter?</h3>
         <div class="view-next-cards">
           <button class="next-card" data-go="inventory">
-            <div class="next-card-ic"><i class="fas fa-boxes-stacked"></i></div>
-            <div class="next-card-text">
+            <span class="next-card-ic"><i class="fas fa-boxes-stacked"></i></span>
+            <span class="next-card-text">
               <span class="next-card-phase">Phase 2 · Asset Management</span>
               <strong>Dateninventar nach DCAT-AP.de</strong>
-              <p>Datenflüsse zu Datasets verdichten und mit Metadaten anreichern.</p>
-            </div>
+              <span class="next-card-desc">Datenflüsse zu Datasets verdichten und mit Metadaten anreichern.</span>
+            </span>
             <i class="fas fa-arrow-right next-card-arrow"></i>
           </button>
         </div>
@@ -383,7 +405,7 @@
           <span class="phase-badge">Phase 3 · Pseudonymisierung</span>
           <button class="phase-back" data-go="inventory"><i class="fas fa-arrow-left"></i> Phase 2: Dateninventar</button>
         </div>
-        <h2 class="inventory-title"><i class="fas fa-user-shield"></i> Risiko &amp; Pseudonymisierung</h2>
+        <h1 class="inventory-title"><i class="fas fa-user-shield"></i> Risiko &amp; Pseudonymisierung</h1>
         <span class="inventory-meta">Pseudonymisierung deutscher Verwaltungstexte – strukturerhaltend, rein per Regex, lokal im Browser. Nichts wird übertragen.</span>
       </div>
       <div class="inventory-actions">
@@ -426,12 +448,12 @@
       <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Wie geht es weiter?</h3>
       <div class="view-next-cards">
         <button class="next-card next-card-accent" data-go="phase45">
-          <div class="next-card-ic"><i class="fas fa-arrows-spin"></i></div>
-          <div class="next-card-text">
+          <span class="next-card-ic"><i class="fas fa-arrows-spin"></i></span>
+          <span class="next-card-text">
             <span class="next-card-phase">Phase 4 &amp; 5 · Betrieb</span>
             <strong>Pipeline &amp; zirkuläres Ökosystem</strong>
-            <p>Vom einmaligen Export zum dauerhaften, automatisierten Betrieb – persönlich begleitet.</p>
-          </div>
+            <span class="next-card-desc">Vom einmaligen Export zum dauerhaften, automatisierten Betrieb – persönlich begleitet.</span>
+          </span>
           <i class="fas fa-arrow-right next-card-arrow"></i>
         </button>
       </div>
@@ -444,8 +466,9 @@
       <div>
         <div class="phase-row">
           <span class="phase-badge">Überblick · Reifegrad</span>
+          <button class="phase-back" data-go="home"><i class="fas fa-arrow-left"></i> Startseite</button>
         </div>
-        <h2 class="inventory-title"><i class="fas fa-compass"></i> Daten-Kompass</h2>
+        <h1 class="inventory-title"><i class="fas fa-compass"></i> Daten-Kompass</h1>
         <span class="inventory-meta">Wo steht deine Organisation im Open-Data-Öffnungsprozess? Hake ab, was zutrifft – der Kompass empfiehlt die nächsten Schritte.</span>
       </div>
       <div class="inventory-actions">
@@ -473,21 +496,21 @@
       <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Womit anfangen?</h3>
       <div class="view-next-cards">
         <button class="next-card" data-go="governance">
-          <div class="next-card-ic"><i class="fas fa-users-gear"></i></div>
-          <div class="next-card-text">
+          <span class="next-card-ic"><i class="fas fa-users-gear"></i></span>
+          <span class="next-card-text">
             <span class="next-card-phase">Phase 1 · Fundament</span>
             <strong>Governance &amp; Rollen</strong>
-            <p>Zuständigkeiten klären und den Reifegrad deines Datenmanagements bestimmen.</p>
-          </div>
+            <span class="next-card-desc">Zuständigkeiten klären und den Reifegrad deines Datenmanagements bestimmen.</span>
+          </span>
           <i class="fas fa-arrow-right next-card-arrow"></i>
         </button>
         <button class="next-card" data-go="inventory">
-          <div class="next-card-ic"><i class="fas fa-boxes-stacked"></i></div>
-          <div class="next-card-text">
+          <span class="next-card-ic"><i class="fas fa-boxes-stacked"></i></span>
+          <span class="next-card-text">
             <span class="next-card-phase">Phase 2 · Asset Management</span>
             <strong>Dateninventar nach DCAT-AP.de</strong>
-            <p>DatenGraf-CSV importieren und das Inventar aufbauen.</p>
-          </div>
+            <span class="next-card-desc">DatenGraf-CSV importieren und das Inventar aufbauen.</span>
+          </span>
           <i class="fas fa-arrow-right next-card-arrow"></i>
         </button>
       </div>
@@ -502,7 +525,7 @@
           <span class="phase-badge">Überblick · Wissen</span>
           <button class="phase-back" data-go="home"><i class="fas fa-arrow-left"></i> Startseite</button>
         </div>
-        <h2 class="inventory-title"><i class="fas fa-book-open-reader"></i> Wissen &amp; Methodik</h2>
+        <h1 class="inventory-title"><i class="fas fa-book-open-reader"></i> Wissen &amp; Methodik</h1>
         <span class="inventory-meta">Begriffe, Rechtsgrundlagen und Reifegrad-Modelle rund um offene Verwaltungsdaten – kompakt erklärt, mit amtlichen Quellen.</span>
       </div>
     </div>
@@ -535,21 +558,21 @@
       <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Direkt anwenden</h3>
       <div class="view-next-cards">
         <button class="next-card" data-go="kompass">
-          <div class="next-card-ic"><i class="fas fa-compass"></i></div>
-          <div class="next-card-text">
+          <span class="next-card-ic"><i class="fas fa-compass"></i></span>
+          <span class="next-card-text">
             <span class="next-card-phase">Überblick</span>
             <strong>Daten-Kompass</strong>
-            <p>Den Reifegrad deiner Organisation entlang dieser Modelle bestimmen.</p>
-          </div>
+            <span class="next-card-desc">Den Reifegrad deiner Organisation entlang dieser Modelle bestimmen.</span>
+          </span>
           <i class="fas fa-arrow-right next-card-arrow"></i>
         </button>
         <button class="next-card" data-go="inventory">
-          <div class="next-card-ic"><i class="fas fa-boxes-stacked"></i></div>
-          <div class="next-card-text">
+          <span class="next-card-ic"><i class="fas fa-boxes-stacked"></i></span>
+          <span class="next-card-text">
             <span class="next-card-phase">Phase 2 · Asset Management</span>
             <strong>Dateninventar nach DCAT-AP.de</strong>
-            <p>Das Wissen direkt in strukturierte Metadaten überführen.</p>
-          </div>
+            <span class="next-card-desc">Das Wissen direkt in strukturierte Metadaten überführen.</span>
+          </span>
           <i class="fas fa-arrow-right next-card-arrow"></i>
         </button>
       </div>
@@ -564,7 +587,7 @@
           <span class="phase-badge">Service · Vorlagen</span>
           <button class="phase-back" data-go="home"><i class="fas fa-arrow-left"></i> Startseite</button>
         </div>
-        <h2 class="inventory-title"><i class="fas fa-file-lines"></i> Vorlagen &amp; Musterdokumente</h2>
+        <h1 class="inventory-title"><i class="fas fa-file-lines"></i> Vorlagen &amp; Musterdokumente</h1>
         <span class="inventory-meta">Fertige Dokumente für die Open-Data-Umsetzung – teils aus deinem Inventar generiert, als PDF druckbar oder als Datei ladbar. Alles lokal.</span>
       </div>
     </div>
@@ -616,21 +639,21 @@
       <h3 class="view-next-title"><i class="fas fa-diagram-successor"></i> Woraus entstehen die Dokumente?</h3>
       <div class="view-next-cards">
         <button class="next-card" data-go="inventory">
-          <div class="next-card-ic"><i class="fas fa-boxes-stacked"></i></div>
-          <div class="next-card-text">
+          <span class="next-card-ic"><i class="fas fa-boxes-stacked"></i></span>
+          <span class="next-card-text">
             <span class="next-card-phase">Phase 2 · Asset Management</span>
             <strong>Dateninventar &amp; Clearing</strong>
-            <p>Freigabe-Formular und VVT-Auszug speisen sich aus Inventar und Risiko-Clearing.</p>
-          </div>
+            <span class="next-card-desc">Freigabe-Formular und VVT-Auszug speisen sich aus Inventar und Risiko-Clearing.</span>
+          </span>
           <i class="fas fa-arrow-right next-card-arrow"></i>
         </button>
         <button class="next-card" data-go="governance">
-          <div class="next-card-ic"><i class="fas fa-users-gear"></i></div>
-          <div class="next-card-text">
+          <span class="next-card-ic"><i class="fas fa-users-gear"></i></span>
+          <span class="next-card-text">
             <span class="next-card-phase">Phase 1 · Fundament</span>
             <strong>Governance &amp; Rollen</strong>
-            <p>Die Richtlinie verankert die Rollen aus der RACI-Matrix organisatorisch.</p>
-          </div>
+            <span class="next-card-desc">Die Richtlinie verankert die Rollen aus der RACI-Matrix organisatorisch.</span>
+          </span>
           <i class="fas fa-arrow-right next-card-arrow"></i>
         </button>
       </div>
@@ -669,7 +692,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v29</span>
+    <span class="footer-version">v30</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -846,6 +869,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=29"></script>
+  <script src="js/app.js?v=30"></script>
 </body>
 </html>

@@ -10,7 +10,11 @@
   --c-border:    rgba(255, 255, 255, 0.4);
   --c-border-s:  rgba(180, 170, 210, 0.35);
   --c-text:      #1e1b2e;
-  --c-muted:     #7a7591;
+  /* ACHTUNG – Abweichung zu DatenGraf, bitte dort nachziehen:
+     #7a7591 erreichte auf Weiß nur 4,39:1 und lag damit unter WCAG AA (4,5:1).
+     #6f6a87 kommt auf 5,14:1. Betrifft alle Erklärtexte (.hero-sub,
+     .module-desc, .dash-sub, Feldbeschriftungen …). */
+  --c-muted:     #6f6a87;
   --c-accent:    #420093;
   --c-accent-h:  #000000;
   --c-danger:    #c0392b;
