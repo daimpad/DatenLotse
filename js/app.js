@@ -305,11 +305,26 @@ function slug(s) {
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'datensatz';
 }
 
-function mapSchutzToAccess(schutz) {
-  if (/dsgvo/i.test(schutz)) return 'NON_PUBLIC';
-  if (/intern/i.test(schutz)) return 'RESTRICTED';
-  if (/öffentlich|oeffentlich/i.test(schutz)) return 'PUBLIC';
+/* Schutzbedarf ist im DatenGraf-Schema Freitext. Die Kategorisierung prüft
+   Verneinungen ZUERST – sonst würde „Nicht öffentlich“ über den Teilstring
+   „öffentlich“ als PUBLIC gelesen und im Clearing automatisch Grün ergeben. */
+function schutzKategorie(schutz) {
+  const s = String(schutz == null ? '' : schutz);
+  if (/dsgvo|personenbezogen/i.test(s)) return 'dsgvo';
+  if (/nicht[\s\-]*öffentlich|nicht[\s\-]*oeffentlich|vs-nfd|verschlusssache|geheim/i.test(s)) return 'nicht-oeffentlich';
+  if (/intern|vertraulich/i.test(s)) return 'intern';
+  if (/öffentlich|oeffentlich/i.test(s)) return 'oeffentlich';
   return '';
+}
+
+function mapSchutzToAccess(schutz) {
+  switch (schutzKategorie(schutz)) {
+    case 'dsgvo':            return 'NON_PUBLIC';
+    case 'nicht-oeffentlich': return 'NON_PUBLIC';
+    case 'intern':           return 'RESTRICTED';
+    case 'oeffentlich':      return 'PUBLIC';
+    default:                 return '';
+  }
 }
 
 // Konservativer Vorschlag für dcat:theme aus Datentyp/Bereich/Quelle.
@@ -364,10 +379,11 @@ const AMPEL_LABEL = { gruen: 'Grün · Freigabe', gelb: 'Gelb · Prüfen', rot: 
 // Frage 1 aus DatenGraf-Schutzbedarf vorbelegen
 function initClearing(d) {
   if (d._clearing) return d._clearing;
-  const s = d._grafSchutzbedarf || '';
+  const kat = schutzKategorie(d._grafSchutzbedarf);
+  // „nicht-oeffentlich“/„intern“ bleiben bewusst auf „unklar“ → Gelb statt Grün.
   let pb = 'unklar';
-  if (/dsgvo/i.test(s)) pb = 'ja';
-  else if (/öffentlich|oeffentlich/i.test(s)) pb = 'nein';
+  if (kat === 'dsgvo') pb = 'ja';
+  else if (kat === 'oeffentlich') pb = 'nein';
   d._clearing = { pb, art9: '', recht: '', anon: '' };
   return d._clearing;
 }
@@ -446,8 +462,8 @@ function filteredInventory() {
   if (q) list = list.filter(({ d }) =>
     [d.title, d.publisher, d.sourceSystem, d.description].some(v => (v || '').toLowerCase().includes(q)));
   if (invFilter.schutz) {
-    const re = new RegExp(invFilter.schutz === 'oeffentlich' ? 'öffentlich|oeffentlich' : invFilter.schutz, 'i');
-    list = list.filter(({ d }) => re.test(d._grafSchutzbedarf || ''));
+    // über schutzKategorie(), damit „Nicht öffentlich“ nicht unter „Öffentlich“ fällt
+    list = list.filter(({ d }) => schutzKategorie(d._grafSchutzbedarf) === invFilter.schutz);
   }
   if (invFilter.ampel) list = list.filter(({ d }) => d.clearing?.ampel === invFilter.ampel);
   if (invFilter.sort === 'title') list.sort((a, b) => a.d.title.localeCompare(b.d.title, 'de'));
@@ -1642,50 +1658,67 @@ const PSEUDO_PH = {
   iban: 'IBAN', email: 'EMAIL', telefon: 'TELEFON', geburtsdatum: 'GEBURTSDATUM',
   svnr: 'SVNR', steuerid: 'STEUERID', kfz: 'KFZ'
 };
-// Reihenfolge = Priorität (spezifisch → allgemein). Stark strukturierte bzw.
-// kontextgetriggerte Muster zuerst, damit sie greedy-Muster (Telefon) gewinnen.
+// Reihenfolge = Priorität (spezifisch → allgemein). Das greedy Telefon-Muster
+// steht bewusst ZULETZT: spezifische bzw. kontextgetriggerte Muster belegen ihre
+// Textstellen zuerst (siehe collectSpans-Maskierung) und gewinnen dadurch.
 const PSEUDO_PATTERNS = [
   { type: 'iban',         re: /DE\d{2}\s?(?:\d{4}\s?){4}\d{2}/g },
   { type: 'svnr',         re: /\b\d{2}\s?\d{6}\s?[A-Z]\s?\d{2,3}\b/g },
   { type: 'steuerid',     re: /(?:Steuer-?(?:identifikationsnummer|ID|IdNr|nummer)|IdNr|St(?:euer)?\.?-?Nr)\.?\s*[:.]?\s*(\d{2}[\s.]?\d{3}[\s.]?\d{3}[\s.]?\d{3}|\d{11})/gid, group: 1 },
   { type: 'email',        re: /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g },
-  { type: 'telefon',      re: /(?:\+49|0)[\d\s\/()\-]{4,}\d/g },
-  { type: 'kfz',          re: /\b[A-ZÄÖÜ]{1,3}-[A-ZÄÖÜ]{1,2}\s?\d{1,4}(?:E|H)?\b/g },
   { type: 'az',           re: /\b(?:Az|Gz|Aktenzeichen|Geschäftszeichen)\.?\s*[:\-]?\s*[A-Z0-9]+(?:[\/\-.][A-Z0-9]+){1,3}\b/g },
   { type: 'geburtsdatum', re: /(?:geb\.?|geboren am|Geburtsdatum|Geburtstag)\s*:?\s*(\d{1,2}\.\d{1,2}\.\d{2,4})/gid, group: 1 },
+  { type: 'kfz',          re: /\b[A-ZÄÖÜ]{1,3}-[A-ZÄÖÜ]{1,2}\s?\d{1,4}(?:E|H)?\b/g },
   { type: 'strasse',      re: /[A-ZÄÖÜ][a-zäöüß]+(?:straße|str\.|weg|gasse|allee|platz|ring|damm)\s+\d+[a-z]?/g },
   { type: 'plzort',       re: /\b\d{5}\s+[A-ZÄÖÜ][a-zäöüß]+(?:[\-\s][A-ZÄÖÜ][a-zäöüß]+)?/g },
-  { type: 'name',         re: /(?:Herr|Frau|Hr\.|Fr\.|Dr\.|Prof\.)\s+([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)?)/gd, group: 1 },
+  // Anrede (+ optionale akademische Titel) triggert; erfasst wird nur der Name.
+  { type: 'name',         re: /(?:Herr|Frau|Hr\.|Fr\.|Dr\.|Prof\.)(?:\s+(?:Dr|Prof|Dipl|Ing|Mag|habil|med|rer|nat|phil|jur|h\.\s?c)\.?)*\s+([A-ZÄÖÜ][a-zäöüß]+(?:\s+[A-ZÄÖÜ][a-zäöüß]+)?)/gd, group: 1 },
+  { type: 'telefon',      re: /(?:\+49|0)[\d\s\/()\-]{4,}\d/g },
 ];
+
+/* Belegte Textstellen werden für nachfolgende (unspezifischere) Muster
+   maskiert. Dadurch kann das greedy Telefon-Muster keine bereits erkannte
+   PLZ oder Sozialversicherungsnummer mehr verschlucken. Die Maske ist
+   längengleich, sodass alle Indizes auf den Originaltext passen. */
+const PSEUDO_MASK = '\u0000';
+function maskRanges(text, spans) {
+  if (!spans.length) return text;
+  const arr = text.split('');
+  spans.forEach(s => { for (let i = s.start; i < s.end; i++) arr[i] = PSEUDO_MASK; });
+  return arr.join('');
+}
 
 function collectSpans(text) {
   const spans = [];
+  let masked = text;
   PSEUDO_PATTERNS.forEach((pat, prio) => {
     pat.re.lastIndex = 0;
+    const found = [];
     let m;
-    while ((m = pat.re.exec(text)) !== null) {
+    while ((m = pat.re.exec(masked)) !== null) {
       if (m[0] === '') { pat.re.lastIndex++; continue; }
       const gi = pat.group || 0;
-      let start, end, value;
-      if (gi && m.indices && m.indices[gi]) {
-        [start, end] = m.indices[gi];
-        value = m[gi];
-      } else {
-        start = m.index; end = m.index + m[0].length; value = m[0];
-      }
-      spans.push({ start, end, type: pat.type, value, prio });
+      let start, end;
+      if (gi && m.indices && m.indices[gi]) [start, end] = m.indices[gi];
+      else { start = m.index; end = m.index + m[0].length; }
+      const value = text.slice(start, end);
+      if (value.includes(PSEUDO_MASK)) continue;   // defensiv: nie über eine Maske hinweg
+      found.push({ start, end, type: pat.type, value, prio });
     }
+    found.forEach(f => spans.push(f));
+    masked = maskRanges(masked, found);            // für alle folgenden Muster sperren
   });
   return spans;
 }
 
 function selectSpans(spans) {
-  // nach Startposition, dann längster Span, dann höchste Priorität (kleinste prio)
-  spans.sort((a, b) =>
+  // Überlappungen sind durch die Maskierung praktisch ausgeschlossen; defensiv
+  // gilt weiterhin: erster Beginn, dann längster Span, dann höchste Priorität.
+  const sorted = [...spans].sort((a, b) =>
     a.start - b.start || (b.end - b.start) - (a.end - a.start) || a.prio - b.prio);
   const out = [];
   let lastEnd = -1;
-  for (const s of spans) {
+  for (const s of sorted) {
     if (s.start >= lastEnd) { out.push(s); lastEnd = s.end; }
   }
   return out;

@@ -505,7 +505,8 @@ a { color: var(--c-accent); }
 .inv-tab:hover { color: var(--c-accent); }
 .inv-tab.is-active { color: var(--c-accent); border-bottom-color: var(--c-accent); }
 .inventar-panel.hidden,
-.clearing-panel.hidden { display: none; }
+.clearing-panel.hidden,
+.quality-panel.hidden { display: none; }
 
 /* ── Risiko-Clearing (Modul 3a) ──────────────────────────────── */
 .clearing-summary { display: flex; gap: 12px; flex-wrap: wrap; margin: 6px 0 18px; }
