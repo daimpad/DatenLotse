@@ -158,12 +158,13 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
+const APP_VERSION = 'v30';
 
 function buildProjectJSON() {
   return JSON.stringify({
     app: 'DatenLotse',
     schema: PROJECT_SCHEMA,
-    version: 'v20',
+    version: APP_VERSION,
     exportedAt: new Date().toISOString(),
     data: { grafRows, inventory, governanceAnswers, kompassState }
   }, null, 2);
@@ -186,6 +187,11 @@ function importProject(text) {
   catch (e) { alert('Die Datei ist kein gültiges JSON.'); return false; }
   if (!obj || obj.app !== 'DatenLotse' || !obj.data || typeof obj.data !== 'object') {
     alert('Diese Datei ist kein DatenLotse-Projekt (.json).');
+    return false;
+  }
+  // Schema-Prüfung: eine neuere Datei würde sonst stillschweigend halb eingelesen
+  if (Number(obj.schema) > PROJECT_SCHEMA) {
+    alert(`Diese Projektdatei stammt aus einer neueren DatenLotse-Version (Schema ${obj.schema}).\nBitte die Anwendung aktualisieren.`);
     return false;
   }
   const hasData = inventory.length || Object.keys(governanceAnswers).length || Object.keys(kompassState).length;
@@ -285,7 +291,9 @@ function parseCSV(text) {
 
 /* ── CSV-Serialisierung (Falsy-sicher wie DatenGraf toCSV) ────── */
 function csvCell(v) {
-  const s = (v == null || v === '') ? '' : String(v);
+  let s = (v == null || v === '') ? '' : String(v);
+  // Formel-Injection: Excel/LibreOffice werten führende =,+,-,@ als Formel aus
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
@@ -300,7 +308,7 @@ function deriveInventory(rows) {
     const key = `${r.Quelle}__${r.Datentyp}`;
     if (seen.has(key)) {
       // Empfänger sammeln (für spätere Distribution/Notiz)
-      seen.get(key)._recipients.add(r.Ziel);
+      if (r.Ziel && !seen.get(key)._recipients.includes(r.Ziel)) seen.get(key)._recipients.push(r.Ziel);
       continue;
     }
     seen.set(key, {
@@ -319,7 +327,7 @@ function deriveInventory(rows) {
       accessRights:       mapSchutzToAccess(r.Schutzbedarf),
       landingPage:        '',
       _grafSchutzbedarf:  r.Schutzbedarf || '',
-      _recipients:        new Set(r.Ziel ? [r.Ziel] : [])
+      _recipients:        r.Ziel ? [r.Ziel] : []   // Array statt Set: überlebt JSON-Roundtrip
     });
   }
   // `id` enthält die Quelle nicht, dedupliziert wird aber über Quelle+Datentyp:
@@ -371,7 +379,7 @@ function guessTheme(r) {
   const t = `${r.Datentyp || ''} ${r.QuelleBereich || ''} ${r.Quelle || ''} ${r.QuelleAbteilung || ''}`.toLowerCase();
   const rules = [
     ['ENVI', /umwelt|geo|baum|grün|gruen|bebauung|natur|klima|luft|wasser|abfall|entsorg/],
-    ['TRAN', /verkehr|mobil|fahrgast|fahrplan|parken|straße|strasse|ÖPNV|oepnv|bus|bahn/],
+    ['TRAN', /verkehr|mobil|fahrgast|fahrplan|parken|straße|strasse|öpnv|oepnv|bus|bahn/],
     ['ECON', /haushalt|finanz|wirtschaft|steuer|vergabe|kämmer|kaemmer|beschaffung/],
     ['SOCO', /sozial|kita|betreuung|senior|jugend|familie|bevölker|bevoelker|einwohner|melde/],
     ['EDUC', /bildung|schule|biblio|kultur|sport|museum|ausleih|volkshochschule/],
@@ -636,6 +644,11 @@ function clearingAutoHint(d) {
 function renderClearing() {
   const body = document.getElementById('clearing-body');
   if (!body) return;
+  if (!inventory.length) {
+    body.innerHTML = '<p class="inv-empty">Noch kein Inventar vorhanden – importiere zuerst eine DatenGraf-CSV oder lade den Beispieldatensatz.</p>';
+    updateClearingSummary();
+    return;
+  }
 
   body.innerHTML = inventory.map((d, i) => {
     const a = initClearing(d);
@@ -757,7 +770,9 @@ function validateDataset(d) {
     if (empty(d[k])) issues.push({ sev: 'warn', msg: `Empfohlenes Feld fehlt: ${label}` });
   });
   // Wertetreue / kontrollierte Vokabulare / Formate
-  if (!empty(d.license) && !licenseIsOpen(d.license))
+  if (!empty(d.license) && !LICENSE_META[d.license])
+    issues.push({ sev: 'warn', msg: 'Lizenz ist im DCAT-AP.de-Register unbekannt – bitte aus der Liste wählen.' });
+  else if (!empty(d.license) && !licenseIsOpen(d.license))
     issues.push({ sev: 'warn', msg: 'Lizenz ist nicht offen (NC/ND bzw. geschlossen) – für Open Data ungeeignet (siehe Lizenz-Wegweiser).' });
   if (!empty(d.accessRights) && !['PUBLIC', 'RESTRICTED', 'NON_PUBLIC'].includes(d.accessRights))
     issues.push({ sev: 'error', msg: 'Zugriffsrechte nicht aus dem kontrollierten Vokabular (PUBLIC / RESTRICTED / NON_PUBLIC).' });
@@ -788,6 +803,11 @@ function renderQuality() {
   const sum = document.getElementById('quality-summary');
   if (!body) return;
 
+  if (!inventory.length) {
+    body.innerHTML = '<p class="inv-empty">Noch kein Inventar vorhanden – die Publish-Ready-Prüfung braucht Datensätze.</p>';
+    if (sum) sum.innerHTML = '';
+    return;
+  }
   const rows = inventory.map((d, idx) => {
     const issues = validateDataset(d);
     return { d, idx, issues, status: qualityStatus(issues) };
@@ -965,7 +985,11 @@ document.getElementById('btn-print-inventory')?.addEventListener('click', printI
 function importGrafCSV(text) {
   const rows = parseCSV(text);
   if (!rows.length || !('Quelle' in rows[0])) {
-    alert('Diese Datei sieht nicht nach einem DatenGraf-Export aus.\nErwartet werden Spalten wie „Quelle“, „Ziel“, „Datentyp“.');
+    const semikolon = /^[^\n]*;[^\n]*Quelle|Quelle[^\n]*;/.test(text);
+    alert('Diese Datei sieht nicht nach einem DatenGraf-Export aus.\n'
+      + 'Erwartet werden Spalten wie „Quelle“, „Ziel“, „Datentyp“.'
+      + (semikolon ? '\n\nHinweis: Die Datei scheint mit Semikolon getrennt zu sein (deutsches Excel).\n'
+                   + 'Bitte als CSV mit Komma als Trennzeichen exportieren.' : ''));
     return;
   }
   grafRows = rows;
@@ -997,7 +1021,6 @@ function loadSampleData(file) {
     .catch(() => alert('Beispieldaten konnten nicht geladen werden.\nBitte die App über http:// (python3 -m http.server) öffnen, nicht über file://.'));
 }
 
-document.getElementById('btn-import-graf')?.addEventListener('click', pickAndImport);
 document.getElementById('btn-import-again')?.addEventListener('click', pickAndImport);
 document.querySelectorAll('[data-sample]').forEach(btn =>
   btn.addEventListener('click', () => loadSampleData(btn.dataset.sample)));
@@ -1301,6 +1324,22 @@ function refreshDashboard() {
   dash.classList.remove('hidden');
   renderDashboard();
 }
+/* „x von y bewertet“ zeigte immer 100 %, weil ensureAllClearing() jeden
+   Datensatz aus dem Schutzbedarf vorbelegt. Gezählt wird deshalb, wie viele
+   Einträge der Nutzer wirklich selbst beantwortet hat. */
+function clearingSelbstBewertet(d) {
+  const a = d._clearing;
+  if (!a) return false;
+  if (a.art9 || a.recht || a.anon) return true;
+  const auto = schutzKategorie(d._grafSchutzbedarf);
+  const autoPb = auto === 'dsgvo' ? 'ja' : auto === 'oeffentlich' ? 'nein' : 'unklar';
+  return a.pb !== autoPb;
+}
+function clearingSubText(n) {
+  const eigen = inventory.filter(clearingSelbstBewertet).length;
+  return eigen ? `${eigen} von ${n} selbst bewertet` : 'aus Schutzbedarf vorbelegt';
+}
+
 function renderDashboard() {
   const wrap = document.getElementById('dashboard-cards');
   if (!wrap) return;
@@ -1324,22 +1363,22 @@ function renderDashboard() {
       metric: n ? `${n}` : '–', unit: n ? 'Datensätze' : '',
       sub: n ? `Ø ${avg}% DCAT-AP.de-vollständig` : 'Noch kein Inventar' },
     { go: 'clearing', icon: 'fa-traffic-light', phase: 'Phase 3', title: 'Risiko-Clearing',
-      clearing: n ? cc : null, sub: n ? `${cc.gruen + cc.gelb + cc.rot} von ${n} bewertet` : 'Noch kein Inventar' },
+      clearing: n ? cc : null, sub: n ? clearingSubText(n) : 'Noch kein Inventar' },
   ];
 
   wrap.innerHTML = cards.map(c => {
     const metricHTML = c.clearing
-      ? `<div class="dash-clearing">
+      ? `<span class="dash-clearing">
            <span class="dash-amp dash-amp--gruen">${c.clearing.gruen}</span>
            <span class="dash-amp dash-amp--gelb">${c.clearing.gelb}</span>
            <span class="dash-amp dash-amp--rot">${c.clearing.rot}</span>
-         </div>`
-      : `<div class="dash-metric ${c.amp ? 'dash-' + c.amp : ''}">${esc(c.metric)}${c.unit ? `<span class="dash-unit">${esc(c.unit)}</span>` : ''}</div>`;
+         </span>`
+      : `<span class="dash-metric ${c.amp ? 'dash-' + c.amp : ''}">${esc(c.metric)}${c.unit ? `<span class="dash-unit">${esc(c.unit)}</span>` : ''}</span>`;
     return `<button class="dash-card" data-go="${c.go}">
-      <div class="dash-card-top">
-        <div class="dash-ic"><i class="fas ${c.icon}"></i></div>
+      <span class="dash-card-top">
+        <span class="dash-ic"><i class="fas ${c.icon}"></i></span>
         <span class="dash-phase">${esc(c.phase)}</span>
-      </div>
+      </span>
       <strong class="dash-card-title">${esc(c.title)}</strong>
       ${metricHTML}
       <span class="dash-sub">${esc(c.sub)}</span>
@@ -1393,7 +1432,6 @@ function navTo(target) {
 }
 document.querySelectorAll('.app-sidebar-nav a[data-view]').forEach(a =>
   a.addEventListener('click', e => { e.preventDefault(); navTo(a.dataset.view); }));
-document.getElementById('open-pseudo-btn')?.addEventListener('click', () => navTo('pseudo'));
 document.getElementById('open-gov-btn')?.addEventListener('click', () => navTo('governance'));
 document.getElementById('gov-import-btn')?.addEventListener('click', pickAndImport);
 document.getElementById('topbar-brand')?.addEventListener('click', () => navTo('home'));
