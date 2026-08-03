@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=36">
-  <link rel="stylesheet" href="css/styles.css?v=36">
+  <link rel="stylesheet" href="css/tokens.css?v=37">
+  <link rel="stylesheet" href="css/styles.css?v=37">
 </head>
 <body>
 
@@ -263,7 +263,7 @@
         <span class="inventory-meta" id="inventory-meta"></span>
       </div>
       <div class="inventory-actions">
-        <button class="btn btn-secondary" id="btn-import-again"><i class="fas fa-rotate"></i> Andere CSV</button>
+        <button class="btn btn-secondary" id="btn-import-again"><i class="fas fa-rotate"></i> CSV einlesen</button>
         <button class="btn btn-secondary" id="btn-license-wizard"><i class="fas fa-id-card"></i> Lizenz-Wegweiser</button>
         <button class="btn btn-secondary" id="btn-print-inventory"><i class="fas fa-print"></i> PDF</button>
         <button class="btn btn-secondary" id="btn-export-csv"><i class="fas fa-file-csv"></i> CSV</button>
@@ -301,6 +301,11 @@
           <option value="complete-asc">Vollständigkeit ↑</option>
         </select>
       </div>
+      <div class="inv-selectbar">
+        <button class="btn btn-secondary btn-sm" id="inv-select-all" aria-pressed="false"><i class="far fa-square"></i> Alle ausw&auml;hlen</button>
+        <span class="inv-selecthint">Mehrere Datens&auml;tze markieren, um Publisher, Lizenz oder Kategorie in einem Zug zu setzen.</span>
+      </div>
+      <div class="inv-bulk hidden" id="inv-bulk" aria-live="polite"></div>
       <div class="inventory-body" id="inventory-body"></div>
     </div>
 
@@ -761,7 +766,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v36</span>
+    <span class="footer-version">v37</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -957,6 +962,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=36"></script>
+  <script src="js/app.js?v=37"></script>
 </body>
 </html>
