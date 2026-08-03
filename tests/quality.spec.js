@@ -8,6 +8,7 @@ const VOLLSTAENDIG = {
   accessRights: 'PUBLIC', license: 'dl-de/by-2-0', theme: 'ENVI',
   keywords: 'baum, kataster', accrualPeriodicity: 'QUARTERLY', format: 'GeoJSON',
   landingPage: 'https://opendata.musterstadt.de/baumkataster',
+  contributorID: 'MUSTERSTADT',
 };
 
 test.describe('DCAT-AP.de-Qualitätsprüfung', () => {
@@ -31,7 +32,7 @@ test.describe('DCAT-AP.de-Qualitätsprüfung', () => {
       };
     });
     expect(r.errors).toBe(6);   // DCAT_REQUIRED
-    expect(r.warns).toBe(5);    // DCAT_RECOMMENDED
+    expect(r.warns).toBe(6);    // DCAT_RECOMMENDED
     expect(r.status).toBe('rot');
   });
 
@@ -61,6 +62,37 @@ test.describe('DCAT-AP.de-Qualitätsprüfung', () => {
     expect(msgs.kontakt.some(m => /E-Mail/.test(m))).toBe(true);
     expect(msgs.url.some(m => /http/.test(m))).toBe(true);
     expect(msgs.kurz.length).toBe(2);
+  });
+
+  test('erweiterte DCAT-AP.de-Felder werden auf Werte geprüft', async ({ page }) => {
+    await openApp(page);
+    const msgs = await page.evaluate(base => {
+      const check = patch => validateDataset({ ...base, ...patch }).map(i => `${i.sev}:${i.msg}`);
+      return {
+        sauber: check({
+          issued: '2024-01-15', modified: '2024-06-01',
+          temporalStart: '2023-01-01', temporalEnd: '2023-12-31',
+          spatial: 'Stadt Musterstadt', geocodingKey: '05315000', geocodingLevel: 'gemeinde',
+        }),
+        datumFormat: check({ issued: '15.01.2024' }),
+        reihenfolgeDoc: check({ issued: '2024-06-01', modified: '2024-01-15' }),
+        reihenfolgeZeit: check({ temporalStart: '2023-12-31', temporalEnd: '2023-01-01' }),
+        schluessel: check({ geocodingKey: '123', geocodingLevel: 'gemeinde' }),
+        ebene: check({ geocodingKey: '05315000', geocodingLevel: 'planet' }),
+        nurSchluessel: check({ geocodingKey: '05315000' }),
+        nurEbene: check({ geocodingLevel: 'gemeinde' }),
+      };
+    }, VOLLSTAENDIG);
+
+    expect(msgs.sauber).toEqual([]);
+    expect(msgs.datumFormat.some(m => /JJJJ-MM-TT/.test(m))).toBe(true);
+    expect(msgs.reihenfolgeDoc.some(m => /vor dem Veröffentlichungsdatum/.test(m))).toBe(true);
+    expect(msgs.reihenfolgeZeit.some(m => /vor dem Zeitraum-Beginn/.test(m))).toBe(true);
+    expect(msgs.schluessel.some(m => /amtlicher Schlüssel/.test(m))).toBe(true);
+    expect(msgs.ebene.some(m => /Gebietsebene/.test(m))).toBe(true);
+    // Regionalschlüssel und Ebene gehören zusammen – einzeln ist es unvollständig
+    expect(msgs.nurSchluessel.some(m => /gemeinsam/.test(m))).toBe(true);
+    expect(msgs.nurEbene.some(m => /gemeinsam/.test(m))).toBe(true);
   });
 
   test('Beispieldaten: erst 12 Fehler, nach Lizenz-Übernahme keine mehr', async ({ page }) => {

@@ -94,6 +94,26 @@ const FREQ_NAL = 'http://publications.europa.eu/resource/authority/frequency/';
 
 // dcat:theme – EU-Datenthemen (Data Theme NAL, von GovData/DCAT-AP.de genutzt)
 const THEME_NAL = 'http://publications.europa.eu/resource/authority/data-theme/';
+
+/* DCAT-AP.de-eigene Register (Auszug) – Grundlage für die erweiterten Felder.
+   `politicalGeocodingURI` wird aus dem amtlichen Regionalschlüssel gebildet,
+   `contributorID` aus der bei GovData vergebenen Kennung. */
+const GEO_NAL          = 'http://dcat-ap.de/def/politicalGeocoding/';
+const GEO_LEVEL_NAL    = GEO_NAL + 'Level/';
+const GEO_REGIONAL_NAL = GEO_NAL + 'regionalKey/';
+const CONTRIBUTOR_NAL  = 'http://dcat-ap.de/def/contributors/';
+const GEO_LEVELS = [
+  ['', '— bitte wählen —'],
+  ['bund', 'Bund'],
+  ['land', 'Land'],
+  ['regierungsbezirk', 'Regierungsbezirk'],
+  ['kreis', 'Kreis'],
+  ['verwaltungsgemeinschaft', 'Verwaltungsgemeinschaft'],
+  ['gemeinde', 'Gemeinde'],
+];
+// Amtlicher Regionalschlüssel: 2 (Land), 5 (Kreis), 8 (VG) oder 12 Stellen (Gemeinde/ARS)
+const GEO_KEY_RE = /^\d{2}(\d{3}(\d{3}(\d{4})?)?)?$/;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const DCAT_THEMES = [
   ['',     '— bitte wählen —'],
   ['AGRI', 'Landwirtschaft, Fischerei, Forstwirtschaft & Nahrung'],
@@ -158,7 +178,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v31';
+const APP_VERSION = 'v32';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -326,6 +346,15 @@ function deriveInventory(rows) {
       license:            '',
       accessRights:       mapSchutzToAccess(r.Schutzbedarf),
       landingPage:        '',
+      // Erweiterte DCAT-AP.de-Felder (optional, Nacherfassung)
+      issued:             '',
+      modified:           '',
+      temporalStart:      '',
+      temporalEnd:        '',
+      spatial:            '',
+      geocodingKey:       '',
+      geocodingLevel:     '',
+      contributorID:      '',
       _grafSchutzbedarf:  r.Schutzbedarf || '',
       _recipients:        r.Ziel ? [r.Ziel] : []   // Array statt Set: überlebt JSON-Roundtrip
     });
@@ -423,6 +452,7 @@ const DCAT_RECOMMENDED = [
   ['accrualPeriodicity', 'Aktualisierungszyklus (dct:accrualPeriodicity)'],
   ['format',             'Format (dct:format)'],
   ['landingPage',        'Info-/Zugriffs-URL (dcat:landingPage)'],
+  ['contributorID',      'Kontributor-Kennung (dcatde:contributorID)'],
 ];
 const REQUIRED_FIELDS = DCAT_REQUIRED.map(([k]) => k);
 function completeness(d) {
@@ -604,6 +634,40 @@ function renderInventoryBody() {
           <input data-field="landingPage" value="${esc(d.landingPage || '')}" placeholder="https://…">
         </label>
       </div>
+      <details class="inv-more">
+        <summary>Erweiterte DCAT-AP.de-Felder</summary>
+        <p class="inv-more-hint">Optional, aber für das Harvesting durch GovData hilfreich. Die Kontributor-Kennung vergibt GovData bei der Anbindung.</p>
+        <div class="inv-fields">
+          <label>Veröffentlicht am <span class="inv-prop">dct:issued</span>
+            <input type="date" data-field="issued" value="${esc(d.issued || '')}">
+          </label>
+          <label>Zuletzt geändert <span class="inv-prop">dct:modified</span>
+            <input type="date" data-field="modified" value="${esc(d.modified || '')}">
+          </label>
+          <label>Zeitraum von <span class="inv-prop">dct:temporal</span>
+            <input type="date" data-field="temporalStart" value="${esc(d.temporalStart || '')}">
+          </label>
+          <label>Zeitraum bis <span class="inv-prop">dct:temporal</span>
+            <input type="date" data-field="temporalEnd" value="${esc(d.temporalEnd || '')}">
+          </label>
+          <label>Räumliche Abdeckung <span class="inv-prop">dct:spatial</span>
+            <input data-field="spatial" value="${esc(d.spatial || '')}" placeholder="z. B. Stadt Musterstadt">
+          </label>
+          <label>Regionalschlüssel <span class="inv-prop">dcatde:politicalGeocodingURI</span>
+            <input data-field="geocodingKey" value="${esc(d.geocodingKey || '')}" placeholder="z. B. 05315000">
+          </label>
+          <label>Gebietsebene <span class="inv-prop">dcatde:politicalGeocodingLevelURI</span>
+            <select data-field="geocodingLevel">${optionsHTML(GEO_LEVELS, d.geocodingLevel)}</select>
+          </label>
+          <label>Kontributor-Kennung <span class="inv-prop">dcatde:contributorID</span>
+            <input data-field="contributorID" value="${esc(d.contributorID || '')}" placeholder="GovData-Kennung oder volle URI">
+          </label>
+        </div>
+      </details>
+      <details class="inv-preview">
+        <summary>DCAT-AP.de-Vorschau (JSON-LD)</summary>
+        <pre class="inv-preview-json" data-preview="${idx}">${esc(JSON.stringify(dcatDataset(d), null, 2))}</pre>
+      </details>
     </div>`;
   }).join('');
 
@@ -618,6 +682,9 @@ function renderInventoryBody() {
         badge.textContent = pct + '%';
         badge.style.color = pct >= 80 ? 'var(--ampel-gruen)' : pct >= 50 ? 'var(--ampel-gelb)' : 'var(--ampel-rot)';
         document.getElementById('inventory-meta').textContent = invMetaText();
+        // Vorschau ist die Zusage „so wird exportiert“ – muss also live mitlaufen
+        const pre = card.querySelector('.inv-preview-json');
+        if (pre) pre.textContent = JSON.stringify(dcatDataset(inventory[idx]), null, 2);
         saveState();
       });
     });
@@ -788,6 +855,25 @@ function validateDataset(d) {
     issues.push({ sev: 'warn', msg: 'Titel ist sehr kurz – aussagekräftigen dct:title vergeben.' });
   if (!empty(d.description) && d.description.trim().length < 10)
     issues.push({ sev: 'warn', msg: 'Beschreibung ist sehr kurz.' });
+
+  // Erweiterte DCAT-AP.de-Felder: nur prüfen, wenn gefüllt (alle optional)
+  [['issued', 'Veröffentlichungsdatum'], ['modified', 'Änderungsdatum'],
+   ['temporalStart', 'Zeitraum-Beginn'], ['temporalEnd', 'Zeitraum-Ende']]
+    .forEach(([k, label]) => {
+      if (!empty(d[k]) && !ISO_DATE_RE.test(String(d[k]).trim()))
+        issues.push({ sev: 'warn', msg: `${label} ist kein Datum im Format JJJJ-MM-TT.` });
+    });
+  if (!empty(d.issued) && !empty(d.modified) && d.modified < d.issued)
+    issues.push({ sev: 'warn', msg: 'Änderungsdatum liegt vor dem Veröffentlichungsdatum.' });
+  if (!empty(d.temporalStart) && !empty(d.temporalEnd) && d.temporalEnd < d.temporalStart)
+    issues.push({ sev: 'warn', msg: 'Zeitraum-Ende liegt vor dem Zeitraum-Beginn.' });
+  if (!empty(d.geocodingKey) && !GEO_KEY_RE.test(String(d.geocodingKey).trim()))
+    issues.push({ sev: 'warn', msg: 'Regionalschlüssel ist kein amtlicher Schlüssel (2, 5, 8 oder 12 Ziffern).' });
+  if (!empty(d.geocodingLevel) && !GEO_LEVELS.some(o => o[0] === d.geocodingLevel))
+    issues.push({ sev: 'warn', msg: 'Gebietsebene nicht aus dem DCAT-AP.de-Vokabular.' });
+  // Regionalschlüssel und Gebietsebene gehören nach DCAT-AP.de zusammen
+  if (!empty(d.geocodingKey) !== !empty(d.geocodingLevel))
+    issues.push({ sev: 'warn', msg: 'Regionalschlüssel und Gebietsebene bitte gemeinsam angeben.' });
   return issues;
 }
 
@@ -866,35 +952,57 @@ function jumpToInventoryCard(idx) {
 function keywordList(d) {
   return (d.keywords || '').split(',').map(s => s.trim()).filter(Boolean);
 }
+/* Ein einzelnes dcat:Dataset serialisieren. Bewusst als eigene Funktion:
+   Katalog-Export und Live-Vorschau in der Karte müssen dieselbe Ausgabe
+   erzeugen – sonst zeigt die Vorschau etwas anderes, als exportiert wird. */
+function dcatDataset(d) {
+  const ds = {
+    '@type': 'dcat:Dataset',
+    'dct:identifier': d.id,
+    'dct:title': d.title,
+    'dct:description': d.description || d.title,
+    'dct:publisher': { '@type': 'foaf:Organization', 'foaf:name': d.publisher },
+    'dcatde:sourceSystem': d.sourceSystem
+  };
+  if (d.contactPoint) ds['dcat:contactPoint'] = { '@type': 'vcard:Organization', 'vcard:fn': d.contactPoint };
+  const kw = keywordList(d);
+  if (kw.length) ds['dcat:keyword'] = kw;
+  if (d.theme) ds['dcat:theme'] = [THEME_NAL + d.theme];
+  if (d.accrualPeriodicity) ds['dct:accrualPeriodicity'] = FREQ_NAL + d.accrualPeriodicity;
+  if (d.accessRights) ds['dct:accessRights'] = ACCESS_NAL + d.accessRights;
+  if (d.landingPage) ds['dcat:landingPage'] = d.landingPage;
+
+  // Erweiterte DCAT-AP.de-Felder – nur schreiben, wenn wirklich gefüllt
+  if (d.issued) ds['dct:issued'] = d.issued;
+  if (d.modified) ds['dct:modified'] = d.modified;
+  if (d.temporalStart || d.temporalEnd) {
+    const t = { '@type': 'dct:PeriodOfTime' };
+    if (d.temporalStart) t['dcat:startDate'] = d.temporalStart;
+    if (d.temporalEnd) t['dcat:endDate'] = d.temporalEnd;
+    ds['dct:temporal'] = t;
+  }
+  if (d.spatial) ds['dct:spatial'] = { '@type': 'dct:Location', 'skos:prefLabel': d.spatial };
+  if (d.geocodingKey) ds['dcatde:politicalGeocodingURI'] = GEO_REGIONAL_NAL + d.geocodingKey;
+  if (d.geocodingLevel) ds['dcatde:politicalGeocodingLevelURI'] = GEO_LEVEL_NAL + d.geocodingLevel;
+  // Bereits vollständige URI unverändert übernehmen, sonst als Register-URI bilden
+  if (d.contributorID) ds['dcatde:contributorID'] =
+    /^https?:\/\//i.test(d.contributorID) ? d.contributorID : CONTRIBUTOR_NAL + d.contributorID;
+
+  const dist = { '@type': 'dcat:Distribution' };
+  if (d.landingPage) dist['dcat:accessURL'] = d.landingPage;
+  if (d.format) dist['dct:format'] = d.format;
+  if (d.license) dist['dct:license'] = (LICENSE_META[d.license] && LICENSE_META[d.license].uri) || d.license;
+  ds['dcat:distribution'] = [dist];
+  return ds;
+}
+
 function buildDcatJSON() {
   return {
     '@context': 'https://www.dcat-ap.de/def/dcatde/2.0/context.jsonld',
     '@type': 'dcat:Catalog',
     'dct:title': 'Dateninventar (DatenLotse-Export)',
     'dct:publisher': { '@type': 'foaf:Organization', 'foaf:name': orgName() },
-    'dcat:dataset': inventory.map(d => {
-      const ds = {
-        '@type': 'dcat:Dataset',
-        'dct:identifier': d.id,
-        'dct:title': d.title,
-        'dct:description': d.description || d.title,
-        'dct:publisher': { '@type': 'foaf:Organization', 'foaf:name': d.publisher },
-        'dcatde:sourceSystem': d.sourceSystem
-      };
-      if (d.contactPoint) ds['dcat:contactPoint'] = { '@type': 'vcard:Organization', 'vcard:fn': d.contactPoint };
-      const kw = keywordList(d);
-      if (kw.length) ds['dcat:keyword'] = kw;
-      if (d.theme) ds['dcat:theme'] = [THEME_NAL + d.theme];
-      if (d.accrualPeriodicity) ds['dct:accrualPeriodicity'] = FREQ_NAL + d.accrualPeriodicity;
-      if (d.accessRights) ds['dct:accessRights'] = ACCESS_NAL + d.accessRights;
-      if (d.landingPage) ds['dcat:landingPage'] = d.landingPage;
-      const dist = { '@type': 'dcat:Distribution' };
-      if (d.landingPage) dist['dcat:accessURL'] = d.landingPage;
-      if (d.format) dist['dct:format'] = d.format;
-      if (d.license) dist['dct:license'] = (LICENSE_META[d.license] && LICENSE_META[d.license].uri) || d.license;
-      ds['dcat:distribution'] = [dist];
-      return ds;
-    })
+    'dcat:dataset': inventory.map(dcatDataset)
   };
 }
 
@@ -903,7 +1011,9 @@ function buildInventoryCSV() {
   ensureAllClearing();   // Ampel auch ohne Besuch des Clearing-Tabs befüllen
   const cols = ['id', 'title', 'description', 'publisher', 'contactPoint',
                 'sourceSystem', 'format', 'keywords', 'theme', 'accrualPeriodicity',
-                'license', 'accessRights', 'landingPage'];
+                'license', 'accessRights', 'landingPage',
+                'issued', 'modified', 'temporalStart', 'temporalEnd',
+                'spatial', 'geocodingKey', 'geocodingLevel', 'contributorID'];
   const head = [...cols, 'clearingAmpel', 'clearingEmpfehlung'].join(',');
   const rows = inventory.map(d => {
     const cells = cols.map(c => csvCell(d[c]));
@@ -1481,6 +1591,67 @@ const LEGAL_BASIS = [
   { name: 'Geodatenzugangsgesetz (GeoZG) / INSPIRE', summary: 'Regelt den Zugang zu Geodaten und setzt die EU-INSPIRE-Richtlinie zur Geodateninfrastruktur um.', url: 'https://www.gesetze-im-internet.de/geozg/' },
 ];
 
+/* Landesrechtliche Grundlagen. Bewusst kuratiert und mit amtlicher Fundstelle
+   verlinkt – die Zusammenfassung ordnet nur ein, der Link ist die Autorität.
+   `kind`: 'transparenz' = aktive Veröffentlichungspflicht, 'ifg' = Zugang auf
+   Antrag, 'kein' = kein allgemeines Landesgesetz. Bewusst OHNE Jahreszahlen:
+   Novellen sind häufig, ein veraltetes Datum wäre schlechter als keines. */
+const LEGAL_BASIS_LAENDER = [
+  { land: 'Baden-Württemberg', name: 'Landesinformationsfreiheitsgesetz', abbr: 'LIFG', kind: 'ifg',
+    summary: 'Anspruch auf Zugang zu amtlichen Informationen des Landes; § 11 regelt Veröffentlichungspflichten und ein Informationsregister.',
+    url: 'https://www.landesrecht-bw.de/jportal/?quelle=jlink&query=InfFrG+BW&psml=bsbawueprod.psml&max=true&aiz=true' },
+  { land: 'Bayern', name: 'Bayerisches Digitalgesetz, Art. 14 (Offene Daten)', abbr: 'BayDiG', kind: 'kein',
+    summary: 'Kein allgemeines Landes-Informationsfreiheitsgesetz. Für Open Data einschlägig ist Art. 14 BayDiG; einzelne Kommunen haben eigene Informationsfreiheitssatzungen.',
+    url: 'https://www.gesetze-bayern.de/Content/Document/BayDiG-14' },
+  { land: 'Berlin', name: 'Berliner Informationsfreiheitsgesetz', abbr: 'IFG Bln', kind: 'ifg',
+    summary: 'Eines der ältesten Landes-IFG; § 17 enthält Veröffentlichungspflichten.',
+    url: 'https://gesetze.berlin.de/bsbe/document/jlr-InfFrGBErahmen' },
+  { land: 'Brandenburg', name: 'Akteneinsichts- und Informationszugangsgesetz', abbr: 'AIG', kind: 'ifg',
+    summary: 'Recht auf Akteneinsicht gegenüber Landesbehörden, Kommunen und beliehenen Stellen.',
+    url: 'https://bravors.brandenburg.de/gesetze/aig' },
+  { land: 'Bremen', name: 'Bremer Informationsfreiheitsgesetz', abbr: 'BremIFG', kind: 'transparenz',
+    summary: 'Formal ein IFG, wirkt aber wie ein Transparenzgesetz: Veröffentlichungspflichten und ein zentrales Transparenzportal.',
+    url: 'https://www.transparenz.bremen.de/metainformationen/gesetz-ueber-die-freiheit-des-zugangs-zu-informationen-fuer-das-land-bremen-bremer-informationsfreiheitsgesetz-bremifg-vom-16-mai-2006-67770?template=20_gp_ifg_meta_detail_d' },
+  { land: 'Hamburg', name: 'Hamburgisches Transparenzgesetz', abbr: 'HmbTG', kind: 'transparenz',
+    summary: 'Vorreiter der Transparenzgesetze: Pflicht zur aktiven Veröffentlichung im Informationsregister, maschinenlesbar und durchsuchbar.',
+    url: 'https://www.landesrecht-hamburg.de/bsha/document/jlr-TranspGHArahmen' },
+  { land: 'Hessen', name: 'Hessisches Datenschutz- und Informationsfreiheitsgesetz', abbr: 'HDSIG', kind: 'ifg',
+    summary: 'Verbindet Datenschutz und Informationsfreiheit in einem Gesetz; der Informationszugangsanspruch steht in § 80 ff.',
+    url: 'https://www.rv.hessenrecht.hessen.de/bshe/document/jlr-DSIFGHErahmen' },
+  { land: 'Mecklenburg-Vorpommern', name: 'Informationsfreiheitsgesetz Mecklenburg-Vorpommern', abbr: 'IFG M-V', kind: 'ifg',
+    summary: 'Anspruch auf Zugang zu amtlichen Informationen gegenüber Landes- und Kommunalbehörden.',
+    url: 'https://www.landesrecht-mv.de/bsmv/document/jlr-InfFrGMVV1P1' },
+  { land: 'Niedersachsen', name: 'Niedersächsisches Umweltinformationsgesetz', abbr: 'NUIG', kind: 'kein',
+    summary: 'Kein allgemeines Landes-Informationsfreiheitsgesetz. Zugangsansprüche bestehen fachbezogen, etwa für Umweltinformationen nach dem NUIG.',
+    url: 'https://nds-voris.de/jportal/?max=true&psml=bsvorisprod.psml&quelle=jlink&query=UIG+ND+%C2%A7+6' },
+  { land: 'Nordrhein-Westfalen', name: 'Informationsfreiheitsgesetz Nordrhein-Westfalen', abbr: 'IFG NRW', kind: 'ifg',
+    summary: 'Anspruch auf Zugang zu amtlichen Informationen des Landes und der Kommunen.',
+    url: 'https://recht.nrw.de/lrgv/gesetz/31122024-gesetz-ueber-die-freiheit-des-zugangs-zu-informationen-fuer-das-land-nordrhein/' },
+  { land: 'Rheinland-Pfalz', name: 'Landestransparenzgesetz', abbr: 'LTranspG', kind: 'transparenz',
+    summary: 'Transparenzgesetz mit aktiver Veröffentlichungspflicht und zentraler Transparenzplattform.',
+    url: 'https://www.landesrecht.rlp.de/bsrp/document/jlr-TranspGRPrahmen' },
+  { land: 'Saarland', name: 'Saarländisches Informationsfreiheitsgesetz', abbr: 'SIFG', kind: 'ifg',
+    summary: 'Erklärt das Informationsfreiheitsgesetz des Bundes für die saarländische Verwaltung für anwendbar.',
+    url: 'https://recht.saarland.de/bssl/document/jlr-SIFGSL2006rahmen' },
+  { land: 'Sachsen', name: 'Sächsisches Transparenzgesetz', abbr: 'SächsTranspG', kind: 'transparenz',
+    summary: 'Anspruch auf Veröffentlichung und Zugang; veröffentlichte Informationen kommen unverzüglich und im Volltext auf die Transparenzplattform.',
+    url: 'https://www.revosax.sachsen.de/vorschrift/19699-Saechsisches-Transparenzgesetz' },
+  { land: 'Sachsen-Anhalt', name: 'Informationszugangsgesetz Sachsen-Anhalt', abbr: 'IZG LSA', kind: 'ifg',
+    summary: 'Anspruch auf Zugang zu amtlichen Informationen gegenüber Behörden des Landes und der Kommunen.',
+    url: 'https://www.landesrecht.sachsen-anhalt.de/jportal/?quelle=jlink&query=InfZG+ST&psml=bssahprod.psml&max=true&aiz=true' },
+  { land: 'Schleswig-Holstein', name: 'Informationszugangsgesetz für das Land Schleswig-Holstein', abbr: 'IZG-SH', kind: 'ifg',
+    summary: 'Zugang zu Informationen bei informationspflichtigen Stellen des Landes und der Kommunen.',
+    url: 'https://www.gesetze-rechtsprechung.sh.juris.de/jportal/perma?portal=bssh&j=InfoZG_SH' },
+  { land: 'Thüringen', name: 'Thüringer Transparenzgesetz', abbr: 'ThürTG', kind: 'transparenz',
+    summary: 'Transparenzgesetz mit aktiver Veröffentlichungspflicht; löste das frühere Thüringer Informationsfreiheitsgesetz ab.',
+    url: 'https://landesrecht.thueringen.de/bsth/document/jlr-TranspGTHrahmen' },
+];
+const LAENDER_KIND = {
+  transparenz: { label: 'Transparenzgesetz', hint: 'aktive Veröffentlichungspflicht' },
+  ifg:         { label: 'Informationsfreiheitsgesetz', hint: 'Zugang auf Antrag' },
+  kein:        { label: 'Kein allgemeines Landesgesetz', hint: 'nur fachbezogene Ansprüche' },
+};
+
 const METHOD_MODELS = [
   { name: 'Open Data Readiness Assessment (ODRA)', by: 'World Bank', desc: 'Bewertet die organisatorische, rechtliche und infrastrukturelle Bereitschaft für Open Data.' },
   { name: 'Open Data Maturity Report', by: 'data.europa.eu (EU)', desc: 'Jährlicher EU-Reifegradvergleich entlang der Dimensionen Policy, Portal, Impact, Quality.' },
@@ -1489,7 +1660,7 @@ const METHOD_MODELS = [
   { name: 'DSGVO & FAIR', by: 'EU', desc: 'Rechtliche Leitplanken (Datenschutz) und Nachnutzbarkeits-Prinzipien (Findable, Accessible, Interoperable, Reusable).' },
 ];
 
-const wissenFilter = { q: '' };
+const wissenFilter = { q: '', land: '' };
 
 function renderWissen() {
   const q = wissenFilter.q.toLowerCase().trim();
@@ -1511,6 +1682,17 @@ function renderWissen() {
         <span class="know-law-sum">${esc(l.summary)}</span></a>`).join('')
     : '<p class="know-empty">Keine Rechtsgrundlagen passen zur Suche.</p>';
 
+  const laender = LEGAL_BASIS_LAENDER
+    .filter(l => !wissenFilter.land || l.land === wissenFilter.land)
+    .filter(l => match(l.land, l.name, l.abbr, l.summary, LAENDER_KIND[l.kind].label));
+  const lnEl = document.getElementById('wissen-laender');
+  if (lnEl) lnEl.innerHTML = laender.length
+    ? laender.map(l => `<a class="know-law know-law--${esc(l.kind)}" href="${esc(l.url)}" target="_blank" rel="noopener">
+        <span class="know-law-land">${esc(l.land)}<span class="know-kind know-kind--${esc(l.kind)}">${esc(LAENDER_KIND[l.kind].label)}</span></span>
+        <span class="know-law-name">${esc(l.name)}${l.abbr ? ` (${esc(l.abbr)})` : ''} <i class="fas fa-arrow-up-right-from-square"></i></span>
+        <span class="know-law-sum">${esc(l.summary)}</span></a>`).join('')
+    : '<p class="know-empty">Keine Landesregelung passt zur Suche.</p>';
+
   const mEl = document.getElementById('wissen-models');
   if (mEl) mEl.innerHTML = models.length
     ? models.map(m => `<div class="know-model"><strong>${esc(m.name)}</strong><span class="know-model-by">${esc(m.by)}</span><p>${esc(m.desc)}</p></div>`).join('')
@@ -1520,10 +1702,13 @@ function renderWissen() {
   document.getElementById('wissen-sec-glossary')?.classList.toggle('hidden', glossary.length === 0);
   document.getElementById('wissen-sec-laws')?.classList.toggle('hidden', laws.length === 0);
   document.getElementById('wissen-sec-models')?.classList.toggle('hidden', models.length === 0);
-  document.getElementById('wissen-noresult')?.classList.toggle('hidden', glossary.length + laws.length + models.length > 0);
+  document.getElementById('wissen-sec-laender')?.classList.toggle('hidden', laender.length === 0);
+  document.getElementById('wissen-noresult')?.classList.toggle('hidden',
+    glossary.length + laws.length + models.length + laender.length > 0);
 }
 
 document.getElementById('wissen-search')?.addEventListener('input', e => { wissenFilter.q = e.target.value; renderWissen(); });
+document.getElementById('wissen-land')?.addEventListener('change', e => { wissenFilter.land = e.target.value; renderWissen(); });
 
 /* ──────────────────────────────────────────────────────────────
    Vorlagen & Musterdokumente (Service-Center)

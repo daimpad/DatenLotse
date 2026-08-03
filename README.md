@@ -26,13 +26,13 @@
 |---|---|---|
 | 🧭 | **Daten-Kompass** | Open-Data-Reifegrad-Checkliste nach anerkannten Modellen (ODRA, EU Open Data Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR): **7 Dimensionen mit 27 Prüfpunkten**, Score + Ampel, Vorbelegung aus dem aktuellen Stand, adaptive Empfehlungen der nächsten Bausteine und PDF-Export – der Haupteinstieg |
 | 🔗 | **DatenGraf-CSV-Import** | Liest exakt das CSV-Schema, das DatenGraf exportiert – die Datenkartierung wird ohne Umweg zur Umsetzungsgrundlage |
-| 📦 | **Dateninventar (DCAT-AP.de)** | Aus jedem Datenfluss wird ein Dataset-Kandidat abgeleitet und in editierbaren Karten dargestellt: Beschreibung, Publisher, Ansprechpartner, **Kategorie** (EU-Datenthemen), **Schlagwörter**, Aktualisierungszyklus, **Lizenz** (volles DCAT-AP.de-Register), Zugriffsrechte und Info-/Zugriffs-URL – mit Live-Vollständigkeits-% in Ampelfarben. Der Export schreibt kontrollierte Werte als offizielle NAL-/Register-URIs |
+| 📦 | **Dateninventar (DCAT-AP.de)** | Aus jedem Datenfluss wird ein Dataset-Kandidat abgeleitet und in editierbaren Karten dargestellt: Beschreibung, Publisher, Ansprechpartner, **Kategorie** (EU-Datenthemen), **Schlagwörter**, Aktualisierungszyklus, **Lizenz** (volles DCAT-AP.de-Register), Zugriffsrechte und Info-/Zugriffs-URL – mit Live-Vollständigkeits-% in Ampelfarben. Dazu ein ausklappbarer Block **erweiterter DCAT-AP.de-Felder** (Veröffentlichungs-/Änderungsdatum, zeitliche und räumliche Abdeckung, Regionalschlüssel samt Gebietsebene, Kontributor-Kennung) und eine **Live-Vorschau des JSON-LD** je Datensatz. Der Export schreibt kontrollierte Werte als offizielle NAL-/Register-URIs |
 | 🔍 | **Suche, Filter & Sortierung** | Inventar live durchsuchen (Titel/Publisher/Quellsystem), nach Schutzbedarf oder Clearing-Ampel filtern und nach Titel bzw. Vollständigkeit sortieren – Editieren bleibt auch über gefilterten Teilmengen korrekt |
 | 📊 | **Status-Dashboard** | Startseite zeigt – sobald Daten vorliegen – Live-Kennzahlen über alle Bausteine (Kompass-Reifegrad, Inventar-Anzahl & Ø-Vollständigkeit, Clearing-Ampelverteilung, Governance-Reifegrad) mit Schnellsprung direkt zum Weiterarbeiten |
 | 📤 | **DCAT-Export (JSON + CSV)** | DCAT-AP.de-konformes JSON-LD (`dcat:Catalog`/`dcat:Dataset` mit `@context`) zum Harvesting durch GovData/CKAN sowie eine flache CSV-Liste |
 | 🪪 | **Lizenz-Wegweiser** | Zwei Fragen (Namensnennung? national/international?) führen deterministisch zur passenden **offenen** Lizenz (DL-DE-BY/-Zero, CC-BY, CC0) inkl. Begründung und amtlichem Link; auf Wunsch für alle Datensätze ohne Lizenz übernehmbar. Das vollständige Register mit **20 Lizenzen** steht im Inventar-Dropdown |
 | ✅ | **DCAT-AP.de-Qualitätsprüfung** | Publish-Ready-Check je Datensatz: fehlende Pflichtfelder als **Fehler**, fehlende Empfehlungsfelder und Werteprüfungen (offene Lizenz, kontrolliertes Vokabular, E-Mail im Ansprechpartner) als **Warnungen** – mit Ampel-Übersicht und direktem Sprung zum Bearbeiten im Inventar |
-| 📚 | **Wissens- & Methodik-Center** | In-App-Nachschlagewerk mit Live-Filter über alles: **20 Glossar-Begriffe**, **8 Rechtsgrundlagen** (Bund/EU mit amtlichen Links zu gesetze-im-internet.de bzw. EUR-Lex) und die **5 Reifegrad-Modelle** hinter dem Kompass – lokal, ausdrücklich keine Rechtsberatung |
+| 📚 | **Wissens- & Methodik-Center** | In-App-Nachschlagewerk mit Live-Filter über alles: **20 Glossar-Begriffe**, **8 Rechtsgrundlagen** (Bund/EU mit amtlichen Links zu gesetze-im-internet.de bzw. EUR-Lex), **alle 16 Landesregelungen** (Transparenz- vs. Informationsfreiheitsgesetz, jeweils mit amtlicher Fundstelle und eigenem Bundesland-Filter) und die **5 Reifegrad-Modelle** hinter dem Kompass – lokal, ausdrücklich keine Rechtsberatung |
 | 📄 | **Vorlagen & Musterdokumente** | Fertige Dokumente lokal erzeugt: Open-Data-Richtlinie und DSFA-Kurz-Checkliste (Muster) sowie aus dem Inventar generierte Veröffentlichungs-Freigabe-Formulare und ein VVT-Auszug der DSGVO-relevanten Datensätze – als PDF druckbar oder als Markdown/CSV ladbar |
 | 🚦 | **Clearing-Ampel (Rot-Gelb-Grün)** | Transparenter, deterministischer Entscheidungsbaum je Datensatz (Schutzbedarf-Vorbelegung, Art.-9-/Rechtsgrundlage-/Anonymisierbarkeit-Prüfung) mit nachvollziehbarer Begründung, Gesamtübersicht und Ampel-Spalte im CSV-Export |
 | 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende, deterministische Bereinigung deutscher Verwaltungstexte über **11 Muster**: Name (anrede-getriggert, akademische Titel werden übersprungen), Adresse, PLZ+Ort, Aktenzeichen/Geschäftszeichen, IBAN, E-Mail, Telefon, Geburtsdatum, Steuer-ID und Kfz-Kennzeichen (beide kontextgetriggert), Sozialversicherungsnummer. Konsistente Platzhalter, Mapping-Tabelle samt **CSV-Export** – rein per Regex, nichts verlässt den Browser |
@@ -111,6 +111,36 @@ Begleitend: 📊 **Status-Dashboard** auf der Startseite, 📚 **Wissens- & Meth
 
 ---
 
+## Einsatzszenarien
+
+**Standortbestimmung vor dem ersten Schritt.** Eine Kommune, ein Landkreis oder eine Fachbehörde will wissen, wie weit sie beim Thema offene Daten tatsächlich ist – nicht gefühlt, sondern entlang etablierter Modelle. Der Kompass liefert in einer Sitzung einen belastbaren Score mit Quellenangabe und einen priorisierten nächsten Schritt.
+
+**Vorbereitung einer Veröffentlichung auf GovData oder einem Landesportal.** Aus der vorhandenen Datenkartierung entsteht ein DCAT-AP.de-konformer Katalog, der vor dem Harvesting auf Pflichtfelder, kontrollierte Vokabulare und Lizenzoffenheit geprüft wurde. Der typische Schmerzpunkt – Datensätze werden abgelehnt oder erscheinen unvollständig – wird nach vorn verlagert.
+
+**Rollen- und Verantwortungsklärung.** Der Reifegrad-Check macht in acht Fragen sichtbar, wo Governance-Lücken sind; die abgeleitete RACI-Matrix gibt der Diskussion „wer ist eigentlich zuständig?" eine konkrete Grundlage statt einer Grundsatzdebatte.
+
+**Risikoabschätzung vor der Freigabe.** Statt jeden Datensatz einzeln juristisch zu prüfen, sortiert die Ampel vor: Grün ist unstrittig, Rot ist gesperrt, und die Prüfkapazität konzentriert sich auf das Gelb. Weil der Entscheidungsbaum offengelegt ist, lässt sich das Ergebnis gegenüber Datenschutzbeauftragten und Rechtsamt begründen – was bei einem Modell mit undurchsichtiger Entscheidungslogik nicht möglich wäre.
+
+**Vorbereitung von Freitext zur Veröffentlichung.** Protokolle, Bescheide, Anfragen, Freitextspalten aus Fachverfahren – überall dort, wo personenbezogene Angaben in unstrukturiertem Text stecken, nimmt die Textbereinigung den mechanischen Teil der Arbeit ab und dokumentiert, was ersetzt wurde. Als Vorstufe zur menschlichen Prüfung, nicht als deren Ersatz.
+
+**Schulung und Befähigung.** Weil das Wissens-Center Begriffe, Rechtsgrundlagen und Methodik direkt neben dem Werkzeug hält, eignet sich DatenLotse für Workshops mit Fachbereichen, die den Standard nicht kennen – die Erklärung steht dort, wo die Arbeit stattfindet.
+
+**Erzeugung der Verwaltungsdokumente.** Freigabeformular, VVT-Auszug, Richtlinienentwurf und DSFA-Checkliste entstehen aus dem bereits erfassten Stand, statt separat geschrieben zu werden.
+
+**Sensible Kontexte allgemein.** Überall dort, wo ein Upload auf einen fremden Dienst ausscheidet – Personaldaten, Sozialdaten, Verschlusssachen-nahe Bestände –, ist die Local-First-Architektur nicht bloß angenehm, sondern die Bedingung dafür, das Werkzeug überhaupt einsetzen zu dürfen.
+
+---
+
+## Was DatenLotse bewusst *nicht* ist
+
+- **Keine Rechtsberatung.** Alle Muster und Bewertungen sind Entscheidungshilfen ohne Gewähr; die fachliche und rechtliche Verantwortung bleibt beim Haus.
+- **Kein Datenportal.** DatenLotse veröffentlicht nichts – es bereitet die Veröffentlichung vor.
+- **Keine Pipeline.** Automatisierte Aktualisierung, ETL-Strecken und die technische Portal-Anbindung sind Phase 4 und 5: erklärt, aber nicht als Software geliefert.
+- **Keine Erkennung mit maschinellem Lernen.** Weder Clearing noch Pseudonymisierung nutzen ein Modell. Das ist eine bewusste Entscheidung zugunsten von Nachvollziehbarkeit, Determinismus und der Zusage, dass nichts den Browser verlässt – und bedeutet zugleich, dass die Pseudonymisierung nur findet, was ihre Muster beschreiben. Die Nachkontrolle bleibt Pflicht.
+- **Kein Ersatz für die Datenkartierung.** Die Ausgangsdaten kommen aus DatenGraf oder einer eigenen CSV im selben Schema.
+
+---
+
 ## DCAT-AP.de
 
 Das Inventar-Modul erzeugt zu jedem Datensatz Metadaten nach dem deutschen DCAT-AP.de-Profil – damit die Datasets durch [GovData](https://www.govdata.de/) und CKAN-basierte Portale geharvestet werden können.
@@ -136,7 +166,20 @@ Das Inventar-Modul erzeugt zu jedem Datensatz Metadaten nach dem deutschen DCAT-
 | `dct:format` | Format der Distribution |
 | `dcat:landingPage` / `dcat:accessURL` | Info- bzw. Zugriffs-URL |
 
+**Erweiterte Felder** (optional, je Karte ausklappbar – gefüllt werden sie exportiert, leer bleiben sie weg):
+
+| Feld | Zweck |
+|---|---|
+| `dct:issued` / `dct:modified` | Veröffentlichungs- und Änderungsdatum (JJJJ-MM-TT) |
+| `dct:temporal` → `dcat:startDate`/`endDate` | Zeitliche Abdeckung des Datensatzes |
+| `dct:spatial` → `dct:Location` | Räumliche Abdeckung als Klartext-Label |
+| `dcatde:politicalGeocodingURI` | Aus dem amtlichen Regionalschlüssel gebildete Register-URI |
+| `dcatde:politicalGeocodingLevelURI` | Gebietsebene (Bund/Land/Regierungsbezirk/Kreis/VG/Gemeinde) |
+| `dcatde:contributorID` | Kontributor-Kennung; GovData vergibt sie bei der Anbindung. Als **Empfehlungsfeld** geführt – ohne sie harvestet GovData nicht, ein Pflichtfeld würde aber jedes bestehende Inventar schlagartig auf Rot setzen |
+
 Zusätzlich: `dct:identifier` (eindeutig, kollidierende Kennungen werden durchnummeriert) und `dcatde:sourceSystem` (Quellsystem aus der DatenGraf-Kartierung).
+
+**Live-Vorschau:** Jede Inventar-Karte zeigt auf Wunsch das JSON-LD, das für genau diesen Datensatz exportiert würde – erzeugt von derselben Funktion wie der Katalog-Export und bei jeder Eingabe sofort aktualisiert, damit Vorschau und Export nicht auseinanderlaufen können.
 
 **Lizenz-Register:** 20 Lizenzen in zwei Gruppen – 14 **offene** (DL-DE BY/Zero, CC BY, CC0, CC BY-SA, GeoNutzV, Amtliches Werk nach § 5 UrhG, ODC-BY/ODbL/PDDL, GFDL …) und 6 eingeschränkte (NC-/ND-Varianten, geschlossen). Jede trägt ein `open`-Flag nach der Open Definition: **NC und ND gelten nicht als offen; Share-Alike ist offen, aber Copyleft.**
 
