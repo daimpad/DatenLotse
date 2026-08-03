@@ -849,6 +849,83 @@ a { color: var(--c-accent); }
 .know-law-name i { font-size: 11px; }
 .know-law-sum { font-size: 12.5px; color: var(--c-text); line-height: 1.55; }
 
+/* ── Spaltenweise CSV-Bereinigung ─────────────────────────────── */
+.pseudo-csv-panel.hidden,
+.pseudo-text-panel.hidden { display: none; }
+.pseudo-tabs { margin-bottom: 14px; }
+.pseudo-csv-actions { margin: 14px 0 10px; }
+.pseudo-csv-input { min-height: 140px; margin-bottom: 16px; }
+.pseudo-csv-cols { min-width: 0; }
+.pseudo-csv-meta {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--c-muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.pseudo-csv-list { display: flex; flex-direction: column; gap: 8px; }
+.pseudo-csv-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+  padding: 10px 12px;
+  background: var(--glass-bg);
+  border: 1px solid var(--c-border-s);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.pseudo-csv-name { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pseudo-csv-name strong { font-size: 13px; color: var(--c-text); overflow-wrap: anywhere; }
+.pseudo-csv-sample {
+  font-size: 11.5px;
+  color: var(--c-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+.pseudo-csv-sel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--c-muted);
+  min-width: 0;
+}
+.pseudo-csv-sel select {
+  font-size: 12.5px;
+  padding: 6px 8px;
+  border: 1px solid var(--c-border-s);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--c-text);
+  min-width: 0;
+}
+/* Der Typ ist nur bei „ganze Spalte ersetzen“ wirksam – das soll man sehen,
+   ohne dass das Feld wegspringt und das Raster verrutscht. */
+.pseudo-csv-sel--off { opacity: 0.45; }
+.pseudo-csv-run-row { margin: 16px 0 0; }
+.pseudo-csv-out { margin-top: 16px; min-width: 0; }
+.pseudo-csv-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.pseudo-csv-preview {
+  margin: 10px 0 0;
+  padding: 12px;
+  background: #faf9fd;
+  border: 1px solid var(--c-border-s);
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  overflow: auto;
+  max-height: 320px;
+  white-space: pre;
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .pseudo-csv-col { grid-template-columns: 1fr; align-items: stretch; }
+}
+
 /* ── Rechtsgrundlagen der Länder ──────────────────────────────── */
 .know-law-land {
   display: flex;
