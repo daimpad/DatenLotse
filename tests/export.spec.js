@@ -372,3 +372,159 @@ test.describe('RDF/Turtle-Export', () => {
     expect(ausgeloest).toBe(false);
   });
 });
+
+test.describe('DCAT-AP.de-Katalog einlesen', () => {
+  test('Export-Round-Trip: eigener Katalog kommt vollständig zurück', async ({ page }) => {
+    const errors = await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      Object.assign(inventory[0], {
+        keywords: 'a, b', theme: 'ENVI', accrualPeriodicity: 'DAILY', accessRights: 'PUBLIC',
+        landingPage: 'https://example.org/x', issued: '2024-01-15', modified: '2024-06-01',
+        temporalStart: '2023-01-01', temporalEnd: '2023-12-31', spatial: 'Musterstadt',
+        geocodingKey: '05315000', geocodingLevel: 'gemeinde', contributorID: 'MUSTERSTADT',
+      });
+      inventory[0].distributions = [
+        { title: 'Jahresdatei', format: 'CSV', accessURL: 'https://example.org/a.csv', license: 'dl-de/by-2-0' },
+        { title: '', format: 'JSON', accessURL: '', license: 'cc-zero' },
+      ];
+      const vorher = JSON.parse(JSON.stringify(inventory[0]));
+      const katalog = JSON.stringify(buildDcatJSON());
+      inventory = [];
+      importDcatJSON(katalog);
+      return { vorher, nachher: inventory.find(d => d.id === vorher.id), n: inventory.length };
+    });
+
+    expect(r.n).toBe(12);
+    const felder = ['title', 'description', 'publisher', 'contactPoint', 'sourceSystem',
+      'keywords', 'theme', 'accrualPeriodicity', 'accessRights', 'landingPage',
+      'issued', 'modified', 'temporalStart', 'temporalEnd', 'spatial',
+      'geocodingKey', 'geocodingLevel', 'contributorID'];
+    for (const f of felder) expect(r.nachher[f], f).toBe(r.vorher[f]);
+    // Beide Verteilungen inklusive Lizenz-id (nicht der URI)
+    expect(r.nachher.distributions.length).toBe(2);
+    expect(r.nachher.distributions[0].license).toBe('dl-de/by-2-0');
+    expect(r.nachher.distributions[0].format).toBe('CSV');
+    expect(r.nachher.distributions[1].license).toBe('cc-zero');
+    expect(errors).toEqual([]);
+  });
+
+  test('NAL-URIs werden auf die Codes zurückgeführt', async ({ page }) => {
+    await openApp(page);
+    const d = await page.evaluate(() => dcatToDataset({
+      'dct:identifier': 'x', 'dct:title': 'T',
+      'dcat:theme': ['http://publications.europa.eu/resource/authority/data-theme/TRAN'],
+      'dct:accrualPeriodicity': 'http://publications.europa.eu/resource/authority/frequency/MONTHLY',
+      'dct:accessRights': 'http://publications.europa.eu/resource/authority/access-right/RESTRICTED',
+      'dcatde:contributorID': 'http://dcat-ap.de/def/contributors/STADT',
+      'dcatde:politicalGeocodingURI': 'http://dcat-ap.de/def/politicalGeocoding/regionalKey/05315000',
+      'dcatde:politicalGeocodingLevelURI': 'http://dcat-ap.de/def/politicalGeocoding/Level/kreis',
+      'dcat:distribution': [{ 'dct:license': 'http://dcat-ap.de/def/licenses/cc-by/4.0' }],
+    }));
+    expect(d.theme).toBe('TRAN');
+    expect(d.accrualPeriodicity).toBe('MONTHLY');
+    expect(d.accessRights).toBe('RESTRICTED');
+    expect(d.contributorID).toBe('STADT');
+    expect(d.geocodingKey).toBe('05315000');
+    expect(d.geocodingLevel).toBe('kreis');
+    expect(d.distributions[0].license).toBe('cc-by-4.0');
+  });
+
+  test('tolerantes Lesen: String, @id-Objekt und Array', async ({ page }) => {
+    await openApp(page);
+    const d = await page.evaluate(() => dcatToDataset({
+      'dct:identifier': 'y',
+      'dct:title': { '@value': 'Aus @value' },
+      'dct:publisher': { '@type': 'foaf:Organization', 'foaf:name': 'Stadt X' },
+      'dcat:contactPoint': { 'vcard:fn': 'Frau Y' },
+      'dct:spatial': { 'skos:prefLabel': 'Musterstadt' },
+      'dcat:keyword': ['a', 'b', 'c'],
+      'dcat:landingPage': { '@id': 'https://example.org/z' },
+      'dcat:distribution': { 'dct:format': 'CSV' },   // Einzelobjekt statt Array
+    }));
+    expect(d.title).toBe('Aus @value');
+    expect(d.publisher).toBe('Stadt X');
+    expect(d.contactPoint).toBe('Frau Y');
+    expect(d.spatial).toBe('Musterstadt');
+    expect(d.keywords).toBe('a, b, c');
+    expect(d.landingPage).toBe('https://example.org/z');
+    expect(d.distributions.length).toBe(1);
+    expect(d.distributions[0].format).toBe('CSV');
+  });
+
+  test('unbekannte Vokabularwerte bleiben stehen und werden gemeldet', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      const d = dcatToDataset({
+        'dct:identifier': 'z', 'dct:title': 'T', 'dct:description': 'Beschreibung dazu',
+        'dct:publisher': 'P', 'dcat:contactPoint': 'a@b.de',
+        'dcat:theme': 'https://fremd.example/theme/XYZ',
+        'dct:accessRights': 'GEHEIM',
+        'dcat:distribution': [{ 'dct:license': 'https://fremd.example/lizenz' }],
+      });
+      return { theme: d.theme, access: d.accessRights, msgs: validateDataset(d).map(i => i.msg) };
+    });
+    // Nicht stillschweigend verwerfen – der Wert bleibt sichtbar
+    expect(r.theme).toBe('https://fremd.example/theme/XYZ');
+    expect(r.access).toBe('GEHEIM');
+    expect(r.msgs.some(m => /Kategorie nicht aus dem EU-Datenthemen-Vokabular/.test(m))).toBe(true);
+    expect(r.msgs.some(m => /Zugriffsrechte nicht aus dem kontrollierten Vokabular/.test(m))).toBe(true);
+    expect(r.msgs.some(m => /Register unbekannt/.test(m))).toBe(true);
+  });
+
+  test('Import führt zusammen und bewahrt Clearing-Antworten', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      inventory[0]._clearing = { pb: 'ja', art9: 'nein', recht: 'ja', anon: 'ja' };
+      const schutz = inventory[0]._grafSchutzbedarf;
+      const katalog = JSON.stringify({
+        '@type': 'dcat:Catalog',
+        'dcat:dataset': [
+          { 'dct:identifier': inventory[0].id, 'dct:title': 'Neuer Titel aus dem Portal' },
+          { 'dct:identifier': 'fremder-datensatz', 'dct:title': 'Fremd' },
+        ],
+      });
+      importDcatJSON(katalog);
+      return {
+        n: inventory.length, titel: inventory[0].title,
+        clearing: inventory[0]._clearing.anon, schutz: inventory[0]._grafSchutzbedarf === schutz,
+        fremd: !!inventory.find(d => d.id === 'fremder-datensatz'),
+      };
+    });
+    expect(r.n).toBe(13);
+    expect(r.titel).toBe('Neuer Titel aus dem Portal');
+    // Clearing und Schutzbedarf stehen nicht im Katalog und dürfen nicht verschwinden
+    expect(r.clearing).toBe('ja');
+    expect(r.schutz).toBe(true);
+    expect(r.fremd).toBe(true);
+  });
+
+  test('fremde JSON-Dateien werden abgelehnt', async ({ page }) => {
+    await openApp(page);
+    expect(await page.evaluate(() => importDcatJSON('kein json'))).toBe(false);
+    expect(await lastAlert(page)).toContain('JSON');
+    expect(await page.evaluate(() => importDcatJSON('{"foo":1}'))).toBe(false);
+    expect(await lastAlert(page)).toContain('DCAT-Katalog');
+    expect(await page.evaluate(() => inventory.length)).toBe(0);
+  });
+
+  test('ein Einstieg erkennt CSV und JSON', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      const katalog = JSON.stringify(buildDcatJSON());
+      const csv = buildInventoryCSV();
+      inventory = [];
+      importAnyFile(katalog);
+      const nachJson = inventory.length;
+      importAnyFile(csv);
+      const nachCsv = inventory.length;
+      importAnyFile('Quelle,QuelleOrganisation,Datentyp\nSys,Stadt,Typ\n');
+      return { nachJson, nachCsv, nachGraf: inventory.length };
+    });
+    expect(r.nachJson).toBe(12);
+    expect(r.nachCsv).toBe(12);   // dieselben ids – zusammengeführt, nicht verdoppelt
+    expect(r.nachGraf).toBe(1);
+  });
+});

@@ -184,7 +184,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v39';
+const APP_VERSION = 'v41';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -803,6 +803,7 @@ const BULK_FIELDS = [
   ['publisher', 'Publisher'],
   ['contactPoint', 'Ansprechpartner'],
   ['license', 'Lizenz'],
+  ['format', 'Format (erste Verteilung)'],
   ['theme', 'Kategorie (dcat:theme)'],
   ['accessRights', 'Zugriffsrechte'],
   ['accrualPeriodicity', 'Aktualisierungszyklus'],
@@ -866,6 +867,8 @@ function applyBulk(field, value) {
     if (!d) return;
     // Lizenz hängt an den Verteilungen, nicht am Datensatz
     if (field === 'license') ensureDistributions(d).forEach(x => { x.license = value; });
+    // Format kann je Verteilung abweichen – die Massenaktion meint die erste
+    else if (field === 'format') ensureDistributions(d)[0].format = value;
     else d[field] = value;
     n++;
   });
@@ -1286,7 +1289,124 @@ function qualityStatus(issues) {
 }
 const QUALITY_LABEL = { gruen: 'Publikationsbereit', gelb: 'Mit Warnungen', rot: 'Fehler beheben' };
 
+/* ── Konsistenzprüfung über das gesamte Inventar ──────────────────
+   `validateDataset()` schaut jeden Datensatz FÜR SICH an. Die teuren Fehler
+   sind aber die übergreifenden: zweimal derselbe Titel, zweimal dieselbe
+   Zugriffs-URL, „Stadt Musterstadt" neben „Stadt  Musterstadt" als
+   Publisher. Kein DCAT-Validator fängt das ab – jeder Datensatz ist für
+   sich korrekt –, und im Portal fällt es erst auf, wenn es unangenehm ist.
+
+   Alle Prüfungen sind deterministisch und melden die betroffenen Einträge
+   mit ihrem echten Index, damit man direkt hinspringen kann.
+   ────────────────────────────────────────────────────────────── */
+function normKey(v) {
+  return String(v == null ? '' : v)
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[.,;:]+$/, '')
+    .trim();
+}
+
+/* Gruppiert Einträge nach einem Schlüssel und liefert nur die Gruppen mit
+   mehr als einem Treffer. */
+function gruppiere(auswahl, keyFn) {
+  const map = new Map();
+  auswahl.forEach(({ d, idx }) => {
+    const k = keyFn(d);
+    if (!k) return;
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push({ d, idx });
+  });
+  return [...map.entries()].filter(([, v]) => v.length > 1);
+}
+
+function inventoryIssues() {
+  const issues = [];
+  const alle = inventory.map((d, idx) => ({ d, idx }));
+
+  // 1) Doppelte Identifier – beim Harvesting kollidieren sie
+  gruppiere(alle, d => d.id).forEach(([id, treffer]) => {
+    issues.push({ sev: 'error', msg: `Identifier „${id}" kommt ${treffer.length}× vor – beim Harvesting kollidieren die Datensätze.`, treffer });
+  });
+
+  // 2) Doppelte Titel – im Portal nicht unterscheidbar
+  gruppiere(alle, d => normKey(d.title)).forEach(([, treffer]) => {
+    issues.push({ sev: 'warn', msg: `Titel „${treffer[0].d.title}" wird ${treffer.length}× verwendet – im Portal sind die Einträge nicht unterscheidbar.`, treffer });
+  });
+
+  // 3) Dieselbe Zugriffs-URL an mehreren Datensätzen
+  const mitUrl = [];
+  alle.forEach(({ d, idx }) => {
+    const urls = new Set();
+    (d.distributions || []).forEach(x => { if (x.accessURL) urls.add(normKey(x.accessURL)); });
+    if (!urls.size && d.landingPage) urls.add(normKey(d.landingPage));
+    urls.forEach(u => mitUrl.push({ d: { _url: u, title: d.title }, idx }));
+  });
+  gruppiere(mitUrl, d => d._url).forEach(([url, treffer]) => {
+    issues.push({ sev: 'warn', msg: `${treffer.length} Datensätze verweisen auf dieselbe Adresse (${url}) – Nachnutzende laden zweimal dasselbe.`, treffer });
+  });
+
+  /* 4) Schreibvarianten bei Publisher und Ansprechpartner.
+        Gemeldet werden nur die ABWEICHLER von der häufigsten Schreibweise –
+        die will man korrigieren. Alle Träger der Variante aufzulisten wäre
+        bei elf gleich geschriebenen Einträgen nur Lärm. */
+  [['publisher', 'Publisher'], ['contactPoint', 'Ansprechpartner']].forEach(([feld, label]) => {
+    const map = new Map();
+    alle.forEach(({ d, idx }) => {
+      const k = normKey(d[feld]);
+      if (!k) return;
+      if (!map.has(k)) map.set(k, new Map());
+      const varianten = map.get(k);
+      const roh = String(d[feld]);
+      if (!varianten.has(roh)) varianten.set(roh, []);
+      varianten.get(roh).push({ d, idx });
+    });
+    map.forEach(varianten => {
+      if (varianten.size < 2) return;
+      const sortiert = [...varianten.entries()].sort((a, b) => b[1].length - a[1].length);
+      const [haeufig] = sortiert[0];
+      const abweichler = sortiert.slice(1);
+      issues.push({
+        sev: 'warn',
+        msg: `${label}: ${abweichler.map(([roh]) => `„${roh}"`).join(', ')} weicht von der sonst verwendeten Schreibweise „${haeufig}" ab – Portale gruppieren danach.`,
+        treffer: abweichler.flatMap(([, t]) => t),
+      });
+    });
+  });
+
+  return issues;
+}
+
+function renderInventoryIssues() {
+  const box = document.getElementById('quality-inventory');
+  if (!box) return;
+  const issues = inventoryIssues();
+  if (!inventory.length) { box.innerHTML = ''; return; }
+  if (!issues.length) {
+    box.innerHTML = `<div class="qual-cross qual-cross--ok"><i class="fas fa-circle-check"></i>
+      Bestandsprüfung: keine Dubletten oder Schreibvarianten über die ${inventory.length} Datensätze hinweg.</div>`;
+    return;
+  }
+  box.innerHTML =
+    `<div class="qual-cross">
+       <h3 class="qual-cross-title"><i class="fas fa-diagram-project"></i> Bestandsprüfung (${issues.length})</h3>
+       <p class="qual-cross-lead">Diese Befunde betreffen das Zusammenspiel mehrerer Datensätze – einzeln geprüft ist jeder von ihnen in Ordnung.</p>
+       <ul class="qual-issues">
+         ${issues.map(i => `<li class="qual-issue qual-issue--${i.sev}">
+            <i class="fas ${i.sev === 'error' ? 'fa-circle-xmark' : 'fa-triangle-exclamation'}"></i>
+            <span>${esc(i.msg)}
+              <span class="qual-cross-jumps">${i.treffer.map(t =>
+                `<button class="qual-cross-jump" data-fix="${t.idx}">${esc(t.d.title || '(ohne Titel)')}</button>`).join('')}</span>
+            </span>
+         </li>`).join('')}
+       </ul>
+     </div>`;
+  box.querySelectorAll('.qual-cross-jump').forEach(btn =>
+    btn.addEventListener('click', () => jumpToInventoryCard(+btn.dataset.fix)));
+}
+
 function renderQuality() {
+  renderInventoryIssues();
   const body = document.getElementById('quality-body');
   const sum = document.getElementById('quality-summary');
   if (!body) return;
@@ -1705,16 +1825,139 @@ function importAnyCSV(text) {
   return importGrafCSV(text);
 }
 
+/* ── Import eines DCAT-AP.de-Katalogs (JSON-LD) ───────────────────
+   Die Gegenrichtung zum Export. Viele Stellen veröffentlichen bereits –
+   ihnen fehlt kein Erstinventar, sondern eine Prüfung des Bestands. Ein
+   geharvesteter Katalog lässt sich hier einlesen, gegen die
+   Qualitätsprüfung halten und mit Clearing und Governance verbinden.
+
+   Bewusst tolerant beim Lesen: JSON-LD erlaubt für dieselbe Aussage
+   mehrere Schreibweisen (String, `{"@id": …}`, Array). Streng ist nur der
+   Export.
+   ────────────────────────────────────────────────────────────── */
+function jsonldValue(v) {
+  if (v == null) return '';
+  if (Array.isArray(v)) return jsonldValue(v[0]);
+  if (typeof v === 'object') return String(v['@id'] || v['@value'] || v['foaf:name'] || v['vcard:fn'] || v['skos:prefLabel'] || '');
+  return String(v);
+}
+function jsonldList(v) {
+  if (v == null) return [];
+  return (Array.isArray(v) ? v : [v]).map(jsonldValue).filter(Boolean);
+}
+/* Kontrollierte Werte kommen als volle NAL-URI zurück – auf den Code kürzen,
+   damit die Dropdowns im Inventar greifen. Unbekannte Werte bleiben stehen;
+   die Qualitätsprüfung meldet sie dann als „nicht aus dem Vokabular". */
+function stripNal(uri, prefix) {
+  const v = jsonldValue(uri);
+  return v.startsWith(prefix) ? v.slice(prefix.length) : v;
+}
+const LICENSE_BY_URI = {};
+LICENSE_CATALOG.forEach(g => g.items.forEach(l => { LICENSE_BY_URI[l.uri] = l.id; }));
+function licenseFromURI(uri) {
+  const v = jsonldValue(uri);
+  return LICENSE_BY_URI[v] || v;
+}
+
+function looksLikeDcatJSON(obj) {
+  return !!(obj && typeof obj === 'object' &&
+    (Array.isArray(obj['dcat:dataset']) || Array.isArray(obj.dataset) ||
+     String(obj['@type'] || '').includes('Catalog')));
+}
+
+function dcatToDataset(ds) {
+  const id = jsonldValue(ds['dct:identifier']) ||
+             slug(jsonldValue(ds['dct:title'])) || 'datensatz';
+  const dists = (Array.isArray(ds['dcat:distribution']) ? ds['dcat:distribution']
+                : ds['dcat:distribution'] ? [ds['dcat:distribution']] : [])
+    .map(x => newDistribution({
+      title: jsonldValue(x['dct:title']),
+      format: jsonldValue(x['dct:format']),
+      accessURL: jsonldValue(x['dcat:accessURL']),
+      license: licenseFromURI(x['dct:license']),
+    }));
+  const t = ds['dct:temporal'] || {};
+  return {
+    id,
+    title: jsonldValue(ds['dct:title']),
+    description: jsonldValue(ds['dct:description']),
+    publisher: jsonldValue(ds['dct:publisher']),
+    contactPoint: jsonldValue(ds['dcat:contactPoint']),
+    sourceSystem: jsonldValue(ds['dcatde:sourceSystem']),
+    keywords: jsonldList(ds['dcat:keyword']).join(', '),
+    theme: stripNal(ds['dcat:theme'], THEME_NAL),
+    accrualPeriodicity: stripNal(ds['dct:accrualPeriodicity'], FREQ_NAL),
+    accessRights: stripNal(ds['dct:accessRights'], ACCESS_NAL),
+    landingPage: jsonldValue(ds['dcat:landingPage']),
+    issued: jsonldValue(ds['dct:issued']),
+    modified: jsonldValue(ds['dct:modified']),
+    temporalStart: jsonldValue(t['dcat:startDate']),
+    temporalEnd: jsonldValue(t['dcat:endDate']),
+    spatial: jsonldValue(ds['dct:spatial']),
+    geocodingKey: stripNal(ds['dcatde:politicalGeocodingURI'], GEO_REGIONAL_NAL),
+    geocodingLevel: stripNal(ds['dcatde:politicalGeocodingLevelURI'], GEO_LEVEL_NAL),
+    contributorID: stripNal(ds['dcatde:contributorID'], CONTRIBUTOR_NAL),
+    _grafSchutzbedarf: '',
+    _recipients: [],
+    distributions: dists.length ? dists : [newDistribution()],
+  };
+}
+
+/* Wie beim CSV-Rückimport wird über die `id` ZUSAMMENGEFÜHRT: ein bereits
+   bearbeiteter Stand samt Clearing-Antworten darf durch das Einlesen eines
+   Katalogs nicht verloren gehen. */
+function importDcatJSON(text) {
+  let obj;
+  try { obj = JSON.parse(text); }
+  catch (e) { alert('Die Datei ist kein gültiges JSON.'); return false; }
+  if (!looksLikeDcatJSON(obj)) {
+    alert('Diese Datei sieht nicht nach einem DCAT-Katalog aus.\nErwartet wird ein „dcat:Catalog" mit einer Liste „dcat:dataset".');
+    return false;
+  }
+  const liste = obj['dcat:dataset'] || obj.dataset || [];
+  const nachId = new Map(inventory.map((d, i) => [d.id, i]));
+  let aktualisiert = 0, neu = 0;
+  liste.forEach(raw => {
+    const d = dcatToDataset(raw);
+    if (nachId.has(d.id)) {
+      const alt = inventory[nachId.get(d.id)];
+      // Clearing-Antworten und Schutzbedarf stammen nicht aus dem Katalog
+      const bewahrt = { _clearing: alt._clearing, _grafSchutzbedarf: alt._grafSchutzbedarf, _recipients: alt._recipients };
+      Object.assign(alt, d, bewahrt);
+      aktualisiert++;
+    } else {
+      inventory.push(d);
+      nachId.set(d.id, inventory.length - 1);
+      neu++;
+    }
+  });
+  migrateInventory();
+  invSelection.clear();
+  saveState();
+  renderInventory();
+  alert(`DCAT-Katalog eingelesen: ${aktualisiert} Datensätze aktualisiert, ${neu} neu hinzugefügt.`
+    + '\nDie Qualitätsprüfung zeigt jetzt, wo der Bestand vom Profil abweicht.');
+  return true;
+}
+
+/* Ein Einstieg für alle Importformate – Nutzer sollen nicht wissen müssen,
+   welcher Button welche Datei erwartet. */
+function importAnyFile(text) {
+  const t = String(text || '').trim();
+  if (t.startsWith('{') || t.startsWith('[')) return importDcatJSON(t);
+  return importAnyCSV(text);
+}
+
 /* ── Event-Bindings ───────────────────────────────────────────── */
 function pickAndImport() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.csv';
+  input.accept = '.csv,.json,text/csv,application/json';
   input.addEventListener('change', () => {
     const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => importAnyCSV(reader.result);
+    reader.onload = () => importAnyFile(reader.result);
     reader.readAsText(file, 'utf-8');
   });
   input.click();
