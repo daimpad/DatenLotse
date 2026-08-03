@@ -158,3 +158,135 @@ test.describe('DCAT-AP.de-Qualitätsprüfung', () => {
     await expect(page.locator('#quality-body .inv-empty')).toBeVisible();
   });
 });
+
+test.describe('Bestandsprüfung (übergreifend)', () => {
+  test('sauberer Bestand meldet keine Befunde', async ({ page }) => {
+    const errors = await openApp(page);
+    await loadSample(page);
+    const issues = await page.evaluate(() => inventoryIssues());
+    expect(issues).toEqual([]);
+    await page.evaluate(() => { navTo('inventory'); showInventoryTab('quality'); });
+    await expect(page.locator('.qual-cross--ok')).toBeVisible();
+    await expect(page.locator('#quality-inventory')).toContainText('keine Dubletten');
+    expect(errors).toEqual([]);
+  });
+
+  test('doppelte Identifier sind ein Fehler', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      inventory[1].id = inventory[0].id;
+      return inventoryIssues().map(i => ({ sev: i.sev, msg: i.msg, n: i.treffer.length }));
+    });
+    const treffer = r.find(i => /Identifier/.test(i.msg));
+    expect(treffer.sev).toBe('error');
+    expect(treffer.n).toBe(2);
+  });
+
+  test('doppelte Titel werden gemeldet, Groß-/Kleinschreibung egal', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      inventory[1].title = '  baumkataster ';   // andere Schreibweise, gleicher Titel
+      return inventoryIssues().filter(i => /Titel/.test(i.msg)).map(i => i.treffer.length);
+    });
+    expect(r).toEqual([2]);
+  });
+
+  test('dieselbe Zugriffs-URL an mehreren Datensätzen', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      inventory[0].distributions[0].accessURL = 'https://example.org/gleiche.csv';
+      inventory[3].distributions[0].accessURL = 'https://example.org/gleiche.csv';
+      return inventoryIssues().filter(i => /dieselbe Adresse/.test(i.msg));
+    });
+    expect(r.length).toBe(1);
+    expect(r[0].treffer.length).toBe(2);
+    expect(r[0].sev).toBe('warn');
+  });
+
+  test('ohne eigene Zugriffs-URL zählt die Info-URL des Datensatzes', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const n = await page.evaluate(() => {
+      inventory[0].landingPage = 'https://example.org/seite';
+      inventory[1].landingPage = 'https://example.org/seite';
+      return inventoryIssues().filter(i => /dieselbe Adresse/.test(i.msg)).length;
+    });
+    expect(n).toBe(1);
+  });
+
+  test('Schreibvarianten bei Publisher und Ansprechpartner', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      inventory[0].publisher = 'Stadt  Musterstadt';     // doppeltes Leerzeichen
+      inventory[1].contactPoint = 'Frau Meier (buergeramt@musterstadt.de).';
+      inventory[2].contactPoint = 'Frau Meier (buergeramt@musterstadt.de)';
+      return inventoryIssues().map(i => i.msg);
+    });
+    expect(r.some(m => /^Publisher: .*weicht von der sonst verwendeten/.test(m))).toBe(true);
+    expect(r.some(m => /^Ansprechpartner: .*weicht von der sonst verwendeten/.test(m))).toBe(true);
+  });
+
+  test('gemeldet wird nur der Abweichler, nicht der ganze Bestand', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      // Ein Ausreißer unter elf gleich geschriebenen Publishern
+      inventory[0].publisher = 'Stadt  Musterstadt';
+      const i = inventoryIssues().find(x => /^Publisher:/.test(x.msg));
+      return { n: i.treffer.length, titel: i.treffer.map(t => t.d.title), msg: i.msg };
+    });
+    expect(r.n).toBe(1);
+    expect(r.titel).toEqual(['Einwohnermeldedaten']);
+    // Die häufige Schreibweise steht als Ziel im Text
+    expect(r.msg).toContain('„Stadt Musterstadt"');
+  });
+
+  test('identische Schreibweise ist keine Variante', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    // Elf Datensätze teilen sich denselben Publisher – das ist normal, kein Befund
+    const r = await page.evaluate(() =>
+      inventoryIssues().filter(i => /Schreibweise/.test(i.msg)).length);
+    expect(r).toBe(0);
+  });
+
+  test('Befunde springen zum betroffenen Datensatz', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => {
+      inventory[1].title = inventory[0].title;
+      navTo('inventory'); showInventoryTab('quality');
+    });
+    await expect(page.locator('.qual-cross-jump').first()).toBeVisible();
+    await page.locator('.qual-cross-jump').first().click();
+    await expect(page.locator('#inventar-panel')).toBeVisible();
+    await expect(page.locator('.inv-card[data-idx="0"]')).toBeVisible();
+  });
+
+  test('leeres Inventar zeigt keine Bestandsprüfung', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => { showView('inventory'); showInventoryTab('quality'); });
+    await expect(page.locator('#quality-inventory')).toBeEmpty();
+  });
+
+  test('Massenbearbeitung setzt das Format der ersten Verteilung', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => {
+      navTo('inventory');
+      inventory[0].distributions.push({ title: '', format: 'JSON', accessURL: '', license: '' });
+      invSelection.add(0);
+      renderInventoryBody();
+    });
+    await page.locator('#bulk-field').selectOption('format');
+    await page.locator('#bulk-value').fill('GeoJSON');
+    await page.locator('#bulk-apply').click();
+    const r = await page.evaluate(() => inventory[0].distributions.map(x => x.format));
+    // Nur die erste – bei mehreren Verteilungen wäre alles andere geraten
+    expect(r).toEqual(['GeoJSON', 'JSON']);
+  });
+});

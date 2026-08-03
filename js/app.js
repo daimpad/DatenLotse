@@ -184,7 +184,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v40';
+const APP_VERSION = 'v41';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -803,6 +803,7 @@ const BULK_FIELDS = [
   ['publisher', 'Publisher'],
   ['contactPoint', 'Ansprechpartner'],
   ['license', 'Lizenz'],
+  ['format', 'Format (erste Verteilung)'],
   ['theme', 'Kategorie (dcat:theme)'],
   ['accessRights', 'Zugriffsrechte'],
   ['accrualPeriodicity', 'Aktualisierungszyklus'],
@@ -866,6 +867,8 @@ function applyBulk(field, value) {
     if (!d) return;
     // Lizenz hängt an den Verteilungen, nicht am Datensatz
     if (field === 'license') ensureDistributions(d).forEach(x => { x.license = value; });
+    // Format kann je Verteilung abweichen – die Massenaktion meint die erste
+    else if (field === 'format') ensureDistributions(d)[0].format = value;
     else d[field] = value;
     n++;
   });
@@ -1286,7 +1289,124 @@ function qualityStatus(issues) {
 }
 const QUALITY_LABEL = { gruen: 'Publikationsbereit', gelb: 'Mit Warnungen', rot: 'Fehler beheben' };
 
+/* ── Konsistenzprüfung über das gesamte Inventar ──────────────────
+   `validateDataset()` schaut jeden Datensatz FÜR SICH an. Die teuren Fehler
+   sind aber die übergreifenden: zweimal derselbe Titel, zweimal dieselbe
+   Zugriffs-URL, „Stadt Musterstadt" neben „Stadt  Musterstadt" als
+   Publisher. Kein DCAT-Validator fängt das ab – jeder Datensatz ist für
+   sich korrekt –, und im Portal fällt es erst auf, wenn es unangenehm ist.
+
+   Alle Prüfungen sind deterministisch und melden die betroffenen Einträge
+   mit ihrem echten Index, damit man direkt hinspringen kann.
+   ────────────────────────────────────────────────────────────── */
+function normKey(v) {
+  return String(v == null ? '' : v)
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[.,;:]+$/, '')
+    .trim();
+}
+
+/* Gruppiert Einträge nach einem Schlüssel und liefert nur die Gruppen mit
+   mehr als einem Treffer. */
+function gruppiere(auswahl, keyFn) {
+  const map = new Map();
+  auswahl.forEach(({ d, idx }) => {
+    const k = keyFn(d);
+    if (!k) return;
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push({ d, idx });
+  });
+  return [...map.entries()].filter(([, v]) => v.length > 1);
+}
+
+function inventoryIssues() {
+  const issues = [];
+  const alle = inventory.map((d, idx) => ({ d, idx }));
+
+  // 1) Doppelte Identifier – beim Harvesting kollidieren sie
+  gruppiere(alle, d => d.id).forEach(([id, treffer]) => {
+    issues.push({ sev: 'error', msg: `Identifier „${id}" kommt ${treffer.length}× vor – beim Harvesting kollidieren die Datensätze.`, treffer });
+  });
+
+  // 2) Doppelte Titel – im Portal nicht unterscheidbar
+  gruppiere(alle, d => normKey(d.title)).forEach(([, treffer]) => {
+    issues.push({ sev: 'warn', msg: `Titel „${treffer[0].d.title}" wird ${treffer.length}× verwendet – im Portal sind die Einträge nicht unterscheidbar.`, treffer });
+  });
+
+  // 3) Dieselbe Zugriffs-URL an mehreren Datensätzen
+  const mitUrl = [];
+  alle.forEach(({ d, idx }) => {
+    const urls = new Set();
+    (d.distributions || []).forEach(x => { if (x.accessURL) urls.add(normKey(x.accessURL)); });
+    if (!urls.size && d.landingPage) urls.add(normKey(d.landingPage));
+    urls.forEach(u => mitUrl.push({ d: { _url: u, title: d.title }, idx }));
+  });
+  gruppiere(mitUrl, d => d._url).forEach(([url, treffer]) => {
+    issues.push({ sev: 'warn', msg: `${treffer.length} Datensätze verweisen auf dieselbe Adresse (${url}) – Nachnutzende laden zweimal dasselbe.`, treffer });
+  });
+
+  /* 4) Schreibvarianten bei Publisher und Ansprechpartner.
+        Gemeldet werden nur die ABWEICHLER von der häufigsten Schreibweise –
+        die will man korrigieren. Alle Träger der Variante aufzulisten wäre
+        bei elf gleich geschriebenen Einträgen nur Lärm. */
+  [['publisher', 'Publisher'], ['contactPoint', 'Ansprechpartner']].forEach(([feld, label]) => {
+    const map = new Map();
+    alle.forEach(({ d, idx }) => {
+      const k = normKey(d[feld]);
+      if (!k) return;
+      if (!map.has(k)) map.set(k, new Map());
+      const varianten = map.get(k);
+      const roh = String(d[feld]);
+      if (!varianten.has(roh)) varianten.set(roh, []);
+      varianten.get(roh).push({ d, idx });
+    });
+    map.forEach(varianten => {
+      if (varianten.size < 2) return;
+      const sortiert = [...varianten.entries()].sort((a, b) => b[1].length - a[1].length);
+      const [haeufig] = sortiert[0];
+      const abweichler = sortiert.slice(1);
+      issues.push({
+        sev: 'warn',
+        msg: `${label}: ${abweichler.map(([roh]) => `„${roh}"`).join(', ')} weicht von der sonst verwendeten Schreibweise „${haeufig}" ab – Portale gruppieren danach.`,
+        treffer: abweichler.flatMap(([, t]) => t),
+      });
+    });
+  });
+
+  return issues;
+}
+
+function renderInventoryIssues() {
+  const box = document.getElementById('quality-inventory');
+  if (!box) return;
+  const issues = inventoryIssues();
+  if (!inventory.length) { box.innerHTML = ''; return; }
+  if (!issues.length) {
+    box.innerHTML = `<div class="qual-cross qual-cross--ok"><i class="fas fa-circle-check"></i>
+      Bestandsprüfung: keine Dubletten oder Schreibvarianten über die ${inventory.length} Datensätze hinweg.</div>`;
+    return;
+  }
+  box.innerHTML =
+    `<div class="qual-cross">
+       <h3 class="qual-cross-title"><i class="fas fa-diagram-project"></i> Bestandsprüfung (${issues.length})</h3>
+       <p class="qual-cross-lead">Diese Befunde betreffen das Zusammenspiel mehrerer Datensätze – einzeln geprüft ist jeder von ihnen in Ordnung.</p>
+       <ul class="qual-issues">
+         ${issues.map(i => `<li class="qual-issue qual-issue--${i.sev}">
+            <i class="fas ${i.sev === 'error' ? 'fa-circle-xmark' : 'fa-triangle-exclamation'}"></i>
+            <span>${esc(i.msg)}
+              <span class="qual-cross-jumps">${i.treffer.map(t =>
+                `<button class="qual-cross-jump" data-fix="${t.idx}">${esc(t.d.title || '(ohne Titel)')}</button>`).join('')}</span>
+            </span>
+         </li>`).join('')}
+       </ul>
+     </div>`;
+  box.querySelectorAll('.qual-cross-jump').forEach(btn =>
+    btn.addEventListener('click', () => jumpToInventoryCard(+btn.dataset.fix)));
+}
+
 function renderQuality() {
+  renderInventoryIssues();
   const body = document.getElementById('quality-body');
   const sum = document.getElementById('quality-summary');
   if (!body) return;
