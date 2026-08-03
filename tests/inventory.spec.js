@@ -70,7 +70,7 @@ test.describe('Inventar – Karten, Suche, Filter, Sortierung', () => {
   test('Sortierung nach Vollständigkeit und Titel', async ({ page }) => {
     await openApp(page);
     await loadSample(page);
-    await page.evaluate(() => { inventory[5].license = 'dl-de/by-2-0'; navTo('inventory'); });
+    await page.evaluate(() => { inventory[5].distributions[0].license = 'dl-de/by-2-0'; navTo('inventory'); });
 
     await page.locator('#inv-sort').selectOption('title');
     const titel = await page.locator('.inv-card .inv-title').evaluateAll(e => e.map(x => x.value));
@@ -85,8 +85,8 @@ test.describe('Inventar – Karten, Suche, Filter, Sortierung', () => {
     await openApp(page);
     const r = await page.evaluate(() => {
       const leer = {};
-      const voll = {};
-      REQUIRED_FIELDS.forEach(f => { voll[f] = 'x'; });
+      const voll = { distributions: [{ format: 'CSV', license: 'cc-zero', accessURL: '', title: '' }] };
+      REQUIRED_FIELDS.filter(f => f !== 'license').forEach(f => { voll[f] = 'x'; });
       return { leer: completeness(leer), voll: completeness(voll), felder: REQUIRED_FIELDS };
     });
     expect(r.leer).toBe(0);
@@ -208,7 +208,7 @@ test.describe('Lizenz-Register & -Wegweiser', () => {
   test('Massenübernahme setzt nur leere Lizenzen und hebt die Vollständigkeit', async ({ page }) => {
     const errors = await openApp(page);
     await loadSample(page);
-    await page.evaluate(() => { navTo('inventory'); inventory[0].license = 'cc-zero'; openLicenseWizard(); });
+    await page.evaluate(() => { navTo('inventory'); inventory[0].distributions[0].license = 'cc-zero'; openLicenseWizard(); });
     await expect(page.locator('#license-backdrop')).toBeVisible();
     await expect(page.locator('#lic-apply')).toContainText('11');
 
@@ -216,8 +216,8 @@ test.describe('Lizenz-Register & -Wegweiser', () => {
       Math.round(inventory.reduce((s, d) => s + completeness(d), 0) / inventory.length));
     await page.locator('#lic-apply').click();
     const nachher = await page.evaluate(() => ({
-      ohne: inventory.filter(d => !d.license).length,
-      erster: inventory[0].license,
+      ohne: inventory.filter(d => !hasLicense(d)).length,
+      erster: inventory[0].distributions[0].license,
       pct: Math.round(inventory.reduce((s, d) => s + completeness(d), 0) / inventory.length),
     }));
     expect(nachher.ohne).toBe(0);
@@ -278,8 +278,8 @@ test.describe('Massenbearbeitung', () => {
     await page.locator('#bulk-apply').click();
 
     const r = await page.evaluate(() => ({
-      gesetzt: inventory.filter(d => d.license === 'cc-zero').length,
-      rest: inventory.filter(d => !d.license).length,
+      gesetzt: inventory.filter(d => d.distributions.every(x => x.license === 'cc-zero')).length,
+      rest: inventory.filter(d => !hasLicense(d)).length,
     }));
     expect(r.gesetzt).toBe(2);
     expect(r.rest).toBe(10);
@@ -425,5 +425,202 @@ test.describe('Rückimport der bearbeiteten Inventar-CSV', () => {
     await openApp(page);
     await page.evaluate(() => importAnyCSV('Foo,Bar\n1,2\n'));
     expect(await page.evaluate(() => inventory.length)).toBe(0);
+  });
+});
+
+test.describe('Verteilungen (dcat:Distribution)', () => {
+  test('jeder Datensatz startet mit genau einer Verteilung aus dem Format', async ({ page }) => {
+    const errors = await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => ({
+      alleEine: inventory.every(d => Array.isArray(d.distributions) && d.distributions.length === 1),
+      formate: inventory.map(d => d.distributions[0].format),
+      // Format und Lizenz dürfen nicht mehr am Datensatz hängen
+      legacy: inventory.filter(d => 'format' in d || 'license' in d).map(d => d.id),
+    }));
+    expect(r.alleEine).toBe(true);
+    expect(r.formate).toContain('CSV');
+    expect(r.legacy).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test('Verteilungen lassen sich hinzufügen und entfernen', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    const karte = page.locator('.inv-card').first();
+    await expect(karte.locator('.inv-dist')).toHaveCount(1);
+    // Bei nur einer Verteilung gibt es keinen Entfernen-Knopf
+    await expect(karte.locator('.inv-dist-del')).toHaveCount(0);
+
+    await karte.locator('[data-dist-add]').click();
+    await expect(karte.locator('.inv-dist')).toHaveCount(2);
+    await karte.locator('.inv-dist').nth(1).locator('[data-dist-field="format"]').fill('JSON');
+    expect(await page.evaluate(() => inventory[0].distributions[1].format)).toBe('JSON');
+
+    await karte.locator('.inv-dist-del').nth(1).click();
+    await expect(karte.locator('.inv-dist')).toHaveCount(1);
+    expect(await page.evaluate(() => inventory[0].distributions.length)).toBe(1);
+  });
+
+  test('mehrere Verteilungen erscheinen in JSON und Turtle', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      inventory[0].landingPage = 'https://example.org/datensatz';
+      inventory[0].distributions = [
+        { title: 'Jahresdatei', format: 'CSV', accessURL: 'https://example.org/a.csv', license: 'dl-de/by-2-0' },
+        { title: '', format: 'JSON', accessURL: '', license: 'cc-zero' },
+      ];
+      return { json: dcatDataset(inventory[0]), ttl: turtleDataset(inventory[0]) };
+    });
+    const dists = r.json['dcat:distribution'];
+    expect(dists.length).toBe(2);
+    expect(dists[0]['dct:format']).toBe('CSV');
+    expect(dists[0]['dct:title']).toBe('Jahresdatei');
+    expect(dists[0]['dcat:accessURL']).toBe('https://example.org/a.csv');
+    expect(dists[0]['dct:license']).toBe('http://dcat-ap.de/def/licenses/dl-by-de/2.0');
+    // Ohne eigene URL fällt die Verteilung auf die Info-URL zurück
+    expect(dists[1]['dcat:accessURL']).toBe('https://example.org/datensatz');
+    expect(dists[1]['dct:license']).toBe('http://dcat-ap.de/def/licenses/cc-zero');
+
+    expect((r.ttl.match(/a dcat:Distribution/g) || []).length).toBe(2);
+    expect(r.ttl).toContain('https://example.org/a.csv');
+  });
+
+  test('Vollständigkeit verlangt eine Lizenz je Verteilung', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      const basis = {
+        title: 'T', description: 'Beschreibung', publisher: 'P',
+        contactPoint: 'a@b.de', accessRights: 'PUBLIC',
+      };
+      const eine = { ...basis, distributions: [{ format: 'CSV', license: 'cc-zero', accessURL: '', title: '' }] };
+      const halb = { ...basis, distributions: [
+        { format: 'CSV', license: 'cc-zero', accessURL: '', title: '' },
+        { format: 'JSON', license: '', accessURL: '', title: '' },
+      ] };
+      return {
+        eine: completeness(eine), halb: completeness(halb),
+        hasEine: hasLicense(eine), hasHalb: hasLicense(halb),
+      };
+    });
+    expect(r.eine).toBe(100);
+    expect(r.hasEine).toBe(true);
+    // Eine Verteilung ohne Lizenz macht den Datensatz unvollständig
+    expect(r.hasHalb).toBe(false);
+    expect(r.halb).toBeLessThan(100);
+  });
+
+  test('Qualitätsprüfung benennt die betroffene Verteilung', async ({ page }) => {
+    await openApp(page);
+    const msgs = await page.evaluate(() => validateDataset({
+      title: 'T', description: 'Beschreibung', publisher: 'P',
+      contactPoint: 'a@b.de', accessRights: 'PUBLIC',
+      distributions: [
+        { format: 'CSV', license: 'cc-zero', accessURL: '', title: '' },
+        { format: 'JSON', license: 'cc-by-nc-4.0', accessURL: 'nicht-url', title: '' },
+      ],
+    }).map(i => i.msg));
+    expect(msgs.some(m => /Verteilung 2: .*nicht offen/.test(m))).toBe(true);
+    expect(msgs.some(m => /Verteilung 2: Zugriffs-URL/.test(m))).toBe(true);
+    // Verteilung 1 ist in Ordnung und wird nicht gemeldet
+    expect(msgs.some(m => /Verteilung 1/.test(m))).toBe(false);
+  });
+
+  test('ein Datensatz ohne Verteilung ist ein Fehler', async ({ page }) => {
+    await openApp(page);
+    const msgs = await page.evaluate(() =>
+      validateDataset({ title: 'T', distributions: [] }).map(i => `${i.sev}:${i.msg}`));
+    expect(msgs.some(m => m.startsWith('error') && /Keine Verteilung/.test(m))).toBe(true);
+  });
+
+  test('Lizenz-Wegweiser und Massenbearbeitung setzen alle Verteilungen', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => {
+      navTo('inventory');
+      inventory[0].distributions.push({ title: '', format: 'JSON', accessURL: '', license: '' });
+      openLicenseWizard();
+    });
+    await page.locator('#lic-apply').click();
+    expect(await page.evaluate(() =>
+      inventory[0].distributions.every(x => x.license))).toBe(true);
+
+    await page.evaluate(() => { invSelection.add(0); renderInventoryBody(); });
+    await page.locator('#bulk-field').selectOption('license');
+    await page.locator('#bulk-value').selectOption('cc-zero');
+    await page.locator('#bulk-apply').click();
+    expect(await page.evaluate(() =>
+      inventory[0].distributions.every(x => x.license === 'cc-zero'))).toBe(true);
+  });
+
+  test('ältere Stände ohne Verteilungen werden migriert', async ({ page }) => {
+    await openApp(page);
+    // So sah ein Datensatz vor v39 aus – Format und Lizenz am Datensatz
+    const r = await page.evaluate(() => {
+      const alt = {
+        id: 'alt-1', title: 'Alt', description: 'x', publisher: 'P', contactPoint: 'a@b.de',
+        accessRights: 'PUBLIC', format: 'CSV', license: 'dl-de/by-2-0',
+        landingPage: 'https://example.org/alt',
+      };
+      inventory = [alt];
+      migrateInventory();
+      return {
+        n: inventory[0].distributions.length,
+        dist: inventory[0].distributions[0],
+        legacyWeg: !('format' in inventory[0]) && !('license' in inventory[0]),
+        vollstaendig: completeness(inventory[0]),
+      };
+    });
+    expect(r.n).toBe(1);
+    expect(r.dist.format).toBe('CSV');
+    expect(r.dist.license).toBe('dl-de/by-2-0');
+    expect(r.dist.accessURL).toBe('https://example.org/alt');
+    expect(r.legacyWeg).toBe(true);
+    // Der migrierte Datensatz bleibt vollständig – kein Rückschritt für Bestandsdaten
+    expect(r.vollstaendig).toBe(100);
+  });
+
+  test('Projektdateien vor v39 bleiben importierbar', async ({ page }) => {
+    await openApp(page);
+    const ok = await page.evaluate(() => importProject(JSON.stringify({
+      app: 'DatenLotse', schema: 1,
+      data: { inventory: [{ id: 'x', title: 'T', format: 'JSON', license: 'cc-zero' }] },
+    })));
+    expect(ok).toBe(true);
+    const dist = await page.evaluate(() => inventory[0].distributions[0]);
+    expect(dist.format).toBe('JSON');
+    expect(dist.license).toBe('cc-zero');
+  });
+
+  test('CSV zeigt die erste Verteilung und lässt weitere beim Rückimport in Ruhe', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      inventory[0].distributions = [
+        { title: '', format: 'CSV', accessURL: '', license: 'dl-de/by-2-0' },
+        { title: '', format: 'JSON', accessURL: '', license: 'cc-zero' },
+      ];
+      const csv = buildInventoryCSV();
+      const kopf = csv.split('\n')[0].split(',');
+      const zeile = parseCSV(csv).find(x => x.id === inventory[0].id);
+      // Rückimport mit geändertem Format der ersten Verteilung
+      importInventoryCSV(csv.replace(',CSV,', ',CSV-neu,'));
+      return {
+        kopf, zeile,
+        n: inventory[0].distributions.length,
+        erste: inventory[0].distributions[0],
+        zweite: inventory[0].distributions[1],
+      };
+    });
+    expect(r.kopf).toContain('verteilungen');
+    expect(r.zeile.format).toBe('CSV');
+    expect(r.zeile.license).toBe('dl-de/by-2-0');
+    expect(r.zeile.verteilungen).toBe('2');
+    // Die zweite Verteilung steht nicht in der CSV und überlebt den Rückimport
+    expect(r.n).toBe(2);
+    expect(r.zweite.format).toBe('JSON');
+    expect(r.zweite.license).toBe('cc-zero');
   });
 });

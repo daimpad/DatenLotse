@@ -8,9 +8,10 @@ test.describe('DCAT-AP.de-Export', () => {
     const ds = await page.evaluate(() => {
       const d = inventory.find(x => x.title === 'Baumkataster');
       Object.assign(d, {
-        license: 'dl-de/by-2-0', keywords: 'baum, kataster, grünflächen',
+        keywords: 'baum, kataster, grünflächen',
         landingPage: 'https://opendata.musterstadt.de/baumkataster',
       });
+      d.distributions[0].license = 'dl-de/by-2-0';
       const cat = buildDcatJSON();
       return cat['dcat:dataset'].find(x => x['dct:title'] === 'Baumkataster');
     });
@@ -80,7 +81,8 @@ test.describe('DCAT-AP.de-Export', () => {
     await loadSample(page);
     const leer = await page.evaluate(() => {
       const d = inventory[0];
-      d.theme = ''; d.accrualPeriodicity = ''; d.accessRights = ''; d.license = ''; d.landingPage = '';
+      d.theme = ''; d.accrualPeriodicity = ''; d.accessRights = ''; d.landingPage = '';
+      d.distributions = [{ title: '', format: '', accessURL: '', license: '' }];
       const ds = buildDcatJSON()['dcat:dataset'][0];
       return {
         keys: Object.keys(ds),
@@ -298,8 +300,9 @@ test.describe('RDF/Turtle-Export', () => {
     await openApp(page);
     await loadSample(page);
     const ttl = await page.evaluate(() => {
+      inventory[0].distributions[0].license = 'dl-de/by-2-0';
       Object.assign(inventory[0], {
-        license: 'dl-de/by-2-0', keywords: 'baum, kataster', theme: 'ENVI',
+        keywords: 'baum, kataster', theme: 'ENVI',
         issued: '2024-01-15', modified: '2024-06-01',
         temporalStart: '2023-01-01', temporalEnd: '2023-12-31',
         spatial: 'Stadt Musterstadt', geocodingKey: '05315000', geocodingLevel: 'gemeinde',
@@ -321,8 +324,9 @@ test.describe('RDF/Turtle-Export', () => {
     await openApp(page);
     await loadSample(page);
     const r = await page.evaluate(() => {
+      inventory[0].distributions[0].license = 'cc-by-4.0';
       Object.assign(inventory[0], {
-        license: 'cc-by-4.0', keywords: 'a', theme: 'ENVI', issued: '2024-01-15',
+        keywords: 'a', theme: 'ENVI', issued: '2024-01-15',
         modified: '2024-06-01', temporalStart: '2023-01-01', temporalEnd: '2023-12-31',
         spatial: 'Musterstadt', geocodingKey: '05315000', geocodingLevel: 'kreis',
         contributorID: 'X', landingPage: 'https://example.org/a',

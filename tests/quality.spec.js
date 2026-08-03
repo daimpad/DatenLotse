@@ -5,11 +5,19 @@ const { openApp, loadSample } = require('./helpers');
 const VOLLSTAENDIG = {
   title: 'Baumkataster', description: 'Standorte städtischer Bäume im Stadtgebiet.',
   publisher: 'Stadt Musterstadt', contactPoint: 'Frau Wagner (opendata@musterstadt.de)',
-  accessRights: 'PUBLIC', license: 'dl-de/by-2-0', theme: 'ENVI',
-  keywords: 'baum, kataster', accrualPeriodicity: 'QUARTERLY', format: 'GeoJSON',
+  accessRights: 'PUBLIC', theme: 'ENVI',
+  keywords: 'baum, kataster', accrualPeriodicity: 'QUARTERLY',
   landingPage: 'https://opendata.musterstadt.de/baumkataster',
   contributorID: 'MUSTERSTADT',
+  // Format und Lizenz hängen seit v39 an der Verteilung
+  distributions: [{ title: '', format: 'GeoJSON', accessURL: '', license: 'dl-de/by-2-0' }],
 };
+
+/** Erzeugt eine Variante mit abweichender erster Verteilung. */
+const mitDist = (patch) => ({
+  ...VOLLSTAENDIG,
+  distributions: [{ ...VOLLSTAENDIG.distributions[0], ...patch }],
+});
 
 test.describe('DCAT-AP.de-Qualitätsprüfung', () => {
   test('vollständiger Datensatz ist publikationsbereit', async ({ page }) => {
@@ -31,7 +39,8 @@ test.describe('DCAT-AP.de-Qualitätsprüfung', () => {
         status: qualityStatus(issues),
       };
     });
-    expect(r.errors).toBe(6);   // DCAT_REQUIRED
+    // 6 Pflichtfelder + „keine Verteilung angelegt"
+    expect(r.errors).toBe(7);
     expect(r.warns).toBe(6);    // DCAT_RECOMMENDED
     expect(r.status).toBe('rot');
   });
@@ -40,9 +49,10 @@ test.describe('DCAT-AP.de-Qualitätsprüfung', () => {
     await openApp(page);
     const msgs = await page.evaluate(base => {
       const check = patch => validateDataset({ ...base, ...patch }).map(i => `${i.sev}:${i.msg}`);
+      const mitDist = patch => ({ ...base, distributions: [{ ...base.distributions[0], ...patch }] });
       return {
-        nichtOffen: check({ license: 'cc-by-nc-4.0' }),
-        unbekannt: check({ license: 'phantasie-lizenz' }),
+        nichtOffen: validateDataset(mitDist({ license: 'cc-by-nc-4.0' })).map(i => `${i.sev}:${i.msg}`),
+        unbekannt: validateDataset(mitDist({ license: 'phantasie-lizenz' })).map(i => `${i.sev}:${i.msg}`),
         access: check({ accessRights: 'IRGENDWAS' }),
         theme: check({ theme: 'XXXX' }),
         freq: check({ accrualPeriodicity: 'SOMETIMES' }),
@@ -102,7 +112,10 @@ test.describe('DCAT-AP.de-Qualitätsprüfung', () => {
     await expect(page.locator('#quality-summary')).toContainText('12 mit Fehlern');
     await expect(page.locator('.qual-card')).toHaveCount(12);
 
-    await page.evaluate(() => { inventory.forEach(d => { d.license = 'dl-de/by-2-0'; }); renderQuality(); });
+    await page.evaluate(() => {
+      inventory.forEach(d => d.distributions.forEach(x => { x.license = 'dl-de/by-2-0'; }));
+      renderQuality();
+    });
     await expect(page.locator('#quality-summary')).toContainText('0 mit Fehlern');
     expect(errors).toEqual([]);
   });
@@ -111,10 +124,13 @@ test.describe('DCAT-AP.de-Qualitätsprüfung', () => {
     await openApp(page);
     await loadSample(page);
     await page.evaluate(() => {
-      inventory.forEach(d => Object.assign(d, {
-        license: 'dl-de/by-2-0', keywords: 'x', landingPage: 'https://example.org',
-        contactPoint: 'a@b.de', theme: 'ENVI', description: 'Eine ausreichend lange Beschreibung.',
-      }));
+      inventory.forEach(d => {
+        Object.assign(d, {
+          keywords: 'x', landingPage: 'https://example.org',
+          contactPoint: 'a@b.de', theme: 'ENVI', description: 'Eine ausreichend lange Beschreibung.',
+        });
+        d.distributions.forEach(x => { x.license = 'dl-de/by-2-0'; });
+      });
       inventory[3].title = '';   // erzeugt einen Fehler
       navTo('inventory'); showInventoryTab('quality');
     });

@@ -152,6 +152,7 @@ function loadState() {
   try {
     const inv = localStorage.getItem(LS_INVENTORY);
     if (inv) { const parsed = JSON.parse(inv); if (Array.isArray(parsed)) inventory = parsed; }
+    migrateInventory();   // ältere Stände auf die Verteilungs-Ebene heben
   } catch (e) { /* defekte Inventar-Daten ignorieren */ }
   try {
     const gov = localStorage.getItem(LS_GOVERNANCE);
@@ -183,7 +184,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v38';
+const APP_VERSION = 'v39';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -227,6 +228,7 @@ function importProject(text) {
   const d = obj.data;
   grafRows          = Array.isArray(d.grafRows) ? d.grafRows : [];
   inventory         = Array.isArray(d.inventory) ? d.inventory : [];
+  migrateInventory();   // Projektdateien vor v39 kennen keine Verteilungen
   governanceAnswers = (d.governanceAnswers && typeof d.governanceAnswers === 'object') ? d.governanceAnswers : {};
   kompassState      = (d.kompassState && typeof d.kompassState === 'object') ? d.kompassState : {};
   // Additiv ergänzt (kein Schema-Bump): ältere Projektdateien haben ihn nicht
@@ -349,14 +351,16 @@ function deriveInventory(rows) {
       publisher:          r.QuelleOrganisation || '',
       contactPoint:       r.Ansprechpartner || '',
       sourceSystem:       r.Quelle || '',
-      format:             r.Format || '',
       // Nacherfassung:
       keywords:           '',
       theme:              guessTheme(r),
       accrualPeriodicity: mapHaeufigkeit(r['Häufigkeit']),
-      license:            '',
       accessRights:       mapSchutzToAccess(r.Schutzbedarf),
       landingPage:        '',
+      // Format und Lizenz gehören nach DCAT-AP.de an die VERTEILUNG, nicht an
+      // den Datensatz: derselbe Datensatz liegt oft als CSV und als JSON vor,
+      // je mit eigener Zugriffs-URL und ggf. eigener Lizenz.
+      distributions:      [{ title: '', format: r.Format || '', accessURL: '', license: '' }],
       // Erweiterte DCAT-AP.de-Felder (optional, Nacherfassung)
       issued:             '',
       modified:           '',
@@ -444,6 +448,58 @@ function mapHaeufigkeit(h) {
   return '';
 }
 
+/* ── Verteilungen (dcat:Distribution) ─────────────────────────────
+   Ein Datensatz hat mindestens eine Verteilung. Format, Zugriffs-URL und
+   Lizenz hängen an ihr – das ist die DCAT-AP.de-Modellierung und der
+   Normalfall in der Praxis (derselbe Datensatz als CSV und als JSON).
+
+   `ensureDistributions()` ist zugleich die Migration: ältere Stände tragen
+   `format`/`license` noch am Datensatz. Sie werden in eine erste Verteilung
+   überführt, damit gespeicherte Projekte und LocalStorage-Stände weiter
+   funktionieren.
+   ────────────────────────────────────────────────────────────── */
+const DIST_FIELDS = ['title', 'format', 'accessURL', 'license'];
+
+function newDistribution(init) {
+  return Object.assign({ title: '', format: '', accessURL: '', license: '' }, init || {});
+}
+
+function ensureDistributions(d) {
+  if (!Array.isArray(d.distributions) || !d.distributions.length) {
+    d.distributions = [newDistribution({
+      format: d.format || '',
+      accessURL: d.landingPage || '',
+      license: d.license || '',
+    })];
+  }
+  d.distributions = d.distributions.map(x => newDistribution(x));
+  // Legacy-Felder entfernen, damit es keine zweite Wahrheit gibt
+  delete d.format; delete d.license;
+  return d.distributions;
+}
+function migrateInventory() { inventory.forEach(ensureDistributions); }
+
+/* Lizenz gilt als erfüllt, wenn JEDE Verteilung eine hat – nach DCAT-AP.de
+   ist `dct:license` je Verteilung Pflicht, nicht einmal je Datensatz. */
+function hasLicense(d) {
+  const ds = d.distributions || [];
+  return ds.length > 0 && ds.every(x => x.license && x.license !== '');
+}
+function hasFormat(d) {
+  return (d.distributions || []).some(x => x.format && x.format !== '');
+}
+function distLicenses(d) {
+  return [...new Set((d.distributions || []).map(x => x.license).filter(Boolean))];
+}
+function distLicenseLabels(d) {
+  const ids = distLicenses(d);
+  if (!ids.length) return '—';
+  return ids.map(id => (LICENSE_META[id] && LICENSE_META[id].label) || id).join(', ');
+}
+function distFormats(d) {
+  return [...new Set((d.distributions || []).map(x => x.format).filter(Boolean))];
+}
+
 /* ── DCAT-AP.de Vollständigkeit je Dataset ────────────────────── */
 /* Einzige Quelle der Wahrheit für „Pflicht“ vs. „Empfehlung“ nach DCAT-AP.de.
    Vollständigkeits-% (completeness) und Qualitätsprüfung (validateDataset)
@@ -455,20 +511,28 @@ const DCAT_REQUIRED = [
   ['publisher',    'Publisher (dct:publisher)'],
   ['contactPoint', 'Ansprechpartner (dcat:contactPoint)'],
   ['accessRights', 'Zugriffsrechte (dct:accessRights)'],
-  ['license',      'Lizenz (dct:license)'],
+  ['license',      'Lizenz (dct:license)', 'dist'],
 ];
 const DCAT_RECOMMENDED = [
   ['theme',              'Kategorie (dcat:theme)'],
   ['keywords',           'Schlagwörter (dcat:keyword)'],
   ['accrualPeriodicity', 'Aktualisierungszyklus (dct:accrualPeriodicity)'],
-  ['format',             'Format (dct:format)'],
+  ['format',             'Format (dct:format)', 'dist'],
   ['landingPage',        'Info-/Zugriffs-URL (dcat:landingPage)'],
   ['contributorID',      'Kontributor-Kennung (dcatde:contributorID)'],
 ];
 const REQUIRED_FIELDS = DCAT_REQUIRED.map(([k]) => k);
+
+/* Ein Feld kann am Datensatz ODER an den Verteilungen hängen ('dist').
+   Die Listen oben bleiben damit die einzige Quelle für „Pflicht vs.
+   Empfehlung"; nur die Auswertung weiß, wo der Wert steht. */
+function fieldFilled(d, key, scope) {
+  if (scope === 'dist') return key === 'license' ? hasLicense(d) : hasFormat(d);
+  return !!(d[key] && String(d[key]).trim() !== '');
+}
 function completeness(d) {
-  const filled = REQUIRED_FIELDS.filter(f => d[f] && d[f] !== '').length;
-  return Math.round((filled / REQUIRED_FIELDS.length) * 100);
+  const filled = DCAT_REQUIRED.filter(([k, , scope]) => fieldFilled(d, k, scope)).length;
+  return Math.round((filled / DCAT_REQUIRED.length) * 100);
 }
 
 /* ── Onboarding-Rundgang ──────────────────────────────────────────
@@ -798,8 +862,11 @@ function applyBulk(field, value) {
   if (!field || !invSelection.size) return;
   let n = 0;
   invSelection.forEach(idx => {
-    if (!inventory[idx]) return;
-    inventory[idx][field] = value;
+    const d = inventory[idx];
+    if (!d) return;
+    // Lizenz hängt an den Verteilungen, nicht am Datensatz
+    if (field === 'license') ensureDistributions(d).forEach(x => { x.license = value; });
+    else d[field] = value;
     n++;
   });
   saveState();
@@ -844,7 +911,7 @@ function renderInventoryBody() {
       </div>
       <div class="inv-meta-row">
         <span class="inv-src"><i class="fas fa-database"></i> ${esc(d.sourceSystem || '—')}</span>
-        ${d.format ? `<span class="inv-fmt">${esc(d.format)}</span>` : ''}
+        ${distFormats(d).map(f => `<span class="inv-fmt">${esc(f)}</span>`).join('')}
       </div>
       <label class="inv-desc-label">Beschreibung
         <textarea data-field="description" rows="2" placeholder="Kurze Beschreibung des Datensatzes (Pflichtfeld)">${esc(d.description)}</textarea>
@@ -868,12 +935,36 @@ function renderInventoryBody() {
         <label>Zugriffsrechte
           <select data-field="accessRights">${optionsHTML(ACCESS_OPTIONS, d.accessRights)}</select>
         </label>
-        <label class="inv-field-wide">Lizenz
-          <select data-field="license">${licenseSelectHTML(d.license)}</select>
-        </label>
         <label class="inv-field-wide">Info-/Zugriffs-URL
           <input data-field="landingPage" value="${esc(d.landingPage || '')}" placeholder="https://…">
         </label>
+      </div>
+      <div class="inv-dists">
+        <div class="inv-dists-head">
+          <span class="inv-dists-title"><i class="fas fa-file-export"></i> Verteilungen (dcat:Distribution)</span>
+          <button class="pseudo-mini-btn" data-dist-add="${idx}"><i class="fas fa-plus"></i> Verteilung hinzufügen</button>
+        </div>
+        <p class="inv-dists-hint">Format und Lizenz gehören je Verteilung – derselbe Datensatz kann als CSV und als JSON vorliegen. Ohne eigene Zugriffs-URL wird die Info-URL des Datensatzes verwendet.</p>
+        ${(d.distributions || []).map((x, di) => `
+          <div class="inv-dist" data-dist="${di}">
+            <div class="inv-fields">
+              <label>Format
+                <input data-dist-field="format" value="${esc(x.format)}" placeholder="CSV, JSON, GeoJSON …" aria-label="Format der Verteilung ${di + 1}">
+              </label>
+              <label>Bezeichnung (optional)
+                <input data-dist-field="title" value="${esc(x.title)}" placeholder="z. B. Jahresdatei" aria-label="Bezeichnung der Verteilung ${di + 1}">
+              </label>
+              <label class="inv-field-wide">Zugriffs-URL
+                <input data-dist-field="accessURL" value="${esc(x.accessURL)}" placeholder="https://… (leer = Info-URL des Datensatzes)" aria-label="Zugriffs-URL der Verteilung ${di + 1}">
+              </label>
+              <label class="inv-field-wide">Lizenz
+                <select data-dist-field="license" aria-label="Lizenz der Verteilung ${di + 1}">${licenseSelectHTML(x.license)}</select>
+              </label>
+            </div>
+            ${(d.distributions || []).length > 1
+              ? `<button class="inv-dist-del" data-dist-del="${di}" aria-label="Verteilung ${di + 1} entfernen"><i class="fas fa-trash-can"></i> Entfernen</button>`
+              : ''}
+          </div>`).join('')}
       </div>
       <details class="inv-more">
         <summary>Erweiterte DCAT-AP.de-Felder</summary>
@@ -911,6 +1002,36 @@ function renderInventoryBody() {
       </details>
     </div>`;
   }).join('');
+
+  body.querySelectorAll('.inv-card').forEach(card => {
+    const idx = +card.dataset.idx;
+    card.querySelectorAll('.inv-dist').forEach(row => {
+      const di = +row.dataset.dist;
+      row.querySelectorAll('[data-dist-field]').forEach(el => el.addEventListener('input', () => {
+        inventory[idx].distributions[di][el.dataset.distField] = el.value;
+        const pct = completeness(inventory[idx]);
+        const badge = card.querySelector('.inv-complete');
+        badge.textContent = pct + '%';
+        badge.style.color = pct >= 80 ? 'var(--ampel-gruen)' : pct >= 50 ? 'var(--ampel-gelb)' : 'var(--ampel-rot)';
+        document.getElementById('inventory-meta').textContent = invMetaText();
+        const pre = card.querySelector('.inv-preview-json');
+        if (pre) pre.textContent = JSON.stringify(dcatDataset(inventory[idx]), null, 2);
+        saveState();
+      }));
+    });
+  });
+  body.querySelectorAll('[data-dist-add]').forEach(btn => btn.addEventListener('click', () => {
+    inventory[+btn.dataset.distAdd].distributions.push(newDistribution());
+    saveState();
+    renderInventoryBody();
+  }));
+  body.querySelectorAll('[data-dist-del]').forEach(btn => btn.addEventListener('click', () => {
+    const idx = +btn.closest('.inv-card').dataset.idx;
+    inventory[idx].distributions.splice(+btn.dataset.distDel, 1);
+    if (!inventory[idx].distributions.length) inventory[idx].distributions = [newDistribution()];
+    saveState();
+    renderInventoryBody();
+  }));
 
   body.querySelectorAll('.inv-select').forEach(box => box.addEventListener('change', () => {
     const idx = +box.dataset.sel;
@@ -1101,17 +1222,27 @@ const URL_RE = /^https?:\/\/.+/i;
 function validateDataset(d) {
   const issues = [];
   const empty = v => v == null || String(v).trim() === '';
-  DCAT_REQUIRED.forEach(([k, label]) => {
-    if (empty(d[k])) issues.push({ sev: 'error', msg: `Pflichtfeld fehlt: ${label}` });
+  DCAT_REQUIRED.forEach(([k, label, scope]) => {
+    if (!fieldFilled(d, k, scope)) issues.push({ sev: 'error', msg: `Pflichtfeld fehlt: ${label}` });
   });
-  DCAT_RECOMMENDED.forEach(([k, label]) => {
-    if (empty(d[k])) issues.push({ sev: 'warn', msg: `Empfohlenes Feld fehlt: ${label}` });
+  DCAT_RECOMMENDED.forEach(([k, label, scope]) => {
+    if (!fieldFilled(d, k, scope)) issues.push({ sev: 'warn', msg: `Empfohlenes Feld fehlt: ${label}` });
   });
-  // Wertetreue / kontrollierte Vokabulare / Formate
-  if (!empty(d.license) && !LICENSE_META[d.license])
-    issues.push({ sev: 'warn', msg: 'Lizenz ist im DCAT-AP.de-Register unbekannt – bitte aus der Liste wählen.' });
-  else if (!empty(d.license) && !licenseIsOpen(d.license))
-    issues.push({ sev: 'warn', msg: 'Lizenz ist nicht offen (NC/ND bzw. geschlossen) – für Open Data ungeeignet (siehe Lizenz-Wegweiser).' });
+
+  // Verteilungen: je Verteilung eigene Lizenz und eigene Zugriffs-URL
+  const dists = d.distributions || [];
+  if (!dists.length) {
+    issues.push({ sev: 'error', msg: 'Keine Verteilung angelegt – ein Datensatz braucht mindestens eine (dcat:Distribution).' });
+  }
+  dists.forEach((x, i) => {
+    const wo = dists.length > 1 ? `Verteilung ${i + 1}: ` : '';
+    if (!empty(x.license) && !LICENSE_META[x.license])
+      issues.push({ sev: 'warn', msg: `${wo}Lizenz ist im DCAT-AP.de-Register unbekannt – bitte aus der Liste wählen.` });
+    else if (!empty(x.license) && !licenseIsOpen(x.license))
+      issues.push({ sev: 'warn', msg: `${wo}Lizenz ist nicht offen (NC/ND bzw. geschlossen) – für Open Data ungeeignet (siehe Lizenz-Wegweiser).` });
+    if (!empty(x.accessURL) && !URL_RE.test(x.accessURL))
+      issues.push({ sev: 'warn', msg: `${wo}Zugriffs-URL ist keine gültige http(s)-Adresse.` });
+  });
   if (!empty(d.accessRights) && !['PUBLIC', 'RESTRICTED', 'NON_PUBLIC'].includes(d.accessRights))
     issues.push({ sev: 'error', msg: 'Zugriffsrechte nicht aus dem kontrollierten Vokabular (PUBLIC / RESTRICTED / NON_PUBLIC).' });
   if (!empty(d.theme) && !DCAT_THEMES.some(o => o[0] === d.theme))
@@ -1259,11 +1390,16 @@ function dcatDataset(d) {
   if (d.contributorID) ds['dcatde:contributorID'] =
     /^https?:\/\//i.test(d.contributorID) ? d.contributorID : CONTRIBUTOR_NAL + d.contributorID;
 
-  const dist = { '@type': 'dcat:Distribution' };
-  if (d.landingPage) dist['dcat:accessURL'] = d.landingPage;
-  if (d.format) dist['dct:format'] = d.format;
-  if (d.license) dist['dct:license'] = (LICENSE_META[d.license] && LICENSE_META[d.license].uri) || d.license;
-  ds['dcat:distribution'] = [dist];
+  ds['dcat:distribution'] = (d.distributions || []).map(x => {
+    const dist = { '@type': 'dcat:Distribution' };
+    if (x.title) dist['dct:title'] = x.title;
+    // Ohne eigene Zugriffs-URL fällt die Verteilung auf die Info-URL zurück
+    const url = x.accessURL || d.landingPage;
+    if (url) dist['dcat:accessURL'] = url;
+    if (x.format) dist['dct:format'] = x.format;
+    if (x.license) dist['dct:license'] = (LICENSE_META[x.license] && LICENSE_META[x.license].uri) || x.license;
+    return dist;
+  });
   return ds;
 }
 
@@ -1347,11 +1483,15 @@ function turtleDataset(d) {
   if (d.contributorID) p.push(['dcatde:contributorID',
     ttlIri(/^https?:\/\//i.test(d.contributorID) ? d.contributorID : CONTRIBUTOR_NAL + d.contributorID)]);
 
-  const dist = ['a dcat:Distribution'];
-  if (d.landingPage) dist.push(`dcat:accessURL ${ttlIri(d.landingPage)}`);
-  if (d.format) dist.push(`dct:format ${ttlStr(d.format)}`);
-  if (d.license) dist.push(`dct:license ${ttlIri((LICENSE_META[d.license] && LICENSE_META[d.license].uri) || d.license)}`);
-  p.push(['dcat:distribution', `[ ${dist.join(' ; ')} ]`]);
+  (d.distributions || []).forEach(x => {
+    const dist = ['a dcat:Distribution'];
+    if (x.title) dist.push(`dct:title ${ttlStr(x.title)}`);
+    const url = x.accessURL || d.landingPage;
+    if (url) dist.push(`dcat:accessURL ${ttlIri(url)}`);
+    if (x.format) dist.push(`dct:format ${ttlStr(x.format)}`);
+    if (x.license) dist.push(`dct:license ${ttlIri((LICENSE_META[x.license] && LICENSE_META[x.license].uri) || x.license)}`);
+    p.push(['dcat:distribution', `[ ${dist.join(' ; ')} ]`]);
+  });
 
   return `${subject}\n    ` + p.map(([k, v]) => `${k} ${v}`).join(' ;\n    ') + ' .';
 }
@@ -1394,11 +1534,19 @@ function buildInventoryCSV() {
                 'issued', 'modified', 'temporalStart', 'temporalEnd',
                 'spatial', 'geocodingKey', 'geocodingLevel', 'contributorID'];
   // Ohne den Schutzbedarf ginge beim Rückimport die Clearing-Vorbelegung verloren
-  const extra = ['schutzbedarf'];
+  const extra = ['schutzbedarf', 'verteilungen'];
   const head = [...cols, ...extra, 'clearingAmpel', 'clearingEmpfehlung'].join(',');
   const rows = inventory.map(d => {
-    const cells = cols.map(c => csvCell(d[c]));
+    const erste = (d.distributions || [])[0] || {};
+    // Die flache CSV zeigt die ERSTE Verteilung; weitere stehen in JSON/Turtle
+    // und der Projektdatei. Der Rückimport führt entsprechend nur die erste
+    // zusammen und lässt zusätzliche unangetastet.
+    const cells = cols.map(c =>
+      c === 'format' ? csvCell(erste.format) :
+      c === 'license' ? csvCell(erste.license) :
+      csvCell(d[c]));
     cells.push(csvCell(d._grafSchutzbedarf));
+    cells.push(csvCell((d.distributions || []).length));
     cells.push(csvCell(d.clearing?.ampel || ''), csvCell(d.clearing?.empfehlung || ''));
     return cells.join(',');
   });
@@ -1431,7 +1579,7 @@ function buildInventoryReportHTML() {
       <td>${esc(d.publisher || '—')}</td>
       <td>${esc(d.sourceSystem || '—')}</td>
       <td style="text-align:right">${pct}%</td>
-      <td>${esc(d.license || '—')}</td>
+      <td>${esc(distLicenseLabels(d))}</td>
       <td>${esc(accessLabel[d.accessRights] || d.accessRights || '—')}</td>
       <td style="color:${ampColor[amp] || '#7a7591'};font-weight:700">${ampLabel[amp] || '—'}</td>
     </tr>`;
@@ -1486,6 +1634,7 @@ function importGrafCSV(text) {
   }
   grafRows = rows;
   inventory = deriveInventory(grafRows);
+  migrateInventory();
   renderInventory();
   saveState();
 }
@@ -1522,10 +1671,17 @@ function importInventoryCSV(text) {
       const d = inventory[nachId.get(id)];
       INV_CSV_FIELDS.forEach(f => { if (f in r) d[f] = r[f]; });
       if (r.schutzbedarf != null && r.schutzbedarf !== '') d._grafSchutzbedarf = r.schutzbedarf;
+      // Format und Lizenz beziehen sich auf die ERSTE Verteilung; weitere
+      // stehen nicht in der CSV und bleiben deshalb unverändert
+      const erste = ensureDistributions(d)[0];
+      if ('format' in r) erste.format = r.format;
+      if ('license' in r) erste.license = r.license;
       aktualisiert++;
     } else {
       const d = { id, _grafSchutzbedarf: r.schutzbedarf || '', _recipients: [] };
       INV_CSV_FIELDS.forEach(f => { d[f] = r[f] || ''; });
+      d.distributions = [newDistribution({ format: r.format || '', license: r.license || '' })];
+      delete d.format; delete d.license;
       inventory.push(d);
       nachId.set(id, inventory.length - 1);
       neu++;
@@ -1807,7 +1963,7 @@ function renderLicenseWizard() {
     `<strong class="lic-result-name">${esc(info.label)}</strong>` +
     `<p class="lic-result-why">${esc(info.why)}</p>` +
     `<a class="lic-result-link" href="${esc(info.url)}" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Lizenztext ansehen</a>`;
-  const emptyCount = inventory.filter(d => !d.license).length;
+  const emptyCount = inventory.filter(d => !hasLicense(d)).length;
   const actions = document.getElementById('lic-actions');
   if (actions) {
     actions.innerHTML = inventory.length
@@ -1816,7 +1972,12 @@ function renderLicenseWizard() {
     actions.querySelector('#lic-apply')?.addEventListener('click', () => {
       const k = recommendLicense();
       let n = 0;
-      inventory.forEach(d => { if (!d.license) { d.license = k; n++; } });
+      // Nur Verteilungen ohne Lizenz füllen – bereits gesetzte bleiben unangetastet
+      inventory.forEach(d => {
+        if (hasLicense(d)) return;
+        ensureDistributions(d).forEach(x => { if (!x.license) x.license = k; });
+        n++;
+      });
       saveState();
       // auch den aktiven Tab aktualisieren – sonst meldet die Qualitätsprüfung
       // weiterhin „Pflichtfeld fehlt: Lizenz“ für alle Datensätze
@@ -2410,7 +2571,7 @@ function freigabeBodyHTML() {
     return `<div class="form-card">
       <h3>${esc(d.title || '(ohne Titel)')}</h3>
       <p class="muted" style="margin:0 0 6px">${esc(d.sourceSystem || '—')} · ${esc(d.publisher || '—')} · ${esc(d.contactPoint || 'kein Kontakt')}</p>
-      <p style="margin:0"><strong>Lizenz:</strong> ${esc(d.license || '—')} &nbsp;·&nbsp; <strong>Zugriffsrechte:</strong> ${esc(accessLabel[d.accessRights] || d.accessRights || '—')} &nbsp;·&nbsp; <strong>Vollständigkeit:</strong> ${completeness(d)} %</p>
+      <p style="margin:0"><strong>Lizenz:</strong> ${esc(distLicenseLabels(d))} &nbsp;·&nbsp; <strong>Zugriffsrechte:</strong> ${esc(accessLabel[d.accessRights] || d.accessRights || '—')} &nbsp;·&nbsp; <strong>Vollständigkeit:</strong> ${completeness(d)} %</p>
       <p style="margin:6px 0 0"><strong>Risiko-Clearing:</strong> <span class="amp" style="color:${ampColor[amp] || '#7a7591'}">${ampLabel[amp] || '—'}</span>${d.clearing?.empfehlung ? ` – ${esc(d.clearing.empfehlung)}` : ''}</p>
       <p style="margin:8px 0 0">Freigabe zur Veröffentlichung: ☐ Ja&nbsp;&nbsp;☐ Nein&nbsp;&nbsp;☐ Nur aggregiert/anonymisiert</p>
       <p class="sign" style="margin-top:8px">Datenschutz geprüft (Datum/Name):<span></span></p>
