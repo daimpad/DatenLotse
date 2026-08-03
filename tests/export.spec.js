@@ -23,6 +23,58 @@ test.describe('DCAT-AP.de-Export', () => {
     expect(errors).toEqual([]);
   });
 
+  test('erweiterte DCAT-AP.de-Felder werden korrekt serialisiert', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const ds = await page.evaluate(() => {
+      Object.assign(inventory[0], {
+        issued: '2024-01-15', modified: '2024-06-01',
+        temporalStart: '2023-01-01', temporalEnd: '2023-12-31',
+        spatial: 'Stadt Musterstadt', geocodingKey: '05315000', geocodingLevel: 'gemeinde',
+        contributorID: 'MUSTERSTADT',
+      });
+      return dcatDataset(inventory[0]);
+    });
+    expect(ds['dct:issued']).toBe('2024-01-15');
+    expect(ds['dct:modified']).toBe('2024-06-01');
+    expect(ds['dct:temporal']).toEqual({
+      '@type': 'dct:PeriodOfTime', 'dcat:startDate': '2023-01-01', 'dcat:endDate': '2023-12-31',
+    });
+    expect(ds['dct:spatial']['skos:prefLabel']).toBe('Stadt Musterstadt');
+    expect(ds['dcatde:politicalGeocodingURI'])
+      .toBe('http://dcat-ap.de/def/politicalGeocoding/regionalKey/05315000');
+    expect(ds['dcatde:politicalGeocodingLevelURI'])
+      .toBe('http://dcat-ap.de/def/politicalGeocoding/Level/gemeinde');
+    expect(ds['dcatde:contributorID'])
+      .toBe('http://dcat-ap.de/def/contributors/MUSTERSTADT');
+  });
+
+  test('bereits vollständige contributorID-URI bleibt unverändert', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const uri = await page.evaluate(() => {
+      inventory[0].contributorID = 'http://dcat-ap.de/def/contributors/EIGENE';
+      return dcatDataset(inventory[0])['dcatde:contributorID'];
+    });
+    expect(uri).toBe('http://dcat-ap.de/def/contributors/EIGENE');
+  });
+
+  test('Vorschau in der Karte zeigt exakt den Export', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    const karte = page.locator('.inv-card').first();
+    await karte.locator('.inv-preview > summary').click();
+    const gezeigt = await karte.locator('.inv-preview-json').textContent();
+    const erwartet = await page.evaluate(() => JSON.stringify(dcatDataset(inventory[0]), null, 2));
+    expect(gezeigt).toBe(erwartet);
+
+    // Live mitziehen: sonst zeigt die Vorschau nicht mehr, was exportiert würde
+    await karte.locator('[data-field="keywords"]').fill('vorschau-test');
+    const danach = await karte.locator('.inv-preview-json').textContent();
+    expect(JSON.parse(danach)['dcat:keyword']).toEqual(['vorschau-test']);
+  });
+
   test('leere Felder erzeugen keine leeren URIs', async ({ page }) => {
     await openApp(page);
     await loadSample(page);
@@ -38,6 +90,12 @@ test.describe('DCAT-AP.de-Export', () => {
     expect(leer.keys).not.toContain('dcat:theme');
     expect(leer.keys).not.toContain('dct:accessRights');
     expect(leer.dist).not.toContain('dct:license');
+    // Auch die erweiterten Felder dürfen nicht als leere URI auftauchen
+    for (const k of ['dct:issued', 'dct:modified', 'dct:temporal', 'dct:spatial',
+                     'dcatde:politicalGeocodingURI', 'dcatde:politicalGeocodingLevelURI',
+                     'dcatde:contributorID']) {
+      expect(leer.keys).not.toContain(k);
+    }
   });
 
   test('Katalog-Publisher folgt dem häufigsten Publisher', async ({ page }) => {
@@ -59,6 +117,10 @@ test.describe('DCAT-AP.de-Export', () => {
     const csv = await grabDownload(page, () => page.locator('#btn-export-csv').click());
     expect(csv.name).toBe('datenlotse-inventar.csv');
     expect(csv.text.split('\n').length).toBe(13);
+    for (const spalte of ['issued', 'modified', 'temporalStart', 'temporalEnd',
+                          'spatial', 'geocodingKey', 'geocodingLevel', 'contributorID']) {
+      expect(csv.text.split('\n')[0]).toContain(spalte);
+    }
   });
 });
 
