@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { openApp } = require('./helpers');
+const { openApp, grabDownload } = require('./helpers');
 
 /** Bequemer Zugriff auf pseudonymize() im Seitenkontext. */
 const clean = (page, text) => page.evaluate(t => pseudonymize(t), text);
@@ -166,5 +166,134 @@ test.describe('Pseudonymisierung – UI', () => {
     await expect(page.locator('#pseudo-output')).toContainText('<img src=x');
     expect(await page.evaluate(() => window.__xss)).toBeUndefined();
     expect(await page.locator('#pseudo-output img').count()).toBe(0);
+  });
+});
+
+test.describe('Pseudonymisierung – CSV spaltenweise', () => {
+  const CSV = 'Name,Anmerkungen,Abteilung\n' +
+    'Max Mustermann,"Kontakt: max@example.de, Tel. 030 1234567",Bürgeramt\n' +
+    'Erika Beispiel,"Wohnhaft in 12345 Musterstadt",Sozialamt\n' +
+    'Max Mustermann,"Zweiter Vorgang",Bürgeramt\n';
+
+  async function ladeCsv(page, text = CSV) {
+    await openApp(page);
+    await page.evaluate(() => navTo('pseudo'));
+    await page.locator('#pseudo-tab-csv').click();
+    await page.locator('#pseudo-csv-input').fill(text);
+    // Spaltenzahl aus der Kopfzeile ableiten, nicht fest verdrahten
+    await expect(page.locator('.pseudo-csv-col')).toHaveCount(text.split('\n')[0].split(',').length);
+  }
+
+  test('Tabs schalten zwischen Freitext und CSV um', async ({ page }) => {
+    const errors = await openApp(page);
+    await page.evaluate(() => navTo('pseudo'));
+    await expect(page.locator('#pseudo-text-panel')).toBeVisible();
+    await expect(page.locator('#pseudo-csv-panel')).toBeHidden();
+
+    await page.locator('#pseudo-tab-csv').click();
+    await expect(page.locator('#pseudo-csv-panel')).toBeVisible();
+    await expect(page.locator('#pseudo-text-panel')).toBeHidden();
+    await expect(page.locator('#pseudo-tab-csv')).toHaveAttribute('aria-selected', 'true');
+
+    // Pfeiltasten-Navigation wie bei den Inventar-Tabs
+    await page.locator('#pseudo-tab-csv').focus();
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.locator('#pseudo-tab-text')).toBeFocused();
+    await expect(page.locator('#pseudo-text-panel')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test('Spalten werden mit Beispielwert erkannt, Bereinigen erst nach Auswahl', async ({ page }) => {
+    await ladeCsv(page);
+    await expect(page.locator('#pseudo-csv-cols')).toContainText('3 Spalten · 3 Datenzeilen');
+    await expect(page.locator('#pseudo-csv-cols')).toContainText('Max Mustermann');
+    await expect(page.locator('#pseudo-csv-run')).toBeDisabled();
+
+    await page.locator('[data-col-mode="0"]').selectOption('ganz');
+    await expect(page.locator('#pseudo-csv-run')).toBeEnabled();
+  });
+
+  test('Typ-Auswahl ist nur bei „ganze Spalte ersetzen“ aktiv', async ({ page }) => {
+    await ladeCsv(page);
+    await expect(page.locator('[data-col-type="0"]')).toBeDisabled();
+    await page.locator('[data-col-mode="0"]').selectOption('ganz');
+    await expect(page.locator('[data-col-type="0"]')).toBeEnabled();
+    await page.locator('[data-col-mode="0"]').selectOption('muster');
+    await expect(page.locator('[data-col-type="0"]')).toBeDisabled();
+  });
+
+  test('ganze Spalte ersetzen: gleicher Wert bekommt zeilenübergreifend denselben Platzhalter', async ({ page }) => {
+    await ladeCsv(page);
+    await page.locator('[data-col-mode="0"]').selectOption('ganz');
+    await page.locator('[data-col-type="0"]').selectOption('name');
+    const res = await page.evaluate(() => buildPseudoCSVResult());
+    const zeilen = res.csv.split('\n');
+
+    expect(zeilen[0]).toBe('Name,Anmerkungen,Abteilung');
+    // Max Mustermann steht in Zeile 1 und 3 – derselbe Platzhalter
+    expect(zeilen[1].startsWith('[PERSON_1]')).toBe(true);
+    expect(zeilen[3].startsWith('[PERSON_1]')).toBe(true);
+    expect(zeilen[2].startsWith('[PERSON_2]')).toBe(true);
+    // Zwei verschiedene Werte → zwei Mapping-Einträge, nicht drei
+    expect(res.mapping.filter(m => m.type === 'name').length).toBe(2);
+    // Nicht gewählte Spalten bleiben unverändert
+    expect(zeilen[1]).toContain('Bürgeramt');
+  });
+
+  test('Muster-Modus bereinigt Freitextspalten und lässt andere in Ruhe', async ({ page }) => {
+    await ladeCsv(page);
+    await page.locator('[data-col-mode="1"]').selectOption('muster');
+    const res = await page.evaluate(() => buildPseudoCSVResult());
+    expect(res.csv).toContain('[EMAIL_1]');
+    expect(res.csv).toContain('[TELEFON_1]');
+    expect(res.csv).toContain('[ORT_1]');
+    expect(res.csv).not.toContain('max@example.de');
+    // Namensspalte war nicht gewählt – sie bleibt bewusst stehen
+    expect(res.csv).toContain('Max Mustermann');
+  });
+
+  test('CSV-Struktur bleibt erhalten und ist reimportierbar', async ({ page }) => {
+    await ladeCsv(page);
+    await page.locator('[data-col-mode="0"]').selectOption('ganz');
+    await page.locator('[data-col-mode="1"]').selectOption('muster');
+    const back = await page.evaluate(() => {
+      const res = buildPseudoCSVResult();
+      return { zeilen: parseCSV(res.csv).length, spalten: Object.keys(parseCSV(res.csv)[0]) };
+    });
+    expect(back.zeilen).toBe(3);
+    expect(back.spalten).toEqual(['Name', 'Anmerkungen', 'Abteilung']);
+  });
+
+  test('Zeilenumbruch im gequoteten Feld übersteht die Bereinigung', async ({ page }) => {
+    await ladeCsv(page, 'Name,Notiz\nMax Mustermann,"Zeile 1\nZeile 2"\n');
+    await page.locator('[data-col-mode="0"]').selectOption('ganz');
+    const back = await page.evaluate(() => parseCSV(buildPseudoCSVResult().csv));
+    expect(back.length).toBe(1);
+    expect(back[0].Notiz).toBe('Zeile 1\nZeile 2');
+    expect(back[0].Name).toBe('[PERSON_1]');
+  });
+
+  test('leere Zellen werden nicht durch Platzhalter ersetzt', async ({ page }) => {
+    await ladeCsv(page, 'Name,Notiz\nMax Mustermann,x\n,y\n');
+    await page.locator('[data-col-mode="0"]').selectOption('ganz');
+    const res = await page.evaluate(() => buildPseudoCSVResult());
+    expect(res.csv.split('\n')[2]).toBe(',y');
+    expect(res.mapping.length).toBe(1);
+  });
+
+  test('Ergebnis bietet bereinigte CSV und Mapping zum Download', async ({ page }) => {
+    await ladeCsv(page);
+    await page.locator('[data-col-mode="0"]').selectOption('ganz');
+    await page.locator('#pseudo-csv-run').click();
+    await expect(page.locator('#pseudo-csv-out')).toContainText('Ersetzungen');
+    await expect(page.locator('.pseudo-csv-preview')).toContainText('[PERSON_1]');
+
+    const csv = await grabDownload(page, () => page.locator('#pseudo-csv-dl').click());
+    expect(csv.name).toBe('bereinigt.csv');
+    expect(csv.text).toContain('[PERSON_1]');
+
+    const map = await grabDownload(page, () => page.locator('#pseudo-csv-map').click());
+    expect(map.text.split('\n')[0]).toBe('Platzhalter,Typ,Original');
+    expect(map.text).toContain('Max Mustermann');
   });
 });

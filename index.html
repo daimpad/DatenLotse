@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=32">
-  <link rel="stylesheet" href="css/styles.css?v=32">
+  <link rel="stylesheet" href="css/tokens.css?v=33">
+  <link rel="stylesheet" href="css/styles.css?v=33">
 </head>
 <body>
 
@@ -415,6 +415,26 @@
       </div>
     </div>
 
+    <div class="inv-tabs pseudo-tabs" role="tablist" aria-label="Art der Bereinigung">
+      <button class="inv-tab is-active" id="pseudo-tab-text" role="tab" aria-selected="true" aria-controls="pseudo-text-panel"><i class="fas fa-align-left"></i> Freitext</button>
+      <button class="inv-tab" id="pseudo-tab-csv" role="tab" aria-selected="false" aria-controls="pseudo-csv-panel"><i class="fas fa-table-columns"></i> CSV spaltenweise</button>
+    </div>
+
+    <div id="pseudo-csv-panel" class="pseudo-csv-panel hidden" role="tabpanel" aria-labelledby="pseudo-tab-csv">
+      <p class="inventory-hint">Bei strukturierten Daten liefert die <strong>Spalten&uuml;berschrift</strong> den Kontext, den die Muster im Freitext brauchen: In einer Spalte &bdquo;Name&ldquo; steht der Name ohne Anrede und w&uuml;rde vom Muster nicht erfasst. W&auml;hle deshalb je Spalte, wie sie behandelt wird &ndash; <strong>Muster erkennen</strong> f&uuml;r Freitextspalten, <strong>ganze Spalte ersetzen</strong> f&uuml;r klar belegte Spalten. Gleiche Werte erhalten &uuml;ber alle Zellen hinweg denselben Platzhalter.</p>
+      <div class="pseudo-csv-actions">
+        <button class="btn btn-secondary" id="pseudo-csv-file"><i class="fas fa-file-arrow-up"></i> CSV laden</button>
+      </div>
+      <label class="pseudo-label" for="pseudo-csv-input">CSV-Inhalt</label>
+      <textarea id="pseudo-csv-input" class="pseudo-input pseudo-csv-input" spellcheck="false" placeholder="CSV hier einf&uuml;gen oder Datei laden &hellip;"></textarea>
+      <div id="pseudo-csv-cols" class="pseudo-csv-cols"></div>
+      <div class="pseudo-csv-run-row">
+        <button class="btn btn-primary" id="pseudo-csv-run" disabled><i class="fas fa-wand-magic-sparkles"></i> Spalten bereinigen</button>
+      </div>
+      <div id="pseudo-csv-out" class="pseudo-csv-out" aria-live="polite"></div>
+    </div>
+
+    <div id="pseudo-text-panel" class="pseudo-text-panel" role="tabpanel" aria-labelledby="pseudo-tab-text">
     <div class="pseudo-grid">
       <div class="pseudo-col">
         <label class="pseudo-label" for="pseudo-input">Eingabe</label>
@@ -430,6 +450,7 @@
     </div>
 
     <div class="pseudo-mapping" id="pseudo-mapping"></div>
+    </div>
 
     <div class="pseudo-limits">
       <h3><i class="fas fa-triangle-exclamation"></i> Grenzen der automatischen Erkennung</h3>
@@ -437,7 +458,7 @@
         <li><strong>Erkannte Muster:</strong> Name (anrede-getriggert), Adresse, PLZ + Ort, Aktenzeichen/Geschäftszeichen, IBAN, E-Mail, Telefon, Geburtsdatum (im Kontext), <strong>Steuer-ID</strong> (kontextgetriggert), <strong>Sozialversicherungsnummer</strong> und <strong>Kfz-Kennzeichen</strong>. Gleiche Werte erhalten konsistent denselben Platzhalter.</li>
         <li><strong>Namen</strong> werden nur <em>anrede-getriggert</em> erkannt (Herr/Frau/Hr./Fr./Dr./Prof. + Name). Freistehende Namen entgehen der Erkennung bewusst.</li>
         <li><strong>Geburtsdaten</strong> nur im Kontext („geb."/„geboren am"/„Geburtsdatum"/„Geburtstag"). Andere Datumsangaben (Fristen, Bescheiddaten) bleiben absichtlich erhalten.</li>
-        <li><strong>Steuer-ID</strong> nur mit vorangehendem Schlüsselwort (Steuer-ID / IdNr / St.-Nr). <strong>Kfz-Kennzeichen</strong> rein nach Muster (Kürzel-Buchstaben Zahl) – seltene Sonderformen wie „DIN-A4" können fälschlich greifen, daher manuell prüfen.</li>
+        <li><strong>Steuer-ID</strong> nur mit vorangehendem Schlüsselwort (Steuer-ID / IdNr / St.-Nr). <strong>Kfz-Kennzeichen</strong> ebenfalls nur mit Kontextwort (Kennzeichen / Kfz / Fahrzeug …) – ohne diesen Trigger würde das Muster Lizenz- und Normkürzel wie „DL-DE 2.0" oder „DIN-EN 1090" zerstören.</li>
         <li><strong>Adressen</strong> nur bei gängigen Straßen-Endungen (-straße, -weg, -gasse, -allee, -platz, -ring, -damm); ungewöhnliche Schreibweisen können entgehen.</li>
         <li><strong>Reines Regex-Pack</strong>, kein ML/NER. Eine <strong>manuelle Nachkontrolle</strong> ist vor jeder Veröffentlichung zwingend.</li>
         <li><strong>CSV:</strong> Platzhalter enthalten keine Kommas, Anführungszeichen oder Zeilenumbrüche – die CSV-Struktur bleibt erhalten; Werte in gequoteten Feldern werden trotzdem ersetzt. Das <strong>Mapping</strong> (Platzhalter ↔ Original) lässt sich als CSV exportieren.</li>
@@ -717,7 +738,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v32</span>
+    <span class="footer-version">v33</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -894,6 +915,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=32"></script>
+  <script src="js/app.js?v=33"></script>
 </body>
 </html>

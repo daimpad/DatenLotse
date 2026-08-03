@@ -178,7 +178,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v32';
+const APP_VERSION = 'v33';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -2048,30 +2048,59 @@ function selectSpans(spans) {
   return out;
 }
 
-function pseudonymize(text) {
-  const selected = selectSpans(collectSpans(text));
+/* Zähler und Zuordnung liegen in einem Closure, damit sie über MEHRERE
+   Durchläufe hinweg geteilt werden können. Genau das braucht die spaltenweise
+   CSV-Bereinigung: derselbe Wert muss über alle Zellen hinweg denselben
+   Platzhalter bekommen, sonst wäre die Ausgabe weder konsistent noch
+   reidentifizierbar. Für Einzeltexte bleibt pseudonymize() die Ein-Schuss-Form. */
+function createPseudonymizer() {
   const counters = {};            // type → laufender Index
   const maps = {};                // type → Map(original → platzhalter)
   const mapping = [];             // eindeutige Einträge in Reihenfolge
-  let plain = '', html = '', cursor = 0;
-  for (const s of selected) {
-    plain += text.slice(cursor, s.start);
-    html  += esc(text.slice(cursor, s.start));
-    maps[s.type] = maps[s.type] || new Map();
-    let ph = maps[s.type].get(s.value);
+
+  function placeholderFor(type, value) {
+    maps[type] = maps[type] || new Map();
+    let ph = maps[type].get(value);
     if (!ph) {
-      counters[s.type] = (counters[s.type] || 0) + 1;
-      ph = `[${PSEUDO_PH[s.type]}_${counters[s.type]}]`;
-      maps[s.type].set(s.value, ph);
-      mapping.push({ type: s.type, label: PSEUDO_LABELS[s.type], placeholder: ph, original: s.value });
+      counters[type] = (counters[type] || 0) + 1;
+      ph = `[${PSEUDO_PH[type]}_${counters[type]}]`;
+      maps[type].set(value, ph);
+      mapping.push({ type, label: PSEUDO_LABELS[type], placeholder: ph, original: value });
     }
-    plain += ph;
-    html  += `<mark class="pseudo-hit" title="${esc(PSEUDO_LABELS[s.type])}: ${esc(s.value)}">${esc(ph)}</mark>`;
-    cursor = s.end;
+    return ph;
   }
-  plain += text.slice(cursor);
-  html  += esc(text.slice(cursor));
-  return { text: plain, html, mapping, count: selected.length };
+
+  function run(text) {
+    const selected = selectSpans(collectSpans(text));
+    let plain = '', html = '', cursor = 0;
+    for (const s of selected) {
+      plain += text.slice(cursor, s.start);
+      html  += esc(text.slice(cursor, s.start));
+      const ph = placeholderFor(s.type, s.value);
+      plain += ph;
+      html  += `<mark class="pseudo-hit" title="${esc(PSEUDO_LABELS[s.type])}: ${esc(s.value)}">${esc(ph)}</mark>`;
+      cursor = s.end;
+    }
+    plain += text.slice(cursor);
+    html  += esc(text.slice(cursor));
+    return { text: plain, html, count: selected.length };
+  }
+
+  /* Ganze Zelle ersetzen. Nötig, weil die Muster bewusst kontextgetriggert
+     sind: in einer Spalte „Name“ steht „Max Mustermann“ ohne Anrede und würde
+     vom Namensmuster nicht erfasst. Die Spaltenüberschrift IST hier der
+     Kontext – den liefert der Mensch bei der Spaltenauswahl. */
+  function whole(value, type) {
+    return placeholderFor(type, value);
+  }
+
+  return { run, whole, mapping };
+}
+
+function pseudonymize(text) {
+  const p = createPseudonymizer();
+  const r = p.run(text);
+  return { text: r.text, html: r.html, mapping: p.mapping, count: r.count };
 }
 
 const PSEUDO_DEMO =
@@ -2128,6 +2157,144 @@ function runPseudonymize() {
   dlBtn.hidden = false;
 }
 
+/* ── Spaltenweise CSV-Bereinigung ─────────────────────────────────
+   Die Muster sind bewusst kontextgetriggert (siehe PSEUDO_PATTERNS) und
+   greifen deshalb in strukturierten Daten oft nicht: in einer Spalte „Name“
+   steht der Name ohne Anrede. Hier liefert die SPALTENAUSWAHL den Kontext –
+   der Mensch entscheidet je Spalte, was sie enthält. Zwei Behandlungen:
+     'muster' – Regex-Pack auf den Zellinhalt (für Freitextspalten)
+     'ganz'   – ganze Zelle durch einen Platzhalter des gewählten Typs
+   Zähler und Zuordnung sind über alle Zellen geteilt (createPseudonymizer),
+   damit derselbe Wert überall denselben Platzhalter bekommt.
+   ────────────────────────────────────────────────────────────── */
+const pseudoCsv = { header: [], rows: [], cols: {} };
+const PSEUDO_COL_MODES = [
+  ['', 'unverändert lassen'],
+  ['muster', 'Muster erkennen'],
+  ['ganz', 'ganze Spalte ersetzen'],
+];
+const PSEUDO_TYPE_OPTIONS = Object.keys(PSEUDO_PH).map(k => [k, PSEUDO_LABELS[k]]);
+
+function parsePseudoCSV(text) {
+  const recs = parseCSVRecords(text).filter(r => r.some(c => c.trim() !== ''));
+  pseudoCsv.header = recs.length ? recs[0] : [];
+  pseudoCsv.rows = recs.slice(1);
+  // Spaltenkonfiguration NACH Index, nicht nach Name: doppelte Überschriften
+  // sind in Verwaltungsexporten keine Seltenheit und würden sich sonst teilen.
+  pseudoCsv.cols = {};
+  pseudoCsv.header.forEach((h, i) => { pseudoCsv.cols[i] = { mode: '', type: 'name' }; });
+  return pseudoCsv.header.length > 0;
+}
+
+function buildPseudoCSVResult() {
+  const p = createPseudonymizer();
+  const head = pseudoCsv.header.map(csvCell).join(',');
+  let count = 0;
+  const body = pseudoCsv.rows.map(r => pseudoCsv.header.map((h, i) => {
+    const raw = r[i] == null ? '' : r[i];
+    const conf = pseudoCsv.cols[i];
+    if (!conf || !conf.mode || raw.trim() === '') return csvCell(raw);
+    if (conf.mode === 'ganz') { count++; return csvCell(p.whole(raw, conf.type)); }
+    const res = p.run(raw);
+    count += res.count;
+    return csvCell(res.text);
+  }).join(','));
+  return { csv: [head, ...body].join('\n'), mapping: p.mapping, count };
+}
+
+function renderPseudoCsv() {
+  const box = document.getElementById('pseudo-csv-cols');
+  const run = document.getElementById('pseudo-csv-run');
+  if (!box) return;
+  if (!pseudoCsv.header.length) {
+    box.innerHTML = '<p class="inv-empty">Noch keine CSV geladen – Datei auswählen oder Inhalt einfügen.</p>';
+    if (run) run.disabled = true;
+    return;
+  }
+  box.innerHTML =
+    `<p class="pseudo-csv-meta"><i class="fas fa-table"></i> ${pseudoCsv.header.length} Spalten · ${pseudoCsv.rows.length} Datenzeilen</p>` +
+    `<div class="pseudo-csv-list">` +
+    pseudoCsv.header.map((h, i) => {
+      const conf = pseudoCsv.cols[i];
+      const beispiel = (pseudoCsv.rows.find(r => (r[i] || '').trim() !== '') || [])[i] || '';
+      return `<div class="pseudo-csv-col" data-col="${i}">
+        <div class="pseudo-csv-name">
+          <strong>${esc(h || '(ohne Überschrift)')}</strong>
+          ${beispiel ? `<span class="pseudo-csv-sample">z. B. ${esc(beispiel.slice(0, 40))}${beispiel.length > 40 ? '…' : ''}</span>` : ''}
+        </div>
+        <label class="pseudo-csv-sel">Behandlung
+          <select data-col-mode="${i}">${optionsHTML(PSEUDO_COL_MODES, conf.mode)}</select>
+        </label>
+        <label class="pseudo-csv-sel${conf.mode === 'ganz' ? '' : ' pseudo-csv-sel--off'}">Als
+          <select data-col-type="${i}"${conf.mode === 'ganz' ? '' : ' disabled'} aria-label="Entitätstyp für Spalte ${esc(h)}">${optionsHTML(PSEUDO_TYPE_OPTIONS, conf.type)}</select>
+        </label>
+      </div>`;
+    }).join('') + `</div>`;
+
+  box.querySelectorAll('[data-col-mode]').forEach(sel => sel.addEventListener('change', () => {
+    pseudoCsv.cols[+sel.dataset.colMode].mode = sel.value;
+    renderPseudoCsv();   // Typ-Auswahl nur bei „ganze Spalte“ aktiv
+  }));
+  box.querySelectorAll('[data-col-type]').forEach(sel => sel.addEventListener('change', () => {
+    pseudoCsv.cols[+sel.dataset.colType].type = sel.value;
+  }));
+  if (run) run.disabled = !Object.values(pseudoCsv.cols).some(c => c.mode);
+}
+
+function runPseudoCsv() {
+  const out = document.getElementById('pseudo-csv-out');
+  if (!out || !pseudoCsv.header.length) return;
+  const res = buildPseudoCSVResult();
+  out.innerHTML =
+    `<div class="pseudo-map-head"><span><i class="fas fa-circle-check"></i> ${res.count} Ersetzungen in ${res.mapping.length} verschiedenen Werten</span>` +
+    `<span class="pseudo-csv-btns">` +
+    `<button class="pseudo-mini-btn" id="pseudo-csv-dl"><i class="fas fa-file-csv"></i> Bereinigte CSV</button>` +
+    `<button class="pseudo-mini-btn" id="pseudo-csv-map"${res.mapping.length ? '' : ' disabled'}><i class="fas fa-table-list"></i> Mapping</button>` +
+    `</span></div>` +
+    `<pre class="pseudo-csv-preview">${esc(res.csv.split('\n').slice(0, 12).join('\n'))}${res.csv.split('\n').length > 12 ? '\n…' : ''}</pre>`;
+  document.getElementById('pseudo-csv-dl')?.addEventListener('click', () =>
+    downloadBlob(res.csv, 'bereinigt.csv', 'text/csv'));
+  document.getElementById('pseudo-csv-map')?.addEventListener('click', () =>
+    downloadBlob(buildPseudoMappingCSV(res.mapping), 'pseudonymisierung-mapping.csv', 'text/csv'));
+}
+
+function showPseudoTab(name) {
+  ['text', 'csv'].forEach(t => {
+    document.getElementById('pseudo-' + t + '-panel')?.classList.toggle('hidden', t !== name);
+    const btn = document.getElementById('pseudo-tab-' + t);
+    btn?.classList.toggle('is-active', t === name);
+    btn?.setAttribute('aria-selected', String(t === name));
+  });
+  if (name === 'csv') renderPseudoCsv();
+}
+
+function pickPseudoCsvFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv,text/csv';
+  input.addEventListener('change', () => {
+    const f = input.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const el = document.getElementById('pseudo-csv-input');
+      if (el) el.value = r.result;
+      loadPseudoCsvFromInput();
+    };
+    r.readAsText(f, 'utf-8');
+  });
+  input.click();
+}
+
+function loadPseudoCsvFromInput() {
+  const el = document.getElementById('pseudo-csv-input');
+  const out = document.getElementById('pseudo-csv-out');
+  if (out) out.innerHTML = '';
+  if (!el || !el.value.trim()) { pseudoCsv.header = []; pseudoCsv.rows = []; pseudoCsv.cols = {}; renderPseudoCsv(); return; }
+  parsePseudoCSV(el.value);
+  renderPseudoCsv();
+}
+
 function pickPseudoFile() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -2143,6 +2310,21 @@ function pickPseudoFile() {
 }
 
 document.getElementById('pseudo-clean-btn')?.addEventListener('click', runPseudonymize);
+document.getElementById('pseudo-tab-text')?.addEventListener('click', () => showPseudoTab('text'));
+document.getElementById('pseudo-tab-csv')?.addEventListener('click', () => showPseudoTab('csv'));
+document.querySelector('.pseudo-tabs')?.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const order = ['text', 'csv'];
+  const cur = order.findIndex(t => document.getElementById('pseudo-tab-' + t)?.classList.contains('is-active'));
+  if (cur < 0) return;
+  e.preventDefault();
+  const next = order[(cur + (e.key === 'ArrowRight' ? 1 : order.length - 1)) % order.length];
+  showPseudoTab(next);
+  document.getElementById('pseudo-tab-' + next)?.focus();
+});
+document.getElementById('pseudo-csv-file')?.addEventListener('click', pickPseudoCsvFile);
+document.getElementById('pseudo-csv-input')?.addEventListener('input', loadPseudoCsvFromInput);
+document.getElementById('pseudo-csv-run')?.addEventListener('click', runPseudoCsv);
 document.getElementById('pseudo-file-btn')?.addEventListener('click', pickPseudoFile);
 document.getElementById('pseudo-demo-btn')?.addEventListener('click', () => {
   document.getElementById('pseudo-input').value = PSEUDO_DEMO;
