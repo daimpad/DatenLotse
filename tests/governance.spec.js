@@ -299,7 +299,11 @@ test.describe('Wissens-Center & Vorlagen', () => {
   test('Vorlagen: statische Muster als Markdown, datengetrieben mit Guard', async ({ page }) => {
     const errors = await openApp(page);
     await page.evaluate(() => navTo('vorlagen'));
-    await expect(page.locator('.vorlage-card')).toHaveCount(4);
+    // Jede Karte bietet genau ein Dokument an – Anzahl aus dem Markup ableiten
+    const dokumente = await page.evaluate(() =>
+      new Set([...document.querySelectorAll('#vorlagen-view [data-doc]')].map(b => b.dataset.doc)).size);
+    await expect(page.locator('.vorlage-card')).toHaveCount(dokumente);
+    expect(dokumente).toBe(5);
 
     // Ohne Inventar blockieren die datengetriebenen Dokumente mit Hinweis
     await page.evaluate(() => generateDoc('vvt', 'csv'));
@@ -459,6 +463,83 @@ test.describe('Beispieldaten, Verlauf & Prüfwerkzeuge', () => {
       expect(l.href).toMatch(/itb\.ec\.europa\.eu|dcat-ap\.de|govdata\.de/);
       expect(l.rel).toContain('noopener');
     }
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe('Status-Einseiter', () => {
+  test('fasst alle Bausteine auf einer Seite zusammen', async ({ page }) => {
+    const errors = await openApp(page);
+    await loadSample(page);
+    const html = await page.evaluate(() => {
+      inventory.forEach(d => { d.license = 'dl-de/by-2-0'; });
+      governanceAnswers.owner = 'ja';
+      return statusBodyHTML();
+    });
+    for (const abschnitt of ['Kennzahlen', 'Risiko-Clearing', 'Nächste Schritte', 'Grundlage']) {
+      expect(html).toContain(abschnitt);
+    }
+    expect(html).toContain('Stadt Musterstadt');
+    expect(html).toContain('12');                       // Anzahl Datensätze
+    expect(html).toContain('keine Rechtsberatung');
+    expect(errors).toEqual([]);
+  });
+
+  test('Kennzahlen entsprechen dem tatsächlichen Stand', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const k = await page.evaluate(() => statusKennzahlen());
+    expect(k.n).toBe(12);
+    expect(k.ampel.gruen + k.ampel.gelb + k.ampel.rot).toBe(12);
+    expect(k.qual.gruen + k.qual.gelb + k.qual.rot).toBe(12);
+    expect(k.kScore).toBeGreaterThanOrEqual(0);
+    expect(k.gScore).toBe(0);          // Fragebogen noch nicht beantwortet
+    expect(k.gBeantwortet).toBe(0);
+  });
+
+  test('nächste Schritte richten sich nach dem Stand', async ({ page }) => {
+    await openApp(page);
+    // Ohne Daten steht der Aufbau des Inventars oben
+    const leer = await page.evaluate(() => statusNaechsteSchritte(statusKennzahlen()));
+    expect(leer[0]).toMatch(/Dateninventar aufbauen/);
+
+    await loadSample(page);
+    const mitDaten = await page.evaluate(() => statusNaechsteSchritte(statusKennzahlen()));
+    expect(mitDaten.some(x => /Governance-Reifegrad/.test(x))).toBe(true);
+    expect(mitDaten.some(x => /Pflichtfeld-Fehler/.test(x))).toBe(true);
+    // Höchstens fünf, damit die Seite eine Seite bleibt
+    expect(mitDaten.length).toBeLessThanOrEqual(5);
+
+    const fertig = await page.evaluate(() => {
+      inventory.forEach(d => Object.assign(d, {
+        license: 'dl-de/by-2-0', keywords: 'x', landingPage: 'https://example.org',
+        contactPoint: 'a@b.de', theme: 'ENVI', contributorID: 'X',
+        description: 'Eine ausreichend lange Beschreibung.',
+        _clearing: { pb: 'nein', art9: '', recht: '', anon: '' },
+      }));
+      GOV_QUESTIONS.forEach(q => { governanceAnswers[q.id] = 'ja'; });
+      KOMPASS_DIMENSIONS.forEach(d => d.items.forEach(i => { kompassState[`${d.id}.${i.id}`] = 'erfuellt'; }));
+      return statusNaechsteSchritte(statusKennzahlen());
+    });
+    expect(fertig.length).toBe(1);
+    expect(fertig[0]).toMatch(/Phase 4/);
+  });
+
+  test('Einseiter öffnet das Druckfenster', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('vorlagen'));
+    await page.locator('[data-doc="status"]').click();
+    expect(await page.evaluate(() => window.__dialogs.print)).toBeGreaterThan(0);
+  });
+
+  test('funktioniert auch ohne Inventar', async ({ page }) => {
+    const errors = await openApp(page);
+    await page.evaluate(() => navTo('vorlagen'));
+    await page.locator('[data-doc="status"]').click();
+    // Anders als die datengetriebenen Formulare braucht der Einseiter keine Daten
+    expect(await page.evaluate(() => window.__dialogs.alert.length)).toBe(0);
+    expect(await page.evaluate(() => window.__dialogs.print)).toBeGreaterThan(0);
     expect(errors).toEqual([]);
   });
 });

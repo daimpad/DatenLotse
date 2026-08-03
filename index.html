@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=37">
-  <link rel="stylesheet" href="css/styles.css?v=37">
+  <link rel="stylesheet" href="css/tokens.css?v=38">
+  <link rel="stylesheet" href="css/styles.css?v=38">
 </head>
 <body>
 
@@ -301,11 +301,11 @@
           <option value="complete-asc">Vollständigkeit ↑</option>
         </select>
       </div>
-      <div class="inv-selectbar">
+      <div class="inv-selectbar" role="group" aria-label="Datens&auml;tze ausw&auml;hlen">
         <button class="btn btn-secondary btn-sm" id="inv-select-all" aria-pressed="false"><i class="far fa-square"></i> Alle ausw&auml;hlen</button>
         <span class="inv-selecthint">Mehrere Datens&auml;tze markieren, um Publisher, Lizenz oder Kategorie in einem Zug zu setzen.</span>
       </div>
-      <div class="inv-bulk hidden" id="inv-bulk" aria-live="polite"></div>
+      <div class="inv-bulk hidden" id="inv-bulk" role="toolbar" aria-live="polite" aria-label="Massenbearbeitung"></div>
       <div class="inventory-body" id="inventory-body"></div>
     </div>
 
@@ -670,6 +670,15 @@
 
     <div class="vorlagen-grid">
       <article class="vorlage-card">
+        <div class="vorlage-ic"><i class="fas fa-chart-pie"></i></div>
+        <h3>Status auf einen Blick</h3>
+        <p>Einseitige Zusammenfassung &uuml;ber alle Bausteine: Reifegrade, Inventar, Publikationsreife, Clearing-Verteilung und die n&auml;chsten Schritte &ndash; f&uuml;r Leitungsrunden und Gremien.</p>
+        <div class="vorlage-actions">
+          <button class="btn btn-secondary" data-doc="status" data-fmt="pdf"><i class="fas fa-print"></i> Als PDF</button>
+        </div>
+      </article>
+
+      <article class="vorlage-card">
         <div class="vorlage-ic"><i class="fas fa-scroll"></i></div>
         <h3>Open-Data-Richtlinie</h3>
         <p>Muster einer organisationsweiten Richtlinie: Grundsätze (Open by default), Rollen, Prozess und Freigabe.</p>
@@ -766,7 +775,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v37</span>
+    <span class="footer-version">v38</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -962,6 +971,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=37"></script>
+  <script src="js/app.js?v=38"></script>
 </body>
 </html>
