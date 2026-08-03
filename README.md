@@ -31,6 +31,7 @@
 | 📦 | **Dateninventar (DCAT-AP.de)** | Aus jedem Datenfluss wird ein Dataset-Kandidat abgeleitet und in editierbaren Karten dargestellt: Beschreibung, Publisher, Ansprechpartner, **Kategorie** (EU-Datenthemen), **Schlagwörter**, Aktualisierungszyklus, **Lizenz** (volles DCAT-AP.de-Register), Zugriffsrechte und Info-/Zugriffs-URL – mit Live-Vollständigkeits-% in Ampelfarben. Dazu ein ausklappbarer Block **erweiterter DCAT-AP.de-Felder** (Veröffentlichungs-/Änderungsdatum, zeitliche und räumliche Abdeckung, Regionalschlüssel samt Gebietsebene, Kontributor-Kennung) und eine **Live-Vorschau des JSON-LD** je Datensatz. Der Export schreibt kontrollierte Werte als offizielle NAL-/Register-URIs |
 | ✏️ | **Massenbearbeitung** | Mehrere Datensätze markieren und Publisher, Ansprechpartner, Lizenz, Kategorie, Zugriffsrechte, Zyklus oder Schlagwörter in einem Zug setzen – oder Einträge entfernen, die nicht ins Inventar gehören. „Alle auswählen" meint dabei die **sichtbare** Teilmenge, wirkt also mit den Filtern zusammen |
 | ♻️ | **Rückimport der Inventar-CSV** | Die exportierte Liste außerhalb bearbeiten (Tabellenkalkulation, Zuarbeit aus den Fachbereichen) und wieder einlesen. Der Import **führt über die `id` zusammen statt zu ersetzen** – bereits gegebene Clearing-Antworten bleiben erhalten |
+| 🗂️ | **Verteilungen je Datensatz** | Ein Datensatz kann in mehreren Formaten vorliegen – CSV *und* JSON *und* GeoJSON, je mit eigener Zugriffs-URL und Lizenz. Genau so modelliert es DCAT-AP.de; die Vollständigkeit verlangt entsprechend eine Lizenz **je** Verteilung |
 | 🔍 | **Suche, Filter & Sortierung** | Inventar live durchsuchen (Titel/Publisher/Quellsystem), nach Schutzbedarf oder Clearing-Ampel filtern und nach Titel bzw. Vollständigkeit sortieren – Editieren bleibt auch über gefilterten Teilmengen korrekt |
 | 📊 | **Status-Dashboard** | Startseite zeigt – sobald Daten vorliegen – Live-Kennzahlen über alle Bausteine (Kompass-Reifegrad, Inventar-Anzahl & Ø-Vollständigkeit, Clearing-Ampelverteilung, Governance-Reifegrad) mit Schnellsprung direkt zum Weiterarbeiten |
 | 📤 | **DCAT-Export (JSON-LD, RDF/Turtle, CSV)** | DCAT-AP.de-konformes JSON-LD (`dcat:Catalog`/`dcat:Dataset` mit `@context`) zum Harvesting durch GovData/CKAN, dieselbe Ausgabe als **RDF/Turtle** (`.ttl`, für Portale die RDF direkt harvesten) sowie eine flache CSV-Liste |
@@ -160,7 +161,8 @@ Das Inventar-Modul erzeugt zu jedem Datensatz Metadaten nach dem deutschen DCAT-
 | `dct:publisher` → `foaf:Organization` | Veröffentlichende Stelle |
 | `dcat:contactPoint` | Ansprechpartner (vCard) |
 | `dct:accessRights` | Zugriffsrechte – als NAL-URI (PUBLIC / RESTRICTED / NON_PUBLIC) |
-| `dct:license` | Lizenz aus dem DCAT-AP.de-Register – als offizielle Register-URI |
+| `dct:license` | Lizenz aus dem DCAT-AP.de-Register – **je Verteilung**, als offizielle Register-URI |
+| `dcat:distribution` | Mindestens eine Verteilung je Datensatz (Format, Zugriffs-URL, Lizenz, optional Bezeichnung) |
 
 **Empfehlungsfelder** (fehlen sie, gibt es eine Warnung):
 
@@ -169,7 +171,7 @@ Das Inventar-Modul erzeugt zu jedem Datensatz Metadaten nach dem deutschen DCAT-
 | `dcat:theme` | Kategorie aus den 13 EU-Datenthemen – als NAL-URI, per Heuristik vorbelegt |
 | `dcat:keyword` | Schlagwörter (kommagetrennt erfasst, als Array exportiert) |
 | `dct:accrualPeriodicity` | Aktualisierungszyklus – als NAL-URI (CONT/DAILY/WEEKLY/MONTHLY/QUARTERLY/ANNUAL/IRREG/NEVER) |
-| `dct:format` | Format der Distribution |
+| `dct:format` | Format je Verteilung |
 | `dcat:landingPage` / `dcat:accessURL` | Info- bzw. Zugriffs-URL |
 
 **Erweiterte Felder** (optional, je Karte ausklappbar – gefüllt werden sie exportiert, leer bleiben sie weg):

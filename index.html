@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=38">
-  <link rel="stylesheet" href="css/styles.css?v=38">
+  <link rel="stylesheet" href="css/tokens.css?v=39">
+  <link rel="stylesheet" href="css/styles.css?v=39">
 </head>
 <body>
 
@@ -279,7 +279,7 @@
 
     <!-- Tab: Inventar -->
     <div class="inventar-panel" id="inventar-panel" role="tabpanel" aria-labelledby="tab-inventar">
-      <p class="inventory-hint">Ergänze je Datensatz die DCAT-AP.de-Metadaten – <strong>Pflichtfelder</strong> (Titel, Beschreibung, Publisher, Ansprechpartner, Zugriffsrechte, Lizenz) und <strong>Empfehlungen</strong> (Kategorie, Schlagwörter, Aktualisierungszyklus, Format, Info-URL). Die Lizenz wählst du aus dem vollständigen DCAT-AP.de-Register oder per <strong>Lizenz-Wegweiser</strong>. Die Prozentanzeige zeigt die Vollständigkeit; der Tab <strong>Qualitätsprüfung</strong> prüft die Veröffentlichungsreife. Alles bleibt lokal im Browser.</p>
+      <p class="inventory-hint">Ergänze je Datensatz die DCAT-AP.de-Metadaten – <strong>Pflichtfelder</strong> (Titel, Beschreibung, Publisher, Ansprechpartner, Zugriffsrechte sowie eine Lizenz je Verteilung) und <strong>Empfehlungen</strong> (Kategorie, Schlagwörter, Aktualisierungszyklus, Format, Info-URL). Die Lizenz wählst du aus dem vollständigen DCAT-AP.de-Register oder per <strong>Lizenz-Wegweiser</strong>. Die Prozentanzeige zeigt die Vollständigkeit; der Tab <strong>Qualitätsprüfung</strong> prüft die Veröffentlichungsreife. Alles bleibt lokal im Browser.</p>
       <div class="inv-controls">
         <input type="search" id="inv-search" class="inv-search" placeholder="Suchen (Titel, Publisher, Quellsystem)…" aria-label="Inventar durchsuchen">
         <select id="inv-filter-schutz" aria-label="Nach Schutzbedarf filtern">
@@ -318,7 +318,7 @@
 
     <!-- Tab: DCAT-AP.de-Qualitätsprüfung -->
     <div class="quality-panel hidden" id="quality-panel" role="tabpanel" aria-labelledby="tab-quality">
-      <p class="inventory-hint">Der <strong>Publish-Ready-Check</strong> prüft jeden Datensatz gegen DCAT-AP.de: fehlende <strong>Pflichtfelder</strong> (Titel, Beschreibung, Publisher, Ansprechpartner, Zugriffsrechte, Lizenz) sind <span style="color:var(--ampel-rot);font-weight:700">Fehler</span>, fehlende <strong>Empfehlungsfelder</strong> und Werteprüfungen (offene Lizenz, kontrolliertes Vokabular, E-Mail im Ansprechpartner) sind <span style="color:var(--ampel-gelb);font-weight:700">Warnungen</span>. Deterministisch, lokal im Browser.</p>
+      <p class="inventory-hint">Der <strong>Publish-Ready-Check</strong> prüft jeden Datensatz gegen DCAT-AP.de: fehlende <strong>Pflichtfelder</strong> (Titel, Beschreibung, Publisher, Ansprechpartner, Zugriffsrechte sowie eine Lizenz je Verteilung) sind <span style="color:var(--ampel-rot);font-weight:700">Fehler</span>, fehlende <strong>Empfehlungsfelder</strong> und Werteprüfungen (offene Lizenz, kontrolliertes Vokabular, E-Mail im Ansprechpartner) sind <span style="color:var(--ampel-gelb);font-weight:700">Warnungen</span>. Deterministisch, lokal im Browser.</p>
       <div class="clearing-summary" id="quality-summary"></div>
       <div class="quality-body" id="quality-body"></div>
     </div>
@@ -775,7 +775,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v38</span>
+    <span class="footer-version">v39</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -971,6 +971,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=38"></script>
+  <script src="js/app.js?v=39"></script>
 </body>
 </html>

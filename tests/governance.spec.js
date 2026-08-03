@@ -472,7 +472,7 @@ test.describe('Status-Einseiter', () => {
     const errors = await openApp(page);
     await loadSample(page);
     const html = await page.evaluate(() => {
-      inventory.forEach(d => { d.license = 'dl-de/by-2-0'; });
+      inventory.forEach(d => d.distributions.forEach(x => { x.license = 'dl-de/by-2-0'; }));
       governanceAnswers.owner = 'ja';
       return statusBodyHTML();
     });
@@ -511,12 +511,15 @@ test.describe('Status-Einseiter', () => {
     expect(mitDaten.length).toBeLessThanOrEqual(5);
 
     const fertig = await page.evaluate(() => {
-      inventory.forEach(d => Object.assign(d, {
-        license: 'dl-de/by-2-0', keywords: 'x', landingPage: 'https://example.org',
-        contactPoint: 'a@b.de', theme: 'ENVI', contributorID: 'X',
-        description: 'Eine ausreichend lange Beschreibung.',
-        _clearing: { pb: 'nein', art9: '', recht: '', anon: '' },
-      }));
+      inventory.forEach(d => {
+        Object.assign(d, {
+          keywords: 'x', landingPage: 'https://example.org',
+          contactPoint: 'a@b.de', theme: 'ENVI', contributorID: 'X',
+          description: 'Eine ausreichend lange Beschreibung.',
+          _clearing: { pb: 'nein', art9: '', recht: '', anon: '' },
+        });
+        d.distributions.forEach(x => { x.license = 'dl-de/by-2-0'; x.format = 'CSV'; });
+      });
       GOV_QUESTIONS.forEach(q => { governanceAnswers[q.id] = 'ja'; });
       KOMPASS_DIMENSIONS.forEach(d => d.items.forEach(i => { kompassState[`${d.id}.${i.id}`] = 'erfuellt'; }));
       return statusNaechsteSchritte(statusKennzahlen());
