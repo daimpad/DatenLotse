@@ -184,7 +184,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v41';
+const APP_VERSION = 'v42';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -755,7 +755,7 @@ function optionsHTML(opts, selected) {
 }
 
 // Filter-/Sortier-/Suchzustand der Inventar-Liste
-const invFilter = { q: '', schutz: '', ampel: '', sort: '' };
+const invFilter = { q: '', schutz: '', ampel: '', qual: '', sort: '' };
 
 function filteredInventory() {
   if (invFilter.ampel) ensureAllClearing();   // Ampel-Filter braucht das Clearing-Ergebnis
@@ -768,6 +768,8 @@ function filteredInventory() {
     list = list.filter(({ d }) => schutzKategorie(d._grafSchutzbedarf) === invFilter.schutz);
   }
   if (invFilter.ampel) list = list.filter(({ d }) => d.clearing?.ampel === invFilter.ampel);
+  // Publikationsreife stammt aus derselben Prüfung wie der Qualitäts-Tab
+  if (invFilter.qual) list = list.filter(({ d }) => qualityStatus(validateDataset(d)) === invFilter.qual);
   if (invFilter.sort === 'title') list.sort((a, b) => a.d.title.localeCompare(b.d.title, 'de'));
   else if (invFilter.sort === 'complete-desc') list.sort((a, b) => completeness(b.d) - completeness(a.d));
   else if (invFilter.sort === 'complete-asc') list.sort((a, b) => completeness(a.d) - completeness(b.d));
@@ -1090,6 +1092,7 @@ document.getElementById('inv-select-all')?.addEventListener('click', () => {
 document.getElementById('inv-search')?.addEventListener('input', e => { invFilter.q = e.target.value; renderInventoryBody(); });
 document.getElementById('inv-filter-schutz')?.addEventListener('change', e => { invFilter.schutz = e.target.value; renderInventoryBody(); });
 document.getElementById('inv-filter-ampel')?.addEventListener('change', e => { invFilter.ampel = e.target.value; renderInventoryBody(); });
+document.getElementById('inv-filter-qual')?.addEventListener('change', e => { invFilter.qual = e.target.value; renderInventoryBody(); });
 document.getElementById('inv-sort')?.addEventListener('change', e => { invFilter.sort = e.target.value; renderInventoryBody(); });
 
 /* ── Rendering: Risiko-Clearing (Modul 3a) ────────────────────── */
@@ -1152,12 +1155,22 @@ function renderClearing() {
       <div class="clear-result">
         <p class="clear-begruendung">${esc(d.clearing.begruendung)}</p>
         <p class="clear-empfehlung"><i class="fas fa-arrow-right"></i> ${esc(d.clearing.empfehlung)}</p>
+        <label class="clear-note">
+          <span class="clear-note-label">Eigene Notiz zur Entscheidung <span class="clear-note-hint">(erscheint im Bericht und im Freigabeformular)</span></span>
+          <textarea data-note rows="2" placeholder="z. B. Abstimmung mit dem Datenschutz vom 12.03., Aggregation auf Bezirksebene vereinbart">${esc(d._clearingNote || '')}</textarea>
+        </label>
       </div>
     </div>`;
   }).join('');
 
   body.querySelectorAll('.clear-card').forEach(card => {
     const idx = +card.dataset.idx;
+    // Die Notiz ist eine reine Ergänzung – sie ändert die Ampel nicht und
+    // löst deshalb auch kein Neu-Rendern aus (sonst ginge der Fokus verloren).
+    card.querySelector('[data-note]')?.addEventListener('input', e => {
+      inventory[idx]._clearingNote = e.target.value;
+      saveState();
+    });
     card.querySelectorAll('select[data-q]').forEach(sel => {
       sel.addEventListener('change', () => {
         const a = inventory[idx]._clearing;
@@ -1457,9 +1470,9 @@ function renderQuality() {
 // In den Inventar-Tab wechseln und die Karte hervorheben (Filter zurücksetzen,
 // damit die Zielkarte garantiert sichtbar ist)
 function jumpToInventoryCard(idx) {
-  invFilter.q = ''; invFilter.schutz = ''; invFilter.ampel = '';
+  invFilter.q = ''; invFilter.schutz = ''; invFilter.ampel = ''; invFilter.qual = '';
   const search = document.getElementById('inv-search'); if (search) search.value = '';
-  ['inv-filter-schutz', 'inv-filter-ampel'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['inv-filter-schutz', 'inv-filter-ampel', 'inv-filter-qual'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   showInventoryTab('inventar');
   renderInventoryBody();
   const card = document.querySelector(`#inventory-body .inv-card[data-idx="${idx}"]`);
@@ -1702,8 +1715,22 @@ function buildInventoryReportHTML() {
       <td>${esc(distLicenseLabels(d))}</td>
       <td>${esc(accessLabel[d.accessRights] || d.accessRights || '—')}</td>
       <td style="color:${ampColor[amp] || '#7a7591'};font-weight:700">${ampLabel[amp] || '—'}</td>
+      <td>${esc(d._clearingNote || '')}</td>
     </tr>`;
   }).join('');
+  const quer = inventoryIssues();
+  const bestand = quer.length
+    ? `<h2>Bestandsprüfung</h2>
+       <p class="muted">Befunde über mehrere Datensätze hinweg – einzeln geprüft ist jeder von ihnen in Ordnung.</p>
+       <table><thead><tr><th>Schwere</th><th>Befund</th><th>Betroffen</th></tr></thead><tbody>
+       ${quer.map(i => `<tr>
+          <td style="color:${i.sev === 'error' ? '#c0392b' : '#d4820a'};font-weight:700">${i.sev === 'error' ? 'Fehler' : 'Warnung'}</td>
+          <td>${esc(i.msg)}</td>
+          <td>${i.treffer.map(t => esc(t.d.title || '(ohne Titel)')).join(', ')}</td>
+       </tr>`).join('')}
+       </tbody></table>`
+    : `<h2>Bestandsprüfung</h2><p>Keine Dubletten oder Schreibvarianten über die ${inventory.length} Datensätze hinweg.</p>`;
+
   return `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>DatenLotse – Inventar- & Clearing-Bericht</title>
     <style>
       body{font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#1e1b2e;margin:32px;font-size:12px}
@@ -1723,9 +1750,10 @@ function buildInventoryReportHTML() {
       <span style="color:#c0392b;background:rgba(192,57,43,.12)">${c.rot} rot</span>
     </p>
     <h2>Datensätze</h2>
-    <table><thead><tr><th>Titel</th><th>Publisher</th><th>Quellsystem</th><th>Vollst.</th><th>Lizenz</th><th>Zugriff</th><th>Clearing</th></tr></thead>
+    <table><thead><tr><th>Titel</th><th>Publisher</th><th>Quellsystem</th><th>Vollst.</th><th>Lizenz</th><th>Zugriff</th><th>Clearing</th><th>Notiz</th></tr></thead>
     <tbody>${rows}</tbody></table>
     <p class="muted">Clearing-Ampel laut deterministischem Entscheidungsbaum (Modul 3a). Gelb/Rot bedeuten Prüf- bzw. Sperrbedarf vor einer Veröffentlichung.</p>
+    ${bestand}
     </body></html>`;
 }
 
@@ -2816,6 +2844,7 @@ function freigabeBodyHTML() {
       <p class="muted" style="margin:0 0 6px">${esc(d.sourceSystem || '—')} · ${esc(d.publisher || '—')} · ${esc(d.contactPoint || 'kein Kontakt')}</p>
       <p style="margin:0"><strong>Lizenz:</strong> ${esc(distLicenseLabels(d))} &nbsp;·&nbsp; <strong>Zugriffsrechte:</strong> ${esc(accessLabel[d.accessRights] || d.accessRights || '—')} &nbsp;·&nbsp; <strong>Vollständigkeit:</strong> ${completeness(d)} %</p>
       <p style="margin:6px 0 0"><strong>Risiko-Clearing:</strong> <span class="amp" style="color:${ampColor[amp] || '#7a7591'}">${ampLabel[amp] || '—'}</span>${d.clearing?.empfehlung ? ` – ${esc(d.clearing.empfehlung)}` : ''}</p>
+      ${d._clearingNote ? `<p style="margin:6px 0 0"><strong>Notiz:</strong> ${esc(d._clearingNote)}</p>` : ''}
       <p style="margin:8px 0 0">Freigabe zur Veröffentlichung: ☐ Ja&nbsp;&nbsp;☐ Nein&nbsp;&nbsp;☐ Nur aggregiert/anonymisiert</p>
       <p class="sign" style="margin-top:8px">Datenschutz geprüft (Datum/Name):<span></span></p>
       <p class="sign">Freigegeben (Leitung, Datum):<span></span></p>
