@@ -178,7 +178,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v33';
+const APP_VERSION = 'v34';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -1006,6 +1006,114 @@ function buildDcatJSON() {
   };
 }
 
+/* ── Export: RDF/Turtle (DCAT-AP.de) ──────────────────────────────
+   Manche Portale harvesten Turtle direkt statt JSON-LD. Serialisiert wird
+   derselbe Stand wie im JSON-Export – die Feldabdeckung ist bewusst
+   identisch, ein Test hält beide gegeneinander.
+
+   Datensatz-IRIs: DCAT-AP.de verlangt auflösbare URIs, und welche das sind,
+   weiß nur die veröffentlichende Stelle. Deshalb werden RELATIVE IRIs gegen
+   ein `@base` geschrieben – die Organisation ersetzt genau eine Zeile.
+   Liegt eine landingPage vor, wird sie als absolute IRI bevorzugt.
+   ────────────────────────────────────────────────────────────── */
+const TTL_BASE_PLACEHOLDER = 'https://beispiel.de/';
+const TTL_PREFIXES = [
+  ['dcat',   'http://www.w3.org/ns/dcat#'],
+  ['dct',    'http://purl.org/dc/terms/'],
+  ['dcatde', 'http://dcat-ap.de/def/dcatde/'],
+  ['foaf',   'http://xmlns.com/foaf/0.1/'],
+  ['vcard',  'http://www.w3.org/2006/vcard/ns#'],
+  ['skos',   'http://www.w3.org/2004/02/skos/core#'],
+  ['xsd',    'http://www.w3.org/2001/XMLSchema#'],
+];
+
+/* Turtle-Literal. Zeilenumbrüche, Anführungszeichen und Backslashes MÜSSEN
+   escaped werden – sonst bricht ein mehrzeiliger Beschreibungstext die Datei. */
+function ttlStr(v) {
+  return '"' + String(v == null ? '' : v)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/\t/g, '\\t') + '"';
+}
+/* Turtle-IRI. Zeichen, die in <…> unzulässig sind (Leerraum, spitze Klammern,
+   Anführungszeichen …), werden prozent-kodiert statt einfach entfernt. */
+function ttlIri(v) {
+  return '<' + String(v == null ? '' : v).trim()
+    .replace(/[\u0000-\u0020<>"{}|^`\\]/g, c => encodeURIComponent(c)) + '>';
+}
+function ttlDate(v) { return `${ttlStr(v)}^^xsd:date`; }
+
+function turtleDataset(d) {
+  // Subjekt: absolute landingPage, sonst relative IRI gegen @base
+  const subject = d.landingPage ? ttlIri(d.landingPage) : ttlIri(`dataset/${d.id}`);
+  const p = [];
+  p.push(['a', 'dcat:Dataset']);
+  p.push(['dct:identifier', ttlStr(d.id)]);
+  p.push(['dct:title', ttlStr(d.title)]);
+  p.push(['dct:description', ttlStr(d.description || d.title)]);
+  p.push(['dct:publisher', `[ a foaf:Organization ; foaf:name ${ttlStr(d.publisher)} ]`]);
+  if (d.sourceSystem) p.push(['dcatde:sourceSystem', ttlStr(d.sourceSystem)]);
+  if (d.contactPoint) p.push(['dcat:contactPoint', `[ a vcard:Organization ; vcard:fn ${ttlStr(d.contactPoint)} ]`]);
+  const kw = keywordList(d);
+  if (kw.length) p.push(['dcat:keyword', kw.map(ttlStr).join(', ')]);
+  if (d.theme) p.push(['dcat:theme', ttlIri(THEME_NAL + d.theme)]);
+  if (d.accrualPeriodicity) p.push(['dct:accrualPeriodicity', ttlIri(FREQ_NAL + d.accrualPeriodicity)]);
+  if (d.accessRights) p.push(['dct:accessRights', ttlIri(ACCESS_NAL + d.accessRights)]);
+  if (d.landingPage) p.push(['dcat:landingPage', ttlIri(d.landingPage)]);
+  if (d.issued) p.push(['dct:issued', ttlDate(d.issued)]);
+  if (d.modified) p.push(['dct:modified', ttlDate(d.modified)]);
+  if (d.temporalStart || d.temporalEnd) {
+    const t = ['a dct:PeriodOfTime'];
+    if (d.temporalStart) t.push(`dcat:startDate ${ttlDate(d.temporalStart)}`);
+    if (d.temporalEnd) t.push(`dcat:endDate ${ttlDate(d.temporalEnd)}`);
+    p.push(['dct:temporal', `[ ${t.join(' ; ')} ]`]);
+  }
+  if (d.spatial) p.push(['dct:spatial', `[ a dct:Location ; skos:prefLabel ${ttlStr(d.spatial)} ]`]);
+  if (d.geocodingKey) p.push(['dcatde:politicalGeocodingURI', ttlIri(GEO_REGIONAL_NAL + d.geocodingKey)]);
+  if (d.geocodingLevel) p.push(['dcatde:politicalGeocodingLevelURI', ttlIri(GEO_LEVEL_NAL + d.geocodingLevel)]);
+  if (d.contributorID) p.push(['dcatde:contributorID',
+    ttlIri(/^https?:\/\//i.test(d.contributorID) ? d.contributorID : CONTRIBUTOR_NAL + d.contributorID)]);
+
+  const dist = ['a dcat:Distribution'];
+  if (d.landingPage) dist.push(`dcat:accessURL ${ttlIri(d.landingPage)}`);
+  if (d.format) dist.push(`dct:format ${ttlStr(d.format)}`);
+  if (d.license) dist.push(`dct:license ${ttlIri((LICENSE_META[d.license] && LICENSE_META[d.license].uri) || d.license)}`);
+  p.push(['dcat:distribution', `[ ${dist.join(' ; ')} ]`]);
+
+  return `${subject}\n    ` + p.map(([k, v]) => `${k} ${v}`).join(' ;\n    ') + ' .';
+}
+
+function buildDcatTurtle() {
+  const head = TTL_PREFIXES.map(([p, u]) => `@prefix ${p}: <${u}> .`).join('\n');
+  const datasets = inventory.map(turtleDataset);
+  const katalogRefs = inventory.map(d =>
+    d.landingPage ? ttlIri(d.landingPage) : ttlIri(`dataset/${d.id}`));
+  const katalogPreds = [
+    'a dcat:Catalog',
+    `dct:title ${ttlStr('Dateninventar (DatenLotse-Export)')}`,
+    `dct:publisher [ a foaf:Organization ; foaf:name ${ttlStr(orgName())} ]`,
+  ];
+  if (katalogRefs.length) katalogPreds.push(`dcat:dataset ${katalogRefs.join(',\n        ')}`);
+  const katalog = `${ttlIri('catalog/datenlotse')}\n    ` +
+    katalogPreds.join(' ;\n    ') + ' .';
+
+  return [
+    '# DCAT-AP.de als RDF/Turtle – erzeugt mit DatenLotse, lokal im Browser.',
+    '# Die Basis-URI unten durch die eigene, auflösbare Adresse ersetzen:',
+    '# daraus werden die Datensatz-IRIs gebildet (Datensätze mit eigener',
+    '# Info-/Zugriffs-URL nutzen stattdessen diese als IRI).',
+    `@base <${TTL_BASE_PLACEHOLDER}> .`,
+    head,
+    '',
+    katalog,
+    '',
+    datasets.join('\n\n'),
+    '',
+  ].join('\n');
+}
+
 /* ── Export: flaches CSV (Inventarliste) ──────────────────────── */
 function buildInventoryCSV() {
   ensureAllClearing();   // Ampel auch ohne Besuch des Clearing-Tabs befüllen
@@ -1139,6 +1247,10 @@ document.getElementById('btn-export-json')?.addEventListener('click', () => {
   if (!inventory.length) return;
   downloadBlob(JSON.stringify(buildDcatJSON(), null, 2),
     'datenlotse-inventar-dcat-ap-de.json', 'application/json');
+});
+document.getElementById('btn-export-ttl')?.addEventListener('click', () => {
+  if (!inventory.length) return;
+  downloadBlob(buildDcatTurtle(), 'datenlotse-inventar-dcat-ap-de.ttl', 'text/turtle');
 });
 document.getElementById('btn-export-csv')?.addEventListener('click', () => {
   if (!inventory.length) return;
