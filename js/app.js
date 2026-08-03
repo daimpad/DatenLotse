@@ -183,7 +183,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v37';
+const APP_VERSION = 'v38';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -759,6 +759,8 @@ function renderBulkBar() {
   if (!bar) return;
   const n = invSelection.size;
   bar.classList.toggle('hidden', n === 0);
+  // Screenreader sollen die Zahl mitbekommen, ohne dass der Fokus springt
+  bar.setAttribute('aria-label', n ? `Massenbearbeitung, ${n} Datensätze ausgewählt` : 'Massenbearbeitung');
   if (!n) { bar.innerHTML = ''; return; }
 
   bar.innerHTML =
@@ -1619,7 +1621,11 @@ const FOCUSABLE = 'a[href], button:not([disabled]), select, input, textarea, [ta
    dem Modal heraus auf Elemente hinter dem Backdrop (u. a. die Seitenleiste). */
 function trapFocus(e) {
   if (e.key !== 'Tab') return;
-  const dialog = document.querySelector('.modal-backdrop:not(.hidden) [role="dialog"]');
+  // Auch der Rundgang ist `aria-modal` – Screenreader blenden den Rest aus.
+  // Ohne diese Falle konnte man per Tab in eine Seite tabben, die für sie
+  // gar nicht existiert.
+  const dialog = document.querySelector(
+    '.modal-backdrop:not(.hidden) [role="dialog"], .tour-layer:not(.hidden) [role="dialog"]');
   if (!dialog) return;
   const items = [...dialog.querySelectorAll(FOCUSABLE)].filter(el => el.offsetParent !== null);
   if (!items.length) return;
@@ -2245,7 +2251,12 @@ table{border-collapse:collapse;width:100%;margin-top:6px} th,td{border:1px solid
 th{background:#f3eefb;color:#420093;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
 .sign{margin-top:14px;color:#555} .sign span{display:inline-block;min-width:230px;border-bottom:1px solid #999;margin-left:6px}
 .form-card{border:1px solid #d9d2e8;border-radius:8px;padding:12px 14px;margin:10px 0;page-break-inside:avoid}
-.amp{font-weight:700} @media print{body{margin:12mm}}`;
+.amp{font-weight:700}
+table.kpis{border:none;margin-top:10px} table.kpis td{border:1px solid #d9d2e8;width:25%;padding:10px 12px;text-align:center}
+.kpi-num{display:block;font-size:21px;font-weight:800;color:#420093;line-height:1.2}
+.kpi-lab{display:block;font-size:11px;font-weight:700;margin-top:3px}
+.kpi-sub{display:block;font-size:10.5px;color:#6f6a87;margin-top:2px}
+@media print{body{margin:12mm}}`;
 
 function docShell(title, bodyHTML) {
   return `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>DatenLotse – ${esc(title)}</title>
@@ -2442,7 +2453,85 @@ function vvtCSV() {
   return [head, ...rows].join('\n');
 }
 
+/* ── Status-Einseiter ─────────────────────────────────────────────
+   Eine Seite über ALLE Bausteine – für Vorstellungstermine, Leitungsrunden
+   und Gremien. Die vorhandenen Berichte gehen jeweils in die Tiefe eines
+   Moduls; hier fehlte die zusammenfassende Sicht auf einer Seite.
+
+   Bewusst nur ABGELEITETE Zahlen aus dem aktuellen Stand – keine
+   Bewertungen, keine Prognosen. Was offen ist, steht als nächster Schritt
+   daneben, damit die Seite nicht bloß Status meldet, sondern handhabbar ist.
+   ────────────────────────────────────────────────────────────── */
+function statusKennzahlen() {
+  const kScore = kompassOverall();
+  const gScore = reifegrad().score;
+  const gBeantwortet = Object.keys(governanceAnswers).length;
+  const n = inventory.length;
+  const avg = n ? Math.round(inventory.reduce((s, d) => s + completeness(d), 0) / n) : 0;
+  const ampel = { gruen: 0, gelb: 0, rot: 0 };
+  if (n) { ensureAllClearing(); inventory.forEach(d => ampel[d.clearing.ampel]++); }
+  const qual = { gruen: 0, gelb: 0, rot: 0 };
+  inventory.forEach(d => qual[qualityStatus(validateDataset(d))]++);
+  return { kScore, kAmp: kompassAmpel(kScore), gScore, gAmp: reifeAmpel(gScore),
+           gBeantwortet, n, avg, ampel, qual };
+}
+
+/* Nächste Schritte aus dem Stand ableiten – geordnet nach dem, was den
+   größten Unterschied macht. Keine Rangfolge aus dem Bauch: die Regeln
+   entsprechen den Phasen des Werkzeugs. */
+function statusNaechsteSchritte(k) {
+  const s = [];
+  if (!k.n) s.push('Dateninventar aufbauen: DatenGraf-CSV importieren oder mit einem Beispieldatensatz starten.');
+  if (!k.gBeantwortet) s.push('Governance-Reifegrad ausfüllen (8 Fragen) – er zeigt, welche Rollen noch unbesetzt sind.');
+  if (k.qual.rot) s.push(`${k.qual.rot} Datensätze haben Pflichtfeld-Fehler und wären für ein Portal nicht harvestbar.`);
+  if (k.n && k.avg < 80) s.push(`Metadaten vervollständigen: derzeit ${k.avg} % der DCAT-AP.de-Pflichtfelder gefüllt.`);
+  if (k.ampel.rot) s.push(`${k.ampel.rot} Datensätze stehen im Clearing auf Rot – Veröffentlichung ist dort gesperrt.`);
+  if (k.ampel.gelb) s.push(`${k.ampel.gelb} Datensätze brauchen eine manuelle Prüfung (Clearing gelb).`);
+  if (k.kScore < 50) s.push('Daten-Kompass durchgehen – er benennt die Lücken je Dimension und verweist auf den passenden Baustein.');
+  if (!s.length) s.push('Keine offenen Punkte aus dem aktuellen Stand – Phase 4 (Pipeline) und Phase 5 (Feedback) sind der nächste Schritt.');
+  return s.slice(0, 5);
+}
+
+function statusBodyHTML() {
+  const k = statusKennzahlen();
+  const kachel = (titel, wert, unter) =>
+    `<td><div class="kpi"><span class="kpi-num">${esc(wert)}</span><span class="kpi-lab">${esc(titel)}</span>
+      <span class="kpi-sub">${esc(unter)}</span></div></td>`;
+
+  return `
+    <h1>Open Data – Status auf einen Blick</h1>
+    <p class="muted">${esc(orgName())} · Stand ${esc(docDate())}</p>
+
+    <h2>Kennzahlen</h2>
+    <table class="kpis"><tr>
+      ${kachel('Daten-Kompass', `${k.kScore} / 100`, k.kAmp.label)}
+      ${kachel('Governance-Reifegrad', `${k.gScore} / 100`, k.gBeantwortet ? k.gAmp.label : 'noch nicht beantwortet')}
+      ${kachel('Datensätze im Inventar', String(k.n), `Ø ${k.avg} % DCAT-AP.de-vollständig`)}
+      ${kachel('Publikationsbereit', String(k.qual.gruen), `${k.qual.gelb} mit Warnungen · ${k.qual.rot} mit Fehlern`)}
+    </tr></table>
+
+    <h2>Risiko-Clearing</h2>
+    <table>
+      <tr><th>Einstufung</th><th>Anzahl</th><th>Bedeutung</th></tr>
+      <tr><td class="amp">Grün</td><td>${k.ampel.gruen}</td><td>Kein Personenbezug erkennbar – Veröffentlichung möglich.</td></tr>
+      <tr><td class="amp">Gelb</td><td>${k.ampel.gelb}</td><td>Manuelle Prüfung nötig, ggf. Anonymisierung oder Aggregation.</td></tr>
+      <tr><td class="amp">Rot</td><td>${k.ampel.rot}</td><td>Veröffentlichung gesperrt (Art. 9 DSGVO bzw. fehlende Rechtsgrundlage).</td></tr>
+    </table>
+    <p class="muted">Ergebnis eines transparenten Entscheidungsbaums, kein maschinelles Lernen. Die Einstufung ersetzt keine rechtliche Prüfung im Einzelfall.</p>
+
+    <h2>Nächste Schritte</h2>
+    <ol>${statusNaechsteSchritte(k).map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+
+    <h2>Grundlage</h2>
+    <p>Erhoben mit <strong>DatenLotse</strong> entlang anerkannter Modelle (World-Bank ODRA, EU Open Data Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR). Alle Auswertungen entstanden lokal im Browser; es wurden keine Daten übertragen.</p>
+    <p class="muted">Ohne Gewähr – dieses Dokument ist eine Arbeitsgrundlage und keine Rechtsberatung.</p>`;
+}
+
 function generateDoc(doc, fmt) {
+  if (doc === 'status') {
+    printDoc(docShell('Status auf einen Blick', statusBodyHTML()));
+    return;
+  }
   if (doc === 'policy') {
     if (fmt === 'md') downloadBlob(policyMarkdown(), 'open-data-richtlinie-muster.md', 'text/markdown');
     else printDoc(docShell('Open-Data-Richtlinie (Muster)', policyBodyHTML()));
@@ -3245,7 +3334,7 @@ function renderKompassHistory() {
   if (!box) return;
   const t = kompassTrend();
   const balken = kompassHistory.map(e =>
-    `<span class="khist-bar" title="${esc(e.date)}: ${e.score} %">
+    `<span class="khist-bar" aria-hidden="true" title="${esc(e.date)}: ${e.score} %">
        <span class="khist-fill" style="height:${Math.max(e.score, 2)}%"></span>
        <span class="khist-label">${esc(e.date.slice(5))}</span>
      </span>`).join('');
@@ -3259,7 +3348,7 @@ function renderKompassHistory() {
       </span>
     </div>
     ${kompassHistory.length
-      ? `<div class="khist-chart">${balken}</div>` +
+      ? `<div class="khist-chart" role="img" aria-label="Reifegrad-Verlauf: ${esc(kompassHistory.map(e => `${e.date} ${e.score} Prozent`).join(', '))}">${balken}</div>` +
         (t ? `<p class="khist-trend khist-trend--${t.diff > 0 ? 'up' : t.diff < 0 ? 'down' : 'flat'}">
                 <i class="fas ${t.diff > 0 ? 'fa-arrow-trend-up' : t.diff < 0 ? 'fa-arrow-trend-down' : 'fa-minus'}"></i>
                 ${t.diff > 0 ? '+' : ''}${t.diff} Punkte seit ${esc(t.seit)} (${t.von} → ${t.auf} %)

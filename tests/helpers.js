@@ -31,8 +31,11 @@ async function openApp(page, { confirmResult = true } = {}) {
     window.__dialogs = { alert: [], confirm: [], print: 0 };
     window.alert = msg => { window.__dialogs.alert.push(String(msg)); };
     window.confirm = msg => { window.__dialogs.confirm.push(String(msg)); return confirmResult; };
+    // printDoc() prüft document.readyState und hängt sich sonst an 'load' –
+    // ohne beides liefe der Druck-Pfad im Stub ins Leere.
     window.open = () => ({
-      document: { open() {}, write() {}, close() {} },
+      document: { open() {}, write() {}, close() {}, readyState: 'complete' },
+      addEventListener() {},
       focus() {}, print() { window.__dialogs.print++; }, close() {},
     });
   }, { confirmResult });

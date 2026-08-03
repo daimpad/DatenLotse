@@ -130,3 +130,65 @@ test.describe('Responsive Layout', () => {
     });
   }
 });
+
+test.describe('Barrierefreiheit der neuen Bereiche', () => {
+  test('Rundgang hält den Fokus im Dialog', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => startTour());
+    // aria-modal blendet den Rest für Screenreader aus – per Tab durfte man
+    // ihn trotzdem verlassen und landete in einer Seite, die es für sie nicht gibt
+    for (let i = 0; i < 10; i++) {
+      await page.keyboard.press('Tab');
+      const drin = await page.evaluate(() =>
+        document.getElementById('tour-card').contains(document.activeElement));
+      expect(drin).toBe(true);
+    }
+    await expect(page.locator('#tour-card')).toHaveAttribute('aria-modal', 'true');
+  });
+
+  test('Verlaufs-Diagramm ist für Screenreader lesbar', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => {
+      navTo('kompass');
+      kompassSnapshot('2026-01-01'); kompassSnapshot('2026-02-01');
+      renderKompassHistory();
+    });
+    const chart = page.locator('.khist-chart');
+    await expect(chart).toHaveAttribute('role', 'img');
+    const label = await chart.getAttribute('aria-label');
+    expect(label).toContain('2026-01-01');
+    expect(label).toContain('Prozent');
+    // Die Balken selbst tragen keine eigene Semantik
+    const versteckt = await page.locator('.khist-bar').evaluateAll(
+      els => els.every(e => e.getAttribute('aria-hidden') === 'true'));
+    expect(versteckt).toBe(true);
+  });
+
+  test('Massenbearbeitung ist als Werkzeugleiste ausgezeichnet', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    await expect(page.locator('#inv-bulk')).toHaveAttribute('role', 'toolbar');
+    await page.locator('.inv-select').first().check();
+    await expect(page.locator('#inv-bulk')).toHaveAttribute('aria-label', /1 Datensätze ausgewählt/);
+
+    // Jede Checkbox trägt einen eigenen Namen, sonst heißen alle gleich
+    const ohneNamen = await page.locator('.inv-select').evaluateAll(
+      els => els.filter(e => !e.getAttribute('aria-label')).length);
+    expect(ohneNamen).toBe(0);
+  });
+
+  test('CSV-Spaltenauswahl und Beispielkarten sind bedienbar benannt', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => { navTo('pseudo'); showPseudoTab('csv'); });
+    await page.locator('#pseudo-csv-input').fill('Name,Notiz\nMax,x\n');
+    const ohne = await page.locator('#pseudo-csv-cols select').evaluateAll(
+      els => els.filter(e => !e.getAttribute('aria-label') && !e.closest('label')).length);
+    expect(ohne).toBe(0);
+
+    await page.evaluate(() => openInventoryModal());
+    const karten = await page.locator('.sample-card').evaluateAll(
+      els => els.map(e => e.textContent.trim().length));
+    expect(karten.every(l => l > 10)).toBe(true);
+  });
+});
