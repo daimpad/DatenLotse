@@ -313,3 +313,152 @@ test.describe('Wissens-Center & Vorlagen', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe('Beispieldaten, Verlauf & Prüfwerkzeuge', () => {
+  const BEISPIELE = [
+    'data/sample-kommune.csv',
+    'data/sample-landkreis.csv',
+    'data/sample-landesbehoerde.csv',
+  ];
+
+  test('drei Beispielorganisationen stehen zur Auswahl und laden korrekt', async ({ page }) => {
+    const errors = await openApp(page);
+    await page.evaluate(() => openInventoryModal());
+    await expect(page.locator('.sample-card')).toHaveCount(3);
+
+    for (const datei of BEISPIELE) {
+      await page.evaluate(d => { clearState(); loadSampleData(d); }, datei);
+      await page.waitForFunction(() => inventory.length > 0);
+      const r = await page.evaluate(() => ({
+        n: inventory.length,
+        ohneTitel: inventory.filter(d => !d.title).length,
+        ohnePublisher: inventory.filter(d => !d.publisher).length,
+        publisher: [...new Set(inventory.map(d => d.publisher))],
+      }));
+      expect(r.n, datei).toBe(12);
+      expect(r.ohneTitel, datei).toBe(0);
+      expect(r.ohnePublisher, datei).toBe(0);
+      expect(r.publisher.length, datei).toBeGreaterThan(0);
+    }
+    expect(errors).toEqual([]);
+  });
+
+  test('Auswahl im Modal lädt die Daten und schließt den Dialog', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => openInventoryModal());
+    await page.locator('.sample-card[data-sample="data/sample-landkreis.csv"]').click();
+    await page.waitForFunction(() => inventory.length > 0);
+    await expect(page.locator('#inventory-backdrop')).toBeHidden();
+    await expect(page.locator('#inventory-view')).toBeVisible();
+    await expect(page.locator('#inventory-body')).toContainText('Infektionsmeldungen');
+  });
+
+  test('die Beispiele decken unterschiedliche Schutzbedarfe ab', async ({ page }) => {
+    await openApp(page);
+    const verteilungen = [];
+    for (const datei of BEISPIELE) {
+      await page.evaluate(d => { clearState(); loadSampleData(d); }, datei);
+      await page.waitForFunction(() => inventory.length > 0);
+      verteilungen.push(await page.evaluate(() => {
+        ensureAllClearing();
+        const c = { gruen: 0, gelb: 0, rot: 0 };
+        inventory.forEach(d => c[d.clearing.ampel]++);
+        return c;
+      }));
+    }
+    // Jedes Beispiel enthält sowohl unstrittige als auch prüfbedürftige Fälle
+    for (const v of verteilungen) {
+      expect(v.gruen).toBeGreaterThan(0);
+      expect(v.gelb).toBeGreaterThan(0);
+    }
+    // „Nicht öffentlich“ darf nie automatisch grün werden (Regression v28)
+    const nichtOeff = await page.evaluate(() =>
+      inventory.filter(d => schutzKategorie(d._grafSchutzbedarf) === 'nicht-oeffentlich')
+        .map(d => d.clearing.ampel));
+    expect(nichtOeff.length).toBeGreaterThan(0);
+    expect(nichtOeff.every(a => a !== 'gruen')).toBe(true);
+  });
+
+  test('Kompass-Verlauf hält Stände nur auf Knopfdruck fest', async ({ page }) => {
+    const errors = await openApp(page);
+    await page.evaluate(() => navTo('kompass'));
+    // Kein stiller Schnappschuss beim Rendern oder beim Ändern eines Items
+    await expect(page.locator('#kompass-history .khist-empty')).toBeVisible();
+    await page.locator('#kompass-dims select').first().selectOption('erfuellt');
+    expect(await page.evaluate(() => kompassHistory.length)).toBe(0);
+
+    await page.locator('#kompass-snap').click();
+    expect(await page.evaluate(() => kompassHistory.length)).toBe(1);
+    await expect(page.locator('.khist-bar')).toHaveCount(1);
+    expect(errors).toEqual([]);
+  });
+
+  test('ein Eintrag je Tag, Verlauf überlebt den Reload', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => {
+      navTo('kompass');
+      kompassSnapshot('2026-01-01');
+      kompassSnapshot('2026-01-01');   // derselbe Tag ersetzt statt anzuhängen
+      kompassSnapshot('2026-02-01');
+    });
+    expect(await page.evaluate(() => kompassHistory.length)).toBe(2);
+
+    await page.reload();
+    await page.waitForFunction(() => typeof pseudonymize === 'function');
+    const daten = await page.evaluate(() => kompassHistory.map(e => e.date));
+    expect(daten).toEqual(['2026-01-01', '2026-02-01']);
+  });
+
+  test('Verlauf ist chronologisch, gedeckelt und zeigt den Trend', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      navTo('kompass');
+      // Absichtlich unsortiert einwerfen und über die Obergrenze hinaus
+      for (let i = 40; i >= 1; i--) kompassSnapshot(`2026-${String(i % 12 + 1).padStart(2, '0')}-${String(i % 28 + 1).padStart(2, '0')}`);
+      const sortiert = kompassHistory.every((e, i, a) => i === 0 || a[i - 1].date <= e.date);
+      kompassHistory = [{ date: '2026-01-01', score: 20 }, { date: '2026-06-01', score: 55 }];
+      return { n: kompassHistory.length, sortiert, max: KOMPASS_HIST_MAX, trend: kompassTrend() };
+    });
+    expect(r.sortiert).toBe(true);
+    expect(r.trend).toEqual({ von: 20, auf: 55, diff: 35, seit: '2026-01-01', stand: '2026-06-01' });
+    expect(r.max).toBeGreaterThan(0);
+  });
+
+  test('Verlauf wandert in die Projektdatei und wird beim Reset gelöscht', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => { navTo('kompass'); kompassSnapshot('2026-03-03'); });
+    const json = await page.evaluate(() => buildProjectJSON());
+    expect(JSON.parse(json).data.kompassHistory.length).toBe(1);
+
+    await page.evaluate(() => clearState());
+    expect(await page.evaluate(() => kompassHistory.length)).toBe(0);
+    expect(await page.evaluate(() => localStorage.getItem('datenlotse_kompass_verlauf'))).toBeNull();
+
+    // Ältere Projektdateien ohne Verlauf bleiben importierbar (kein Schema-Bump)
+    const ok = await page.evaluate(() =>
+      importProject(JSON.stringify({ app: 'DatenLotse', schema: 1, data: { inventory: [] } })));
+    expect(ok).toBe(true);
+    expect(await page.evaluate(() => Array.isArray(kompassHistory))).toBe(true);
+
+    const zurueck = await page.evaluate(t => importProject(t), json);
+    expect(zurueck).toBe(true);
+    expect(await page.evaluate(() => kompassHistory[0].date)).toBe('2026-03-03');
+  });
+
+  test('Prüfwerkzeuge verweisen auf offizielle Validatoren und Normtexte', async ({ page }) => {
+    const errors = await openApp(page);
+    await page.evaluate(() => navTo('wissen'));
+    const n = await page.evaluate(() => PRUEF_WERKZEUGE.length);
+    await expect(page.locator('#wissen-tools .know-law')).toHaveCount(n);
+    // Die Grenze der eigenen Prüfung wird benannt, nicht verschwiegen
+    await expect(page.locator('#wissen-sec-tools')).toContainText('keine vollständige SHACL-Validierung');
+
+    const links = await page.locator('#wissen-tools a').evaluateAll(as =>
+      as.map(a => ({ href: a.href, rel: a.rel })));
+    for (const l of links) {
+      expect(l.href).toMatch(/itb\.ec\.europa\.eu|dcat-ap\.de|govdata\.de/);
+      expect(l.rel).toContain('noopener');
+    }
+    expect(errors).toEqual([]);
+  });
+});

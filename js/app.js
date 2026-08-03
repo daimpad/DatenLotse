@@ -158,13 +158,18 @@ function loadState() {
     if (gov) { const parsed = JSON.parse(gov); if (parsed && typeof parsed === 'object') governanceAnswers = parsed; }
   } catch (e) { /* defekte Governance-Daten ignorieren */ }
   try {
+    loadKompassHistory();
     const k = localStorage.getItem(LS_KOMPASS);
     if (k) { const parsed = JSON.parse(k); if (parsed && typeof parsed === 'object') kompassState = parsed; }
   } catch (e) { /* defekte Kompass-Daten ignorieren */ }
 }
 
 function clearState() {
-  try { localStorage.removeItem(LS_INVENTORY); localStorage.removeItem(LS_GOVERNANCE); localStorage.removeItem(LS_KOMPASS); } catch (e) { /* ignorieren */ }
+  try {
+    localStorage.removeItem(LS_INVENTORY); localStorage.removeItem(LS_GOVERNANCE);
+    localStorage.removeItem(LS_KOMPASS); localStorage.removeItem(LS_KOMPASS_HIST);
+  } catch (e) { /* ignorieren */ }
+  kompassHistory = [];
   grafRows = [];
   inventory = [];
   governanceAnswers = {};
@@ -178,7 +183,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v35';
+const APP_VERSION = 'v36';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -186,13 +191,14 @@ function buildProjectJSON() {
     schema: PROJECT_SCHEMA,
     version: APP_VERSION,
     exportedAt: new Date().toISOString(),
-    data: { grafRows, inventory, governanceAnswers, kompassState }
+    data: { grafRows, inventory, governanceAnswers, kompassState, kompassHistory }
   }, null, 2);
 }
 
 function exportProject() {
   const hasData = grafRows.length || inventory.length ||
-    Object.keys(governanceAnswers).length || Object.keys(kompassState).length;
+    Object.keys(governanceAnswers).length || Object.keys(kompassState).length ||
+    kompassHistory.length;
   if (!hasData) {
     alert('Es gibt noch keinen Stand zum Speichern. Importiere zuerst eine DatenGraf-CSV oder lade das Beispiel.');
     return;
@@ -223,6 +229,11 @@ function importProject(text) {
   inventory         = Array.isArray(d.inventory) ? d.inventory : [];
   governanceAnswers = (d.governanceAnswers && typeof d.governanceAnswers === 'object') ? d.governanceAnswers : {};
   kompassState      = (d.kompassState && typeof d.kompassState === 'object') ? d.kompassState : {};
+  // Additiv ergänzt (kein Schema-Bump): ältere Projektdateien haben ihn nicht
+  kompassHistory    = Array.isArray(d.kompassHistory)
+    ? d.kompassHistory.filter(e => e && typeof e.date === 'string' && Number.isFinite(e.score))
+    : [];
+  saveKompassHistory();
   saveState();
   if (inventory.length) renderInventory();   // sinnvolle Ansicht; sonst Startseite
   else showView('home');
@@ -1373,7 +1384,11 @@ function loadSampleData(file) {
 
 document.getElementById('btn-import-again')?.addEventListener('click', pickAndImport);
 document.querySelectorAll('[data-sample]').forEach(btn =>
-  btn.addEventListener('click', () => loadSampleData(btn.dataset.sample)));
+  btn.addEventListener('click', () => {
+    // Auswahl aus dem Erklär-Modal: Dialog schließen, sonst liegt er über dem Inventar
+    showModal('inventory-backdrop', false);
+    loadSampleData(btn.dataset.sample);
+  }));
 
 document.getElementById('btn-export-json')?.addEventListener('click', () => {
   if (!inventory.length) return;
@@ -1454,7 +1469,6 @@ function openInventoryModal() { showModal('inventory-backdrop', true); }
 document.getElementById('open-inventory-btn')?.addEventListener('click', openInventoryModal);
 document.getElementById('inventory-close-btn')?.addEventListener('click', () => showModal('inventory-backdrop', false));
 document.getElementById('inv-modal-import')?.addEventListener('click', () => { showModal('inventory-backdrop', false); pickAndImport(); });
-document.getElementById('inv-modal-sample')?.addEventListener('click', () => { showModal('inventory-backdrop', false); loadSampleData('data/sample-kommune.csv'); });
 
 /* ── Phase-3-Prozess-Wizard (Modal-Stepper mit Checks) ────────── */
 const PHASE3_TITLES = ['Worum geht es?', 'Der Ablauf', 'Bereitschafts-Check', 'Nächste Schritte'];
@@ -1913,6 +1927,26 @@ const KOMMUNAL_SATZUNGEN = [
     url: 'https://informationsfreiheit.org/category/woanders/niedersachsen/' },
 ];
 
+/* Prüfwerkzeuge und Normtexte. Die eigene Qualitätsprüfung deckt die
+   häufigsten Fehler ab, ist aber KEINE vollständige SHACL-Validierung –
+   die bräuchte eine RDF-Bibliothek und damit eine Laufzeit-Abhängigkeit,
+   die DatenLotse bewusst nicht hat. Statt das zu verschweigen, verweist
+   das Werkzeug auf die offiziellen Validatoren. */
+const PRUEF_WERKZEUGE = [
+  { name: 'SHACL-Validator der EU (DCAT-AP)',
+    summary: 'Offizieller Validator der Interoperability Test Bed: JSON-LD oder Turtle hochladen bzw. per URL prüfen lassen. Deckt die vollständigen SHACL-Regeln ab – mehr, als eine regelbasierte Prüfung im Browser leisten kann.',
+    url: 'https://www.itb.ec.europa.eu/shacl/dcat-ap/upload' },
+  { name: 'DCAT-AP.de-Spezifikation 2.0',
+    summary: 'Der Normtext hinter dem Export: semantische Regeln für die Kommunikation mit GovData und dem europäischen Datenportal.',
+    url: 'https://www.dcat-ap.de/def/dcatde/2.0/spec/' },
+  { name: 'DCAT-AP.de-Konventionenhandbuch',
+    summary: 'Ergänzende Regeln, Wertelisten und URIs, die speziell für die Anlieferung an GovData gelten – hier steht auch, welche Felder beim Harvesting tatsächlich verlangt werden.',
+    url: 'https://www.dcat-ap.de/def/dcatde/2.0/implRules/' },
+  { name: 'GovData: Metadaten-Struktur',
+    summary: 'Portalseitige Beschreibung des Metadatenschemas – nützlich für die Abstimmung mit der eigenen Datenbereitstellung.',
+    url: 'https://www.govdata.de/metadatenschema' },
+];
+
 const LAENDER_KIND = {
   transparenz: { label: 'Transparenzgesetz', hint: 'aktive Veröffentlichungspflicht' },
   ifg:         { label: 'Informationsfreiheitsgesetz', hint: 'Zugang auf Antrag' },
@@ -1969,6 +2003,14 @@ function renderWissen() {
         <span class="know-law-sum">${esc(k.summary)}</span></a>`).join('')
     : '<p class="know-empty">Nichts passt zur Suche.</p>';
 
+  const werkzeuge = PRUEF_WERKZEUGE.filter(w => match(w.name, w.summary, 'validator prüfung shacl spezifikation'));
+  const wzEl = document.getElementById('wissen-tools');
+  if (wzEl) wzEl.innerHTML = werkzeuge.length
+    ? werkzeuge.map(w => `<a class="know-law know-law--tool" href="${esc(w.url)}" target="_blank" rel="noopener">
+        <span class="know-law-name">${esc(w.name)} <i class="fas fa-arrow-up-right-from-square"></i></span>
+        <span class="know-law-sum">${esc(w.summary)}</span></a>`).join('')
+    : '<p class="know-empty">Nichts passt zur Suche.</p>';
+
   const mEl = document.getElementById('wissen-models');
   if (mEl) mEl.innerHTML = models.length
     ? models.map(m => `<div class="know-model"><strong>${esc(m.name)}</strong><span class="know-model-by">${esc(m.by)}</span><p>${esc(m.desc)}</p></div>`).join('')
@@ -1982,6 +2024,8 @@ function renderWissen() {
   // Der Bundesland-Filter meint Landesrecht – die kommunale Ebene blendet er aus
   document.getElementById('wissen-sec-kommunal')?.classList.toggle('hidden',
     kommunal.length === 0 || !!wissenFilter.land);
+  document.getElementById('wissen-sec-tools')?.classList.toggle('hidden',
+    werkzeuge.length === 0 || !!wissenFilter.land);
   document.getElementById('wissen-noresult')?.classList.toggle('hidden',
     glossary.length + laws.length + models.length + laender.length > 0);
 }
@@ -2957,6 +3001,94 @@ function kompassAmpel(score) {
 function renderKompass() {
   renderKompassScore();
   renderKompassDims();
+  renderKompassHistory();
+}
+
+/* ── Kompass-Verlauf ──────────────────────────────────────────────
+   Ein Reifegrad ist als Momentaufnahme wenig wert – interessant ist die
+   Entwicklung. Stände werden BEWUSST NUR AUF KNOPFDRUCK festgehalten:
+   automatische Schnappschüsse bei jeder Änderung würden die Kurve mit
+   Zwischenständen zumüllen, und ein Verlauf, den niemand bestellt hat,
+   ist stille Protokollierung des eigenen Arbeitens.
+   Ein Eintrag je Tag: mehrfaches Festhalten am selben Tag ersetzt den Wert.
+   ────────────────────────────────────────────────────────────── */
+const LS_KOMPASS_HIST = 'datenlotse_kompass_verlauf';
+const KOMPASS_HIST_MAX = 24;
+let kompassHistory = [];
+
+function loadKompassHistory() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_KOMPASS_HIST) || '[]');
+    kompassHistory = Array.isArray(raw)
+      ? raw.filter(e => e && typeof e.date === 'string' && Number.isFinite(e.score))
+      : [];
+  } catch (e) { kompassHistory = []; }
+}
+function saveKompassHistory() {
+  try { localStorage.setItem(LS_KOMPASS_HIST, JSON.stringify(kompassHistory)); } catch (e) { /* ignorieren */ }
+}
+function kompassSnapshot(datum) {
+  const date = datum || new Date().toISOString().slice(0, 10);
+  const score = kompassOverall();
+  const vorhanden = kompassHistory.findIndex(e => e.date === date);
+  if (vorhanden >= 0) kompassHistory[vorhanden] = { date, score };
+  else kompassHistory.push({ date, score });
+  kompassHistory.sort((a, b) => a.date.localeCompare(b.date));
+  // Nur die jüngsten Stände behalten – LocalStorage ist kein Archiv
+  if (kompassHistory.length > KOMPASS_HIST_MAX) {
+    kompassHistory = kompassHistory.slice(kompassHistory.length - KOMPASS_HIST_MAX);
+  }
+  saveKompassHistory();
+  return { date, score };
+}
+function clearKompassHistory() {
+  kompassHistory = [];
+  try { localStorage.removeItem(LS_KOMPASS_HIST); } catch (e) { /* ignorieren */ }
+}
+function kompassTrend() {
+  if (kompassHistory.length < 2) return null;
+  const erst = kompassHistory[0], letzt = kompassHistory[kompassHistory.length - 1];
+  return { von: erst.score, auf: letzt.score, diff: letzt.score - erst.score,
+           seit: erst.date, stand: letzt.date };
+}
+
+function renderKompassHistory() {
+  const box = document.getElementById('kompass-history');
+  if (!box) return;
+  const t = kompassTrend();
+  const balken = kompassHistory.map(e =>
+    `<span class="khist-bar" title="${esc(e.date)}: ${e.score} %">
+       <span class="khist-fill" style="height:${Math.max(e.score, 2)}%"></span>
+       <span class="khist-label">${esc(e.date.slice(5))}</span>
+     </span>`).join('');
+
+  box.innerHTML = `
+    <div class="khist-head">
+      <span class="khist-title"><i class="fas fa-chart-line"></i> Verlauf</span>
+      <span class="khist-btns">
+        <button class="pseudo-mini-btn" id="kompass-snap"><i class="fas fa-bookmark"></i> Stand festhalten</button>
+        ${kompassHistory.length ? '<button class="pseudo-mini-btn" id="kompass-hist-clear"><i class="fas fa-trash-can"></i> Verlauf löschen</button>' : ''}
+      </span>
+    </div>
+    ${kompassHistory.length
+      ? `<div class="khist-chart">${balken}</div>` +
+        (t ? `<p class="khist-trend khist-trend--${t.diff > 0 ? 'up' : t.diff < 0 ? 'down' : 'flat'}">
+                <i class="fas ${t.diff > 0 ? 'fa-arrow-trend-up' : t.diff < 0 ? 'fa-arrow-trend-down' : 'fa-minus'}"></i>
+                ${t.diff > 0 ? '+' : ''}${t.diff} Punkte seit ${esc(t.seit)} (${t.von} → ${t.auf} %)
+              </p>`
+           : '<p class="khist-trend khist-trend--flat"><i class="fas fa-circle-info"></i> Ab dem zweiten festgehaltenen Stand zeigt sich hier die Entwicklung.</p>')
+      : '<p class="khist-empty">Noch kein Stand festgehalten. „Stand festhalten" sichert den heutigen Reifegrad, um die Entwicklung später zu belegen – etwa gegenüber Leitung oder Gremium.</p>'}`;
+
+  document.getElementById('kompass-snap')?.addEventListener('click', () => {
+    const s = kompassSnapshot();
+    renderKompassHistory();
+    alert(`Stand vom ${s.date} festgehalten: ${s.score} von 100 Punkten.`);
+  });
+  document.getElementById('kompass-hist-clear')?.addEventListener('click', () => {
+    if (!confirm('Den gesamten Reifegrad-Verlauf löschen?')) return;
+    clearKompassHistory();
+    renderKompassHistory();
+  });
 }
 
 function renderKompassScore() {
