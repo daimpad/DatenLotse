@@ -184,7 +184,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v39';
+const APP_VERSION = 'v40';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -1705,16 +1705,139 @@ function importAnyCSV(text) {
   return importGrafCSV(text);
 }
 
+/* ── Import eines DCAT-AP.de-Katalogs (JSON-LD) ───────────────────
+   Die Gegenrichtung zum Export. Viele Stellen veröffentlichen bereits –
+   ihnen fehlt kein Erstinventar, sondern eine Prüfung des Bestands. Ein
+   geharvesteter Katalog lässt sich hier einlesen, gegen die
+   Qualitätsprüfung halten und mit Clearing und Governance verbinden.
+
+   Bewusst tolerant beim Lesen: JSON-LD erlaubt für dieselbe Aussage
+   mehrere Schreibweisen (String, `{"@id": …}`, Array). Streng ist nur der
+   Export.
+   ────────────────────────────────────────────────────────────── */
+function jsonldValue(v) {
+  if (v == null) return '';
+  if (Array.isArray(v)) return jsonldValue(v[0]);
+  if (typeof v === 'object') return String(v['@id'] || v['@value'] || v['foaf:name'] || v['vcard:fn'] || v['skos:prefLabel'] || '');
+  return String(v);
+}
+function jsonldList(v) {
+  if (v == null) return [];
+  return (Array.isArray(v) ? v : [v]).map(jsonldValue).filter(Boolean);
+}
+/* Kontrollierte Werte kommen als volle NAL-URI zurück – auf den Code kürzen,
+   damit die Dropdowns im Inventar greifen. Unbekannte Werte bleiben stehen;
+   die Qualitätsprüfung meldet sie dann als „nicht aus dem Vokabular". */
+function stripNal(uri, prefix) {
+  const v = jsonldValue(uri);
+  return v.startsWith(prefix) ? v.slice(prefix.length) : v;
+}
+const LICENSE_BY_URI = {};
+LICENSE_CATALOG.forEach(g => g.items.forEach(l => { LICENSE_BY_URI[l.uri] = l.id; }));
+function licenseFromURI(uri) {
+  const v = jsonldValue(uri);
+  return LICENSE_BY_URI[v] || v;
+}
+
+function looksLikeDcatJSON(obj) {
+  return !!(obj && typeof obj === 'object' &&
+    (Array.isArray(obj['dcat:dataset']) || Array.isArray(obj.dataset) ||
+     String(obj['@type'] || '').includes('Catalog')));
+}
+
+function dcatToDataset(ds) {
+  const id = jsonldValue(ds['dct:identifier']) ||
+             slug(jsonldValue(ds['dct:title'])) || 'datensatz';
+  const dists = (Array.isArray(ds['dcat:distribution']) ? ds['dcat:distribution']
+                : ds['dcat:distribution'] ? [ds['dcat:distribution']] : [])
+    .map(x => newDistribution({
+      title: jsonldValue(x['dct:title']),
+      format: jsonldValue(x['dct:format']),
+      accessURL: jsonldValue(x['dcat:accessURL']),
+      license: licenseFromURI(x['dct:license']),
+    }));
+  const t = ds['dct:temporal'] || {};
+  return {
+    id,
+    title: jsonldValue(ds['dct:title']),
+    description: jsonldValue(ds['dct:description']),
+    publisher: jsonldValue(ds['dct:publisher']),
+    contactPoint: jsonldValue(ds['dcat:contactPoint']),
+    sourceSystem: jsonldValue(ds['dcatde:sourceSystem']),
+    keywords: jsonldList(ds['dcat:keyword']).join(', '),
+    theme: stripNal(ds['dcat:theme'], THEME_NAL),
+    accrualPeriodicity: stripNal(ds['dct:accrualPeriodicity'], FREQ_NAL),
+    accessRights: stripNal(ds['dct:accessRights'], ACCESS_NAL),
+    landingPage: jsonldValue(ds['dcat:landingPage']),
+    issued: jsonldValue(ds['dct:issued']),
+    modified: jsonldValue(ds['dct:modified']),
+    temporalStart: jsonldValue(t['dcat:startDate']),
+    temporalEnd: jsonldValue(t['dcat:endDate']),
+    spatial: jsonldValue(ds['dct:spatial']),
+    geocodingKey: stripNal(ds['dcatde:politicalGeocodingURI'], GEO_REGIONAL_NAL),
+    geocodingLevel: stripNal(ds['dcatde:politicalGeocodingLevelURI'], GEO_LEVEL_NAL),
+    contributorID: stripNal(ds['dcatde:contributorID'], CONTRIBUTOR_NAL),
+    _grafSchutzbedarf: '',
+    _recipients: [],
+    distributions: dists.length ? dists : [newDistribution()],
+  };
+}
+
+/* Wie beim CSV-Rückimport wird über die `id` ZUSAMMENGEFÜHRT: ein bereits
+   bearbeiteter Stand samt Clearing-Antworten darf durch das Einlesen eines
+   Katalogs nicht verloren gehen. */
+function importDcatJSON(text) {
+  let obj;
+  try { obj = JSON.parse(text); }
+  catch (e) { alert('Die Datei ist kein gültiges JSON.'); return false; }
+  if (!looksLikeDcatJSON(obj)) {
+    alert('Diese Datei sieht nicht nach einem DCAT-Katalog aus.\nErwartet wird ein „dcat:Catalog" mit einer Liste „dcat:dataset".');
+    return false;
+  }
+  const liste = obj['dcat:dataset'] || obj.dataset || [];
+  const nachId = new Map(inventory.map((d, i) => [d.id, i]));
+  let aktualisiert = 0, neu = 0;
+  liste.forEach(raw => {
+    const d = dcatToDataset(raw);
+    if (nachId.has(d.id)) {
+      const alt = inventory[nachId.get(d.id)];
+      // Clearing-Antworten und Schutzbedarf stammen nicht aus dem Katalog
+      const bewahrt = { _clearing: alt._clearing, _grafSchutzbedarf: alt._grafSchutzbedarf, _recipients: alt._recipients };
+      Object.assign(alt, d, bewahrt);
+      aktualisiert++;
+    } else {
+      inventory.push(d);
+      nachId.set(d.id, inventory.length - 1);
+      neu++;
+    }
+  });
+  migrateInventory();
+  invSelection.clear();
+  saveState();
+  renderInventory();
+  alert(`DCAT-Katalog eingelesen: ${aktualisiert} Datensätze aktualisiert, ${neu} neu hinzugefügt.`
+    + '\nDie Qualitätsprüfung zeigt jetzt, wo der Bestand vom Profil abweicht.');
+  return true;
+}
+
+/* Ein Einstieg für alle Importformate – Nutzer sollen nicht wissen müssen,
+   welcher Button welche Datei erwartet. */
+function importAnyFile(text) {
+  const t = String(text || '').trim();
+  if (t.startsWith('{') || t.startsWith('[')) return importDcatJSON(t);
+  return importAnyCSV(text);
+}
+
 /* ── Event-Bindings ───────────────────────────────────────────── */
 function pickAndImport() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.csv';
+  input.accept = '.csv,.json,text/csv,application/json';
   input.addEventListener('change', () => {
     const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => importAnyCSV(reader.result);
+    reader.onload = () => importAnyFile(reader.result);
     reader.readAsText(file, 'utf-8');
   });
   input.click();
