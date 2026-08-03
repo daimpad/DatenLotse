@@ -226,3 +226,204 @@ test.describe('Lizenz-Register & -Wegweiser', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe('Massenbearbeitung', () => {
+  test('Auswahl blendet die Aktionsleiste ein und zählt korrekt', async ({ page }) => {
+    const errors = await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    await expect(page.locator('#inv-bulk')).toBeHidden();
+
+    await page.locator('.inv-select').first().check();
+    await expect(page.locator('#inv-bulk')).toBeVisible();
+    await expect(page.locator('.bulk-count')).toContainText('1 ausgewählt');
+
+    await page.locator('.inv-select').nth(2).check();
+    await expect(page.locator('.bulk-count')).toContainText('2 ausgewählt');
+
+    await page.locator('#bulk-clear').click();
+    await expect(page.locator('#inv-bulk')).toBeHidden();
+    expect(errors).toEqual([]);
+  });
+
+  test('„Alle auswählen“ meint die sichtbare Teilmenge', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    await page.locator('#inv-search').fill('Baumkataster');
+    await expect(page.locator('.inv-card')).toHaveCount(1);
+
+    await page.locator('#inv-select-all').click();
+    // Nur der gefilterte Datensatz, nicht alle zwölf
+    expect(await page.evaluate(() => invSelection.size)).toBe(1);
+    await expect(page.locator('#inv-select-all')).toHaveAttribute('aria-pressed', 'true');
+
+    await page.locator('#inv-search').fill('');
+    await expect(page.locator('.inv-card')).toHaveCount(12);
+    // Die Auswahl bleibt am echten Datensatz hängen, nicht an der Position
+    const gewaehlt = await page.evaluate(() => [...invSelection].map(i => inventory[i].title));
+    expect(gewaehlt).toEqual(['Baumkataster']);
+    await expect(page.locator('#inv-select-all')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('Massenänderung trifft genau die ausgewählten Datensätze', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    await page.locator('.inv-select').nth(0).check();
+    await page.locator('.inv-select').nth(1).check();
+
+    await page.locator('#bulk-field').selectOption('license');
+    await page.locator('#bulk-value').selectOption('cc-zero');
+    await page.locator('#bulk-apply').click();
+
+    const r = await page.evaluate(() => ({
+      gesetzt: inventory.filter(d => d.license === 'cc-zero').length,
+      rest: inventory.filter(d => !d.license).length,
+    }));
+    expect(r.gesetzt).toBe(2);
+    expect(r.rest).toBe(10);
+  });
+
+  test('Massenänderung wirkt auch über einem Filter korrekt', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    await page.locator('#inv-filter-schutz').selectOption('dsgvo');
+    const n = await page.locator('.inv-card').count();
+    await page.locator('#inv-select-all').click();
+
+    await page.locator('#bulk-field').selectOption('publisher');
+    await page.locator('#bulk-value').fill('Stadt Musterstadt (DSGVO-Bereich)');
+    await page.locator('#bulk-apply').click();
+
+    const r = await page.evaluate(() => ({
+      markiert: inventory.filter(d => d.publisher.includes('DSGVO-Bereich')).map(d => d._grafSchutzbedarf),
+      gesamt: inventory.length,
+    }));
+    expect(r.markiert.length).toBe(n);
+    expect(r.markiert.every(s => /dsgvo/i.test(s))).toBe(true);
+    expect(r.gesamt).toBe(12);
+  });
+
+  test('Feldwahl steuert das Wertfeld (Freitext vs. Register)', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    await page.locator('.inv-select').first().check();
+    await expect(page.locator('#bulk-apply')).toBeDisabled();
+
+    await page.locator('#bulk-field').selectOption('license');
+    await expect(page.locator('select#bulk-value')).toBeVisible();
+    await page.locator('#bulk-field').selectOption('keywords');
+    await expect(page.locator('input#bulk-value')).toBeVisible();
+    await expect(page.locator('#bulk-apply')).toBeEnabled();
+  });
+
+  test('Entfernen löscht genau die Auswahl und setzt sie zurück', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    const weg = await page.evaluate(() => [inventory[0].title, inventory[5].title]);
+    await page.locator('.inv-select').nth(0).check();
+    await page.locator('.inv-select').nth(5).check();
+    await page.locator('#bulk-remove').click();
+
+    const r = await page.evaluate(() => ({
+      n: inventory.length, titel: inventory.map(d => d.title), sel: invSelection.size,
+    }));
+    expect(r.n).toBe(10);
+    for (const t of weg) expect(r.titel).not.toContain(t);
+    // Nach dem Entfernen verschieben sich alle Indizes – die Auswahl muss weg sein
+    expect(r.sel).toBe(0);
+    await expect(page.locator('#inv-bulk')).toBeHidden();
+    await expect(page.locator('.inv-card')).toHaveCount(10);
+  });
+
+  test('Entfernen respektiert ein abgelehntes Bestätigen', async ({ page }) => {
+    await openApp(page, { confirmResult: false });
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    await page.locator('.inv-select').first().check();
+    await page.locator('#bulk-remove').click();
+    expect(await page.evaluate(() => inventory.length)).toBe(12);
+  });
+});
+
+test.describe('Rückimport der bearbeiteten Inventar-CSV', () => {
+  test('CSV-Export trägt den Schutzbedarf, damit der Round-Trip verlustfrei ist', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const csv = await page.evaluate(() => buildInventoryCSV());
+    expect(csv.split('\n')[0]).toContain('schutzbedarf');
+    expect(csv).toContain('DSGVO-relevant');
+  });
+
+  test('bearbeitete CSV aktualisiert bestehende Datensätze über die id', async ({ page }) => {
+    const errors = await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      const csv = buildInventoryCSV().replace('Baumkataster', 'Baumkataster (überarbeitet)');
+      // Clearing-Antwort setzen, die in der CSV nicht steht
+      inventory[0]._clearing = { pb: 'ja', art9: 'nein', recht: 'ja', anon: 'ja' };
+      const ok = importInventoryCSV(csv);
+      return {
+        ok, n: inventory.length,
+        titel: inventory.map(d => d.title),
+        clearingErhalten: inventory[0]._clearing.anon,
+        schutz: inventory[0]._grafSchutzbedarf,
+      };
+    });
+    expect(r.ok).toBe(true);
+    expect(r.n).toBe(12);                       // nichts dupliziert
+    expect(r.titel).toContain('Baumkataster (überarbeitet)');
+    // Die Clearing-Antworten stehen nicht in der CSV und dürfen nicht verloren gehen
+    expect(r.clearingErhalten).toBe('ja');
+    expect(r.schutz).toBe('DSGVO-relevant');
+    expect(errors).toEqual([]);
+  });
+
+  test('unbekannte ids kommen als neue Datensätze dazu', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const n = await page.evaluate(() => {
+      const csv = 'id,title,publisher,schutzbedarf\nneuer-datensatz,Neuer Titel,Stadt X,Öffentlich\n';
+      importInventoryCSV(csv);
+      return { n: inventory.length, neu: inventory.find(d => d.id === 'neuer-datensatz') };
+    });
+    expect(n.n).toBe(13);
+    expect(n.neu.title).toBe('Neuer Titel');
+    expect(n.neu._grafSchutzbedarf).toBe('Öffentlich');
+  });
+
+  test('abgeleitete Clearing-Spalten werden nicht zurückgeschrieben', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const felder = await page.evaluate(() => INV_CSV_FIELDS);
+    expect(felder).not.toContain('clearingAmpel');
+    expect(felder).not.toContain('clearingEmpfehlung');
+  });
+
+  test('ein Einstieg für beide Formate – Rohdaten und Inventar-CSV', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      const invCsv = buildInventoryCSV();
+      const grafCsv = 'Quelle,QuelleOrganisation,Datentyp\nSys,Stadt,Typ\n';
+      const a = importAnyCSV(invCsv);          // erkennt die Inventar-CSV
+      const nachInv = inventory.length;
+      importAnyCSV(grafCsv);                   // erkennt die DatenGraf-Rohdaten
+      return { a, nachInv, nachGraf: inventory.length, ersterTitel: inventory[0].title };
+    });
+    expect(r.a).toBe(true);
+    expect(r.nachInv).toBe(12);
+    expect(r.nachGraf).toBe(1);                // Rohdaten-Import ersetzt das Inventar
+    expect(r.ersterTitel).toBe('Typ');
+  });
+
+  test('eine fremde CSV wird weiterhin abgelehnt', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => importAnyCSV('Foo,Bar\n1,2\n'));
+    expect(await page.evaluate(() => inventory.length)).toBe(0);
+  });
+});

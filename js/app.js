@@ -183,7 +183,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v36';
+const APP_VERSION = 'v37';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -724,6 +724,99 @@ function renderInventory() {
   renderInventoryBody();
 }
 
+/* ── Massenbearbeitung ────────────────────────────────────────────
+   Bei 50+ Datensätzen ist Karte-für-Karte mühsam, und Felder wie Publisher
+   oder Lizenz sind oft für viele Einträge identisch.
+
+   Die Auswahl merkt sich den ECHTEN Index in `inventory` (nicht die Position
+   in der gefilterten Liste) – sonst würde ein Filterwechsel plötzlich andere
+   Datensätze meinen. Entsprechend wird die Auswahl nach dem Entfernen von
+   Einträgen geleert, weil sich dabei alle nachfolgenden Indizes verschieben.
+   ────────────────────────────────────────────────────────────── */
+const invSelection = new Set();
+const BULK_FIELDS = [
+  ['', '— Feld wählen —'],
+  ['publisher', 'Publisher'],
+  ['contactPoint', 'Ansprechpartner'],
+  ['license', 'Lizenz'],
+  ['theme', 'Kategorie (dcat:theme)'],
+  ['accessRights', 'Zugriffsrechte'],
+  ['accrualPeriodicity', 'Aktualisierungszyklus'],
+  ['keywords', 'Schlagwörter'],
+];
+let bulkField = '';
+
+function bulkValueControl() {
+  if (bulkField === 'license') return `<select id="bulk-value">${licenseSelectHTML('')}</select>`;
+  if (bulkField === 'theme') return `<select id="bulk-value">${optionsHTML(DCAT_THEMES, '')}</select>`;
+  if (bulkField === 'accessRights') return `<select id="bulk-value">${optionsHTML(ACCESS_OPTIONS, '')}</select>`;
+  if (bulkField === 'accrualPeriodicity') return `<select id="bulk-value">${optionsHTML(FREQ_OPTIONS, '')}</select>`;
+  return `<input id="bulk-value" placeholder="Wert für alle ausgewählten" aria-label="Wert für alle ausgewählten Datensätze">`;
+}
+
+function renderBulkBar() {
+  const bar = document.getElementById('inv-bulk');
+  if (!bar) return;
+  const n = invSelection.size;
+  bar.classList.toggle('hidden', n === 0);
+  if (!n) { bar.innerHTML = ''; return; }
+
+  bar.innerHTML =
+    `<span class="bulk-count"><i class="fas fa-check-double"></i> ${n} ausgewählt</span>
+     <label class="bulk-field">Feld
+       <select id="bulk-field" aria-label="Feld für die Massenbearbeitung">${optionsHTML(BULK_FIELDS, bulkField)}</select>
+     </label>
+     <label class="bulk-field bulk-field--value${bulkField ? '' : ' bulk-field--off'}">Wert
+       ${bulkValueControl()}
+     </label>
+     <button class="btn btn-primary btn-sm" id="bulk-apply"${bulkField ? '' : ' disabled'}><i class="fas fa-wand-magic-sparkles"></i> Übernehmen</button>
+     <button class="btn btn-secondary btn-sm" id="bulk-clear">Auswahl aufheben</button>
+     <button class="btn btn-secondary btn-sm bulk-danger" id="bulk-remove"><i class="fas fa-trash-can"></i> Entfernen</button>`;
+
+  const wert = document.getElementById('bulk-value');
+  if (!bulkField && wert) wert.disabled = true;
+
+  document.getElementById('bulk-field')?.addEventListener('change', e => {
+    bulkField = e.target.value;
+    renderBulkBar();
+    document.getElementById('bulk-value')?.focus();
+  });
+  document.getElementById('bulk-apply')?.addEventListener('click', () => {
+    const val = document.getElementById('bulk-value')?.value ?? '';
+    applyBulk(bulkField, val);
+  });
+  document.getElementById('bulk-clear')?.addEventListener('click', () => {
+    invSelection.clear();
+    renderInventoryBody();
+  });
+  document.getElementById('bulk-remove')?.addEventListener('click', removeSelected);
+}
+
+function applyBulk(field, value) {
+  if (!field || !invSelection.size) return;
+  let n = 0;
+  invSelection.forEach(idx => {
+    if (!inventory[idx]) return;
+    inventory[idx][field] = value;
+    n++;
+  });
+  saveState();
+  renderInventoryBody();
+  const label = (BULK_FIELDS.find(f => f[0] === field) || [, field])[1];
+  alert(`„${label}" für ${n} Datensätze gesetzt.`);
+}
+
+function removeSelected() {
+  const n = invSelection.size;
+  if (!n) return;
+  if (!confirm(`${n} Datensätze aus dem Inventar entfernen? Die importierten Rohdaten bleiben erhalten – ein erneuter Import stellt sie wieder her.`)) return;
+  inventory = inventory.filter((d, i) => !invSelection.has(i));
+  // Indizes haben sich verschoben – eine mitgeführte Auswahl wäre jetzt falsch
+  invSelection.clear();
+  saveState();
+  renderInventoryBody();
+}
+
 function renderInventoryBody() {
   const body = document.getElementById('inventory-body');
   const meta = document.getElementById('inventory-meta');
@@ -733,6 +826,8 @@ function renderInventoryBody() {
   const list = filteredInventory();
   if (!list.length) {
     body.innerHTML = '<p class="inv-empty">Keine Datensätze passen zur Suche bzw. den Filtern.</p>';
+    renderBulkBar();
+    updateSelectAllLabel();
     return;
   }
   body.innerHTML = list.map(({ d, idx }) => {
@@ -741,6 +836,7 @@ function renderInventoryBody() {
     return `
     <div class="inv-card" data-idx="${idx}">
       <div class="inv-card-head">
+        <input type="checkbox" class="inv-select" data-sel="${idx}"${invSelection.has(idx) ? ' checked' : ''} aria-label="Datensatz „${esc(d.title)}" auswählen">
         <input class="inv-title" data-field="title" aria-label="Titel des Datensatzes" value="${esc(d.title)}" placeholder="Titel des Datensatzes">
         <span class="inv-complete" style="color:${pctColor}">${pct}%</span>
       </div>
@@ -814,6 +910,16 @@ function renderInventoryBody() {
     </div>`;
   }).join('');
 
+  body.querySelectorAll('.inv-select').forEach(box => box.addEventListener('change', () => {
+    const idx = +box.dataset.sel;
+    if (box.checked) invSelection.add(idx); else invSelection.delete(idx);
+    // Nur die Leiste neu zeichnen – ein voller Re-Render würde den Fokus nehmen
+    renderBulkBar();
+    updateSelectAllLabel();
+  }));
+  renderBulkBar();
+  updateSelectAllLabel();
+
   // Feld-Änderungen zurück in den State schreiben (idx = echter Index in inventory)
   body.querySelectorAll('.inv-card').forEach(card => {
     const idx = +card.dataset.idx;
@@ -835,6 +941,26 @@ function renderInventoryBody() {
 }
 
 // Controls (Suche/Filter/Sortierung) – einmal binden, nur den Body neu rendern
+/* „Alle auswählen" meint die aktuell SICHTBARE Teilmenge – alles andere wäre
+   überraschend, wenn gerade ein Filter aktiv ist. */
+function updateSelectAllLabel() {
+  const btn = document.getElementById('inv-select-all');
+  if (!btn) return;
+  const sichtbar = filteredInventory().map(({ idx }) => idx);
+  const alle = sichtbar.length > 0 && sichtbar.every(i => invSelection.has(i));
+  btn.innerHTML = alle
+    ? '<i class="fas fa-square-check"></i> Auswahl aufheben'
+    : '<i class="far fa-square"></i> Alle auswählen';
+  btn.setAttribute('aria-pressed', String(alle));
+  btn.disabled = sichtbar.length === 0;
+}
+document.getElementById('inv-select-all')?.addEventListener('click', () => {
+  const sichtbar = filteredInventory().map(({ idx }) => idx);
+  const alle = sichtbar.length > 0 && sichtbar.every(i => invSelection.has(i));
+  sichtbar.forEach(i => { if (alle) invSelection.delete(i); else invSelection.add(i); });
+  renderInventoryBody();
+});
+
 document.getElementById('inv-search')?.addEventListener('input', e => { invFilter.q = e.target.value; renderInventoryBody(); });
 document.getElementById('inv-filter-schutz')?.addEventListener('change', e => { invFilter.schutz = e.target.value; renderInventoryBody(); });
 document.getElementById('inv-filter-ampel')?.addEventListener('change', e => { invFilter.ampel = e.target.value; renderInventoryBody(); });
@@ -1265,9 +1391,12 @@ function buildInventoryCSV() {
                 'license', 'accessRights', 'landingPage',
                 'issued', 'modified', 'temporalStart', 'temporalEnd',
                 'spatial', 'geocodingKey', 'geocodingLevel', 'contributorID'];
-  const head = [...cols, 'clearingAmpel', 'clearingEmpfehlung'].join(',');
+  // Ohne den Schutzbedarf ginge beim Rückimport die Clearing-Vorbelegung verloren
+  const extra = ['schutzbedarf'];
+  const head = [...cols, ...extra, 'clearingAmpel', 'clearingEmpfehlung'].join(',');
   const rows = inventory.map(d => {
     const cells = cols.map(c => csvCell(d[c]));
+    cells.push(csvCell(d._grafSchutzbedarf));
     cells.push(csvCell(d.clearing?.ampel || ''), csvCell(d.clearing?.empfehlung || ''));
     return cells.join(',');
   });
@@ -1359,6 +1488,65 @@ function importGrafCSV(text) {
   saveState();
 }
 
+/* Felder, die aus einer bearbeiteten Inventar-CSV zurückgelesen werden.
+   `id` dient als Schlüssel, `clearingAmpel`/`clearingEmpfehlung` sind
+   ABGELEITETE Spalten und werden bewusst NICHT zurückgeschrieben – sonst
+   stünde ein Ergebnis im Eintrag, zu dem die Antworten fehlen. */
+const INV_CSV_FIELDS = [
+  'title', 'description', 'publisher', 'contactPoint', 'sourceSystem', 'format',
+  'keywords', 'theme', 'accrualPeriodicity', 'license', 'accessRights', 'landingPage',
+  'issued', 'modified', 'temporalStart', 'temporalEnd',
+  'spatial', 'geocodingKey', 'geocodingLevel', 'contributorID',
+];
+
+function looksLikeInventoryCSV(rows) {
+  return !!rows.length && 'id' in rows[0] && 'title' in rows[0];
+}
+
+/* Bearbeitete Inventar-CSV zurückspielen. Vorhandene Einträge werden über die
+   `id` ZUSAMMENGEFÜHRT, nicht ersetzt: die Clearing-Antworten (`_clearing`)
+   stehen nicht in der CSV und dürfen durch einen Rückimport nicht verloren
+   gehen. Unbekannte ids kommen als neue Einträge dazu. */
+function importInventoryCSV(text) {
+  const rows = parseCSV(text);
+  if (!looksLikeInventoryCSV(rows)) return false;
+
+  const nachId = new Map(inventory.map((d, i) => [d.id, i]));
+  let aktualisiert = 0, neu = 0;
+  rows.forEach(r => {
+    const id = (r.id || '').trim();
+    if (!id) return;
+    if (nachId.has(id)) {
+      const d = inventory[nachId.get(id)];
+      INV_CSV_FIELDS.forEach(f => { if (f in r) d[f] = r[f]; });
+      if (r.schutzbedarf != null && r.schutzbedarf !== '') d._grafSchutzbedarf = r.schutzbedarf;
+      aktualisiert++;
+    } else {
+      const d = { id, _grafSchutzbedarf: r.schutzbedarf || '', _recipients: [] };
+      INV_CSV_FIELDS.forEach(f => { d[f] = r[f] || ''; });
+      inventory.push(d);
+      nachId.set(id, inventory.length - 1);
+      neu++;
+    }
+  });
+
+  invSelection.clear();
+  saveState();
+  renderInventory();
+  alert(`Inventar-CSV eingelesen: ${aktualisiert} Datensätze aktualisiert, ${neu} neu hinzugefügt.`
+    + (aktualisiert ? '\nBereits gegebene Clearing-Antworten bleiben erhalten.' : ''));
+  return true;
+}
+
+/* Ein Einstieg für beide Formate: DatenGraf-Rohdaten und die eigene,
+   bearbeitete Inventar-CSV. Sonst müssten Nutzer wissen, welcher Button
+   welche Datei erwartet. */
+function importAnyCSV(text) {
+  const rows = parseCSV(text);
+  if (looksLikeInventoryCSV(rows)) return importInventoryCSV(text);
+  return importGrafCSV(text);
+}
+
 /* ── Event-Bindings ───────────────────────────────────────────── */
 function pickAndImport() {
   const input = document.createElement('input');
@@ -1368,7 +1556,7 @@ function pickAndImport() {
     const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => importGrafCSV(reader.result);
+    reader.onload = () => importAnyCSV(reader.result);
     reader.readAsText(file, 'utf-8');
   });
   input.click();
