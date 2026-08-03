@@ -244,6 +244,46 @@ test.describe('Wissens-Center & Vorlagen', () => {
     expect(n).toBeGreaterThanOrEqual(4);
   });
 
+  test('Kommunale Satzungen: Mechanismus erklärt, Quellenart offengelegt', async ({ page }) => {
+    const errors = await openApp(page);
+    await page.evaluate(() => navTo('wissen'));
+    const n = await page.evaluate(() => KOMMUNAL_SATZUNGEN.length);
+    await expect(page.locator('#wissen-kommunal .know-law')).toHaveCount(n);
+    await expect(page.locator('#wissen-sec-kommunal')).toContainText('Satzungsautonomie');
+
+    const daten = await page.evaluate(() => ({
+      ohneHttps: KOMMUNAL_SATZUNGEN.filter(k => !/^https:\/\//.test(k.url)).map(k => k.name),
+      luecken: KOMMUNAL_SATZUNGEN.filter(k => !k.name || !k.summary).map(k => k.name),
+      amtliche: KOMMUNAL_SATZUNGEN.filter(k => k.amtlich).length,
+    }));
+    expect(daten.ohneHttps).toEqual([]);
+    expect(daten.luecken).toEqual([]);
+    // Mindestens ein amtliches Beispiel, und die Herkunft steht an jeder Karte
+    expect(daten.amtliche).toBeGreaterThan(0);
+    await expect(page.locator('#wissen-kommunal')).toContainText('Amtliche Fundstelle');
+    await expect(page.locator('#wissen-kommunal')).toContainText('Zivilgesellschaftliche Sammlung');
+    expect(errors).toEqual([]);
+  });
+
+  test('Bundesland-Filter blendet die kommunale Ebene aus', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => navTo('wissen'));
+    await expect(page.locator('#wissen-sec-kommunal')).toBeVisible();
+    // Der Filter meint Landesrecht – kommunale Satzungen gehören nicht dazu
+    await page.locator('#wissen-land').selectOption('Bayern');
+    await expect(page.locator('#wissen-sec-kommunal')).toBeHidden();
+    await page.locator('#wissen-land').selectOption('');
+    await expect(page.locator('#wissen-sec-kommunal')).toBeVisible();
+  });
+
+  test('Länder ohne Landesgesetz verweisen auf kommunale Satzungen', async ({ page }) => {
+    await openApp(page);
+    const ohne = await page.evaluate(() =>
+      LEGAL_BASIS_LAENDER.filter(l => l.kind === 'kein').map(l => ({ land: l.land, s: l.summary })));
+    expect(ohne.length).toBe(2);
+    for (const l of ohne) expect(l.s).toMatch(/[Ss]atzung/);
+  });
+
   test('Live-Filter durchsucht alle drei Listen und meldet Leerergebnisse', async ({ page }) => {
     await openApp(page);
     await page.evaluate(() => navTo('wissen'));
