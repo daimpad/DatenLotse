@@ -181,6 +181,69 @@ test.describe('Wissens-Center & Vorlagen', () => {
     }
   });
 
+  test('Rechtsgrundlagen der Länder: alle 16 mit amtlicher Fundstelle', async ({ page }) => {
+    const errors = await openApp(page);
+    await page.evaluate(() => navTo('wissen'));
+    await expect(page.locator('#wissen-laender .know-law')).toHaveCount(16);
+
+    const daten = await page.evaluate(() => ({
+      laender: LEGAL_BASIS_LAENDER.map(l => l.land),
+      arten: LEGAL_BASIS_LAENDER.reduce((a, l) => (a[l.kind] = (a[l.kind] || 0) + 1, a), {}),
+      ohneHttps: LEGAL_BASIS_LAENDER.filter(l => !/^https:\/\//.test(l.url)).map(l => l.land),
+      unbekannteArt: LEGAL_BASIS_LAENDER.filter(l => !LAENDER_KIND[l.kind]).map(l => l.land),
+      luecken: LEGAL_BASIS_LAENDER.filter(l => !l.name || !l.summary).map(l => l.land),
+    }));
+    // Genau die 16 Länder, jedes genau einmal
+    expect(new Set(daten.laender).size).toBe(16);
+    expect(daten.ohneHttps).toEqual([]);
+    expect(daten.unbekannteArt).toEqual([]);
+    expect(daten.luecken).toEqual([]);
+    expect(daten.arten.transparenz + daten.arten.ifg + daten.arten.kein).toBe(16);
+    expect(errors).toEqual([]);
+  });
+
+  test('Länder-Links öffnen amtliche Landesrecht-Portale, nicht den Bund', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => navTo('wissen'));
+    const links = await page.locator('#wissen-laender a').evaluateAll(as =>
+      as.map(a => ({ href: a.href, rel: a.rel, target: a.target })));
+    expect(links.length).toBe(16);
+    for (const l of links) {
+      expect(l.rel).toContain('noopener');
+      expect(l.target).toBe('_blank');
+      // Bundesrecht steht in der anderen Sektion – hier gehört Landesrecht hin
+      expect(l.href).not.toContain('gesetze-im-internet.de');
+    }
+    // Der bestehende Bundes-Abschnitt bleibt davon unberührt
+    await expect(page.locator('#wissen-laws .know-law')).toHaveCount(
+      await page.evaluate(() => LEGAL_BASIS.length));
+  });
+
+  test('Bundesland-Filter grenzt auf ein Land ein', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => navTo('wissen'));
+    await page.locator('#wissen-land').selectOption('Hamburg');
+    await expect(page.locator('#wissen-laender .know-law')).toHaveCount(1);
+    await expect(page.locator('#wissen-laender')).toContainText('Hamburgisches Transparenzgesetz');
+    // Der Filter betrifft nur die Länder-Sektion
+    await expect(page.locator('#wissen-glossary .know-term')).toHaveCount(
+      await page.evaluate(() => GLOSSARY.length));
+
+    await page.locator('#wissen-land').selectOption('');
+    await expect(page.locator('#wissen-laender .know-law')).toHaveCount(16);
+  });
+
+  test('Volltextsuche findet Landesregelungen über Abkürzung und Art', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => navTo('wissen'));
+    await page.locator('#wissen-search').fill('HmbTG');
+    await expect(page.locator('#wissen-laender .know-law')).toHaveCount(1);
+
+    await page.locator('#wissen-search').fill('Transparenzgesetz');
+    const n = await page.locator('#wissen-laender .know-law').count();
+    expect(n).toBeGreaterThanOrEqual(4);
+  });
+
   test('Live-Filter durchsucht alle drei Listen und meldet Leerergebnisse', async ({ page }) => {
     await openApp(page);
     await page.evaluate(() => navTo('wissen'));

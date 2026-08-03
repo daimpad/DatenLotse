@@ -1591,6 +1591,67 @@ const LEGAL_BASIS = [
   { name: 'Geodatenzugangsgesetz (GeoZG) / INSPIRE', summary: 'Regelt den Zugang zu Geodaten und setzt die EU-INSPIRE-Richtlinie zur Geodateninfrastruktur um.', url: 'https://www.gesetze-im-internet.de/geozg/' },
 ];
 
+/* Landesrechtliche Grundlagen. Bewusst kuratiert und mit amtlicher Fundstelle
+   verlinkt – die Zusammenfassung ordnet nur ein, der Link ist die Autorität.
+   `kind`: 'transparenz' = aktive Veröffentlichungspflicht, 'ifg' = Zugang auf
+   Antrag, 'kein' = kein allgemeines Landesgesetz. Bewusst OHNE Jahreszahlen:
+   Novellen sind häufig, ein veraltetes Datum wäre schlechter als keines. */
+const LEGAL_BASIS_LAENDER = [
+  { land: 'Baden-Württemberg', name: 'Landesinformationsfreiheitsgesetz', abbr: 'LIFG', kind: 'ifg',
+    summary: 'Anspruch auf Zugang zu amtlichen Informationen des Landes; § 11 regelt Veröffentlichungspflichten und ein Informationsregister.',
+    url: 'https://www.landesrecht-bw.de/jportal/?quelle=jlink&query=InfFrG+BW&psml=bsbawueprod.psml&max=true&aiz=true' },
+  { land: 'Bayern', name: 'Bayerisches Digitalgesetz, Art. 14 (Offene Daten)', abbr: 'BayDiG', kind: 'kein',
+    summary: 'Kein allgemeines Landes-Informationsfreiheitsgesetz. Für Open Data einschlägig ist Art. 14 BayDiG; einzelne Kommunen haben eigene Informationsfreiheitssatzungen.',
+    url: 'https://www.gesetze-bayern.de/Content/Document/BayDiG-14' },
+  { land: 'Berlin', name: 'Berliner Informationsfreiheitsgesetz', abbr: 'IFG Bln', kind: 'ifg',
+    summary: 'Eines der ältesten Landes-IFG; § 17 enthält Veröffentlichungspflichten.',
+    url: 'https://gesetze.berlin.de/bsbe/document/jlr-InfFrGBErahmen' },
+  { land: 'Brandenburg', name: 'Akteneinsichts- und Informationszugangsgesetz', abbr: 'AIG', kind: 'ifg',
+    summary: 'Recht auf Akteneinsicht gegenüber Landesbehörden, Kommunen und beliehenen Stellen.',
+    url: 'https://bravors.brandenburg.de/gesetze/aig' },
+  { land: 'Bremen', name: 'Bremer Informationsfreiheitsgesetz', abbr: 'BremIFG', kind: 'transparenz',
+    summary: 'Formal ein IFG, wirkt aber wie ein Transparenzgesetz: Veröffentlichungspflichten und ein zentrales Transparenzportal.',
+    url: 'https://www.transparenz.bremen.de/metainformationen/gesetz-ueber-die-freiheit-des-zugangs-zu-informationen-fuer-das-land-bremen-bremer-informationsfreiheitsgesetz-bremifg-vom-16-mai-2006-67770?template=20_gp_ifg_meta_detail_d' },
+  { land: 'Hamburg', name: 'Hamburgisches Transparenzgesetz', abbr: 'HmbTG', kind: 'transparenz',
+    summary: 'Vorreiter der Transparenzgesetze: Pflicht zur aktiven Veröffentlichung im Informationsregister, maschinenlesbar und durchsuchbar.',
+    url: 'https://www.landesrecht-hamburg.de/bsha/document/jlr-TranspGHArahmen' },
+  { land: 'Hessen', name: 'Hessisches Datenschutz- und Informationsfreiheitsgesetz', abbr: 'HDSIG', kind: 'ifg',
+    summary: 'Verbindet Datenschutz und Informationsfreiheit in einem Gesetz; der Informationszugangsanspruch steht in § 80 ff.',
+    url: 'https://www.rv.hessenrecht.hessen.de/bshe/document/jlr-DSIFGHErahmen' },
+  { land: 'Mecklenburg-Vorpommern', name: 'Informationsfreiheitsgesetz Mecklenburg-Vorpommern', abbr: 'IFG M-V', kind: 'ifg',
+    summary: 'Anspruch auf Zugang zu amtlichen Informationen gegenüber Landes- und Kommunalbehörden.',
+    url: 'https://www.landesrecht-mv.de/bsmv/document/jlr-InfFrGMVV1P1' },
+  { land: 'Niedersachsen', name: 'Niedersächsisches Umweltinformationsgesetz', abbr: 'NUIG', kind: 'kein',
+    summary: 'Kein allgemeines Landes-Informationsfreiheitsgesetz. Zugangsansprüche bestehen fachbezogen, etwa für Umweltinformationen nach dem NUIG.',
+    url: 'https://nds-voris.de/jportal/?max=true&psml=bsvorisprod.psml&quelle=jlink&query=UIG+ND+%C2%A7+6' },
+  { land: 'Nordrhein-Westfalen', name: 'Informationsfreiheitsgesetz Nordrhein-Westfalen', abbr: 'IFG NRW', kind: 'ifg',
+    summary: 'Anspruch auf Zugang zu amtlichen Informationen des Landes und der Kommunen.',
+    url: 'https://recht.nrw.de/lrgv/gesetz/31122024-gesetz-ueber-die-freiheit-des-zugangs-zu-informationen-fuer-das-land-nordrhein/' },
+  { land: 'Rheinland-Pfalz', name: 'Landestransparenzgesetz', abbr: 'LTranspG', kind: 'transparenz',
+    summary: 'Transparenzgesetz mit aktiver Veröffentlichungspflicht und zentraler Transparenzplattform.',
+    url: 'https://www.landesrecht.rlp.de/bsrp/document/jlr-TranspGRPrahmen' },
+  { land: 'Saarland', name: 'Saarländisches Informationsfreiheitsgesetz', abbr: 'SIFG', kind: 'ifg',
+    summary: 'Erklärt das Informationsfreiheitsgesetz des Bundes für die saarländische Verwaltung für anwendbar.',
+    url: 'https://recht.saarland.de/bssl/document/jlr-SIFGSL2006rahmen' },
+  { land: 'Sachsen', name: 'Sächsisches Transparenzgesetz', abbr: 'SächsTranspG', kind: 'transparenz',
+    summary: 'Anspruch auf Veröffentlichung und Zugang; veröffentlichte Informationen kommen unverzüglich und im Volltext auf die Transparenzplattform.',
+    url: 'https://www.revosax.sachsen.de/vorschrift/19699-Saechsisches-Transparenzgesetz' },
+  { land: 'Sachsen-Anhalt', name: 'Informationszugangsgesetz Sachsen-Anhalt', abbr: 'IZG LSA', kind: 'ifg',
+    summary: 'Anspruch auf Zugang zu amtlichen Informationen gegenüber Behörden des Landes und der Kommunen.',
+    url: 'https://www.landesrecht.sachsen-anhalt.de/jportal/?quelle=jlink&query=InfZG+ST&psml=bssahprod.psml&max=true&aiz=true' },
+  { land: 'Schleswig-Holstein', name: 'Informationszugangsgesetz für das Land Schleswig-Holstein', abbr: 'IZG-SH', kind: 'ifg',
+    summary: 'Zugang zu Informationen bei informationspflichtigen Stellen des Landes und der Kommunen.',
+    url: 'https://www.gesetze-rechtsprechung.sh.juris.de/jportal/perma?portal=bssh&j=InfoZG_SH' },
+  { land: 'Thüringen', name: 'Thüringer Transparenzgesetz', abbr: 'ThürTG', kind: 'transparenz',
+    summary: 'Transparenzgesetz mit aktiver Veröffentlichungspflicht; löste das frühere Thüringer Informationsfreiheitsgesetz ab.',
+    url: 'https://landesrecht.thueringen.de/bsth/document/jlr-TranspGTHrahmen' },
+];
+const LAENDER_KIND = {
+  transparenz: { label: 'Transparenzgesetz', hint: 'aktive Veröffentlichungspflicht' },
+  ifg:         { label: 'Informationsfreiheitsgesetz', hint: 'Zugang auf Antrag' },
+  kein:        { label: 'Kein allgemeines Landesgesetz', hint: 'nur fachbezogene Ansprüche' },
+};
+
 const METHOD_MODELS = [
   { name: 'Open Data Readiness Assessment (ODRA)', by: 'World Bank', desc: 'Bewertet die organisatorische, rechtliche und infrastrukturelle Bereitschaft für Open Data.' },
   { name: 'Open Data Maturity Report', by: 'data.europa.eu (EU)', desc: 'Jährlicher EU-Reifegradvergleich entlang der Dimensionen Policy, Portal, Impact, Quality.' },
@@ -1599,7 +1660,7 @@ const METHOD_MODELS = [
   { name: 'DSGVO & FAIR', by: 'EU', desc: 'Rechtliche Leitplanken (Datenschutz) und Nachnutzbarkeits-Prinzipien (Findable, Accessible, Interoperable, Reusable).' },
 ];
 
-const wissenFilter = { q: '' };
+const wissenFilter = { q: '', land: '' };
 
 function renderWissen() {
   const q = wissenFilter.q.toLowerCase().trim();
@@ -1621,6 +1682,17 @@ function renderWissen() {
         <span class="know-law-sum">${esc(l.summary)}</span></a>`).join('')
     : '<p class="know-empty">Keine Rechtsgrundlagen passen zur Suche.</p>';
 
+  const laender = LEGAL_BASIS_LAENDER
+    .filter(l => !wissenFilter.land || l.land === wissenFilter.land)
+    .filter(l => match(l.land, l.name, l.abbr, l.summary, LAENDER_KIND[l.kind].label));
+  const lnEl = document.getElementById('wissen-laender');
+  if (lnEl) lnEl.innerHTML = laender.length
+    ? laender.map(l => `<a class="know-law know-law--${esc(l.kind)}" href="${esc(l.url)}" target="_blank" rel="noopener">
+        <span class="know-law-land">${esc(l.land)}<span class="know-kind know-kind--${esc(l.kind)}">${esc(LAENDER_KIND[l.kind].label)}</span></span>
+        <span class="know-law-name">${esc(l.name)}${l.abbr ? ` (${esc(l.abbr)})` : ''} <i class="fas fa-arrow-up-right-from-square"></i></span>
+        <span class="know-law-sum">${esc(l.summary)}</span></a>`).join('')
+    : '<p class="know-empty">Keine Landesregelung passt zur Suche.</p>';
+
   const mEl = document.getElementById('wissen-models');
   if (mEl) mEl.innerHTML = models.length
     ? models.map(m => `<div class="know-model"><strong>${esc(m.name)}</strong><span class="know-model-by">${esc(m.by)}</span><p>${esc(m.desc)}</p></div>`).join('')
@@ -1630,10 +1702,13 @@ function renderWissen() {
   document.getElementById('wissen-sec-glossary')?.classList.toggle('hidden', glossary.length === 0);
   document.getElementById('wissen-sec-laws')?.classList.toggle('hidden', laws.length === 0);
   document.getElementById('wissen-sec-models')?.classList.toggle('hidden', models.length === 0);
-  document.getElementById('wissen-noresult')?.classList.toggle('hidden', glossary.length + laws.length + models.length > 0);
+  document.getElementById('wissen-sec-laender')?.classList.toggle('hidden', laender.length === 0);
+  document.getElementById('wissen-noresult')?.classList.toggle('hidden',
+    glossary.length + laws.length + models.length + laender.length > 0);
 }
 
 document.getElementById('wissen-search')?.addEventListener('input', e => { wissenFilter.q = e.target.value; renderWissen(); });
+document.getElementById('wissen-land')?.addEventListener('change', e => { wissenFilter.land = e.target.value; renderWissen(); });
 
 /* ──────────────────────────────────────────────────────────────
    Vorlagen & Musterdokumente (Service-Center)

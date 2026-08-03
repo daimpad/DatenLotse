@@ -534,6 +534,25 @@
 
     <div class="inv-controls">
       <input type="search" id="wissen-search" class="inv-search" placeholder="Wissen durchsuchen (Begriff, Gesetz …)…" aria-label="Wissen durchsuchen">
+      <select id="wissen-land" aria-label="Nach Bundesland filtern">
+        <option value="">Bundesland: alle</option>
+        <option value="Baden-W&uuml;rttemberg">Baden-W&uuml;rttemberg</option>
+        <option value="Bayern">Bayern</option>
+        <option value="Berlin">Berlin</option>
+        <option value="Brandenburg">Brandenburg</option>
+        <option value="Bremen">Bremen</option>
+        <option value="Hamburg">Hamburg</option>
+        <option value="Hessen">Hessen</option>
+        <option value="Mecklenburg-Vorpommern">Mecklenburg-Vorpommern</option>
+        <option value="Niedersachsen">Niedersachsen</option>
+        <option value="Nordrhein-Westfalen">Nordrhein-Westfalen</option>
+        <option value="Rheinland-Pfalz">Rheinland-Pfalz</option>
+        <option value="Saarland">Saarland</option>
+        <option value="Sachsen">Sachsen</option>
+        <option value="Sachsen-Anhalt">Sachsen-Anhalt</option>
+        <option value="Schleswig-Holstein">Schleswig-Holstein</option>
+        <option value="Th&uuml;ringen">Th&uuml;ringen</option>
+      </select>
     </div>
 
     <div id="wissen-noresult" class="know-empty hidden">Nichts passt zur Suche. Begriff anders formulieren?</div>
@@ -546,6 +565,12 @@
     <section id="wissen-sec-laws" class="know-section">
       <h3 class="know-h3"><i class="fas fa-scale-balanced"></i> Rechtsgrundlagen</h3>
       <div class="know-laws" id="wissen-laws"></div>
+    </section>
+
+    <section id="wissen-sec-laender" class="know-section">
+      <h3 class="know-h3"><i class="fas fa-map-location-dot"></i> Rechtsgrundlagen der L&auml;nder</h3>
+      <p class="know-lead">Neben dem Bundesrecht gilt Landesrecht &ndash; und es unterscheidet sich erheblich. <strong>Transparenzgesetze</strong> verpflichten zur aktiven Ver&ouml;ffentlichung, <strong>Informationsfreiheitsgesetze</strong> regeln den Zugang auf Antrag, zwei L&auml;nder haben kein allgemeines Gesetz. Ma&szlig;geblich ist immer der verlinkte amtliche Text.</p>
+      <div class="know-laws" id="wissen-laender"></div>
     </section>
 
     <section id="wissen-sec-models" class="know-section">

@@ -848,6 +848,36 @@ a { color: var(--c-accent); }
 .know-law-name { font-size: 14px; font-weight: 800; color: var(--c-accent); display: flex; align-items: center; gap: 8px; }
 .know-law-name i { font-size: 11px; }
 .know-law-sum { font-size: 12.5px; color: var(--c-text); line-height: 1.55; }
+
+/* ── Rechtsgrundlagen der Länder ──────────────────────────────── */
+.know-law-land {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-text);
+  min-width: 0;
+}
+.know-kind {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+/* Die Art der Regelung ist die eigentliche Information – sie soll auf einen
+   Blick unterscheidbar sein, ohne allein über Farbe zu funktionieren
+   (der Text steht daneben). */
+.know-kind--transparenz { background: rgba(46, 158, 96, 0.14); color: #1f6b41; }
+.know-kind--ifg         { background: rgba(66, 0, 147, 0.10); color: var(--c-accent); }
+.know-kind--kein        { background: rgba(212, 130, 10, 0.16); color: #8a5406; }
+.know-law--transparenz { border-left: 3px solid var(--ampel-gruen); }
+.know-law--ifg         { border-left: 3px solid var(--c-accent); }
+.know-law--kein        { border-left: 3px solid var(--ampel-gelb); }
 .know-models {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
