@@ -222,3 +222,149 @@ test.describe('Persistenz & Projektdatei', () => {
     expect(state).toEqual({ inv: true, rows: true, gov: 'object', kom: 'object' });
   });
 });
+
+test.describe('RDF/Turtle-Export', () => {
+  /** Strukturprüfung ohne externe Bibliothek – die App bleibt abhängigkeitsfrei. */
+  function pruefeTurtle(ttl) {
+    const fehler = [];
+    const zeilen = ttl.split('\n');
+
+    // Alle benutzten Präfixe müssen deklariert sein
+    const deklariert = new Set([...ttl.matchAll(/^@prefix\s+([a-z]+):/gm)].map(m => m[1]));
+    const inhalt = zeilen.filter(z => !z.startsWith('@') && !z.startsWith('#')).join('\n');
+    // Literale ausblenden, damit Text wie "z. B." nicht als Präfix gilt
+    const ohneLiterale = inhalt.replace(/"(?:[^"\\]|\\.)*"/g, '""');
+    for (const m of ohneLiterale.matchAll(/\b([a-z]+):[A-Za-z]/g)) {
+      if (!deklariert.has(m[1])) fehler.push(`Präfix nicht deklariert: ${m[1]}`);
+    }
+    // Kein unescapter Zeilenumbruch bzw. Anführungszeichen in Literalen
+    for (const m of inhalt.matchAll(/"(?:[^"\\]|\\.)*"/g)) {
+      if (m[0].includes('\n')) fehler.push('Zeilenumbruch in einem Literal');
+    }
+    // Ungerade Anzahl nicht-escapter Anführungszeichen ⇒ Literal nicht geschlossen
+    const quotes = (inhalt.replace(/\\"/g, '').match(/"/g) || []).length;
+    if (quotes % 2 !== 0) fehler.push('Ungleiche Anzahl Anführungszeichen');
+    // Eckige Klammern (Blank Nodes) und Statement-Abschluss
+    if ((inhalt.match(/\[/g) || []).length !== (inhalt.match(/\]/g) || []).length) {
+      fehler.push('Unbalancierte Blank-Node-Klammern');
+    }
+    // IRIs dürfen keinen Leerraum enthalten
+    for (const m of ohneLiterale.matchAll(/<([^>]*)>/g)) {
+      if (/\s/.test(m[1])) fehler.push(`Leerraum in IRI: ${m[1]}`);
+    }
+    // Jedes Subjekt-Statement endet mit " ."
+    const bloecke = inhalt.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+    for (const b of bloecke) if (!b.endsWith(' .')) fehler.push(`Block nicht terminiert: ${b.slice(0, 40)}`);
+    return fehler;
+  }
+
+  test('Beispieldaten erzeugen strukturell gültiges Turtle', async ({ page }) => {
+    const errors = await openApp(page);
+    await loadSample(page);
+    const ttl = await page.evaluate(() => buildDcatTurtle());
+    expect(pruefeTurtle(ttl)).toEqual([]);
+    expect(ttl).toContain('@base <https://beispiel.de/>');
+    expect(ttl).toContain('a dcat:Catalog');
+    expect((ttl.match(/a dcat:Dataset/g) || []).length).toBe(12);
+    expect(errors).toEqual([]);
+  });
+
+  test('Sonderzeichen in Literalen werden escaped statt die Datei zu brechen', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const ttl = await page.evaluate(() => {
+      inventory[0].description = 'Zeile 1\nZeile "zwei" mit \\ Backslash\tund Tab';
+      inventory[0].title = 'Titel mit "Zitat"';
+      return buildDcatTurtle();
+    });
+    expect(pruefeTurtle(ttl)).toEqual([]);
+    expect(ttl).toContain('\\n');
+    expect(ttl).toContain('\\"zwei\\"');
+    expect(ttl).toContain('\\\\');
+  });
+
+  test('Leerraum in einer URL bricht keine IRI', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const ttl = await page.evaluate(() => {
+      inventory[0].landingPage = 'https://example.org/pfad mit leerzeichen';
+      return buildDcatTurtle();
+    });
+    expect(pruefeTurtle(ttl)).toEqual([]);
+    expect(ttl).toContain('pfad%20mit%20leerzeichen');
+  });
+
+  test('erweiterte Felder und kontrollierte Vokabulare erscheinen als URIs', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const ttl = await page.evaluate(() => {
+      Object.assign(inventory[0], {
+        license: 'dl-de/by-2-0', keywords: 'baum, kataster', theme: 'ENVI',
+        issued: '2024-01-15', modified: '2024-06-01',
+        temporalStart: '2023-01-01', temporalEnd: '2023-12-31',
+        spatial: 'Stadt Musterstadt', geocodingKey: '05315000', geocodingLevel: 'gemeinde',
+        contributorID: 'MUSTERSTADT',
+      });
+      return buildDcatTurtle();
+    });
+    expect(ttl).toContain('<http://publications.europa.eu/resource/authority/data-theme/ENVI>');
+    expect(ttl).toContain('<http://dcat-ap.de/def/licenses/dl-by-de/2.0>');
+    expect(ttl).toContain('<http://dcat-ap.de/def/politicalGeocoding/regionalKey/05315000>');
+    expect(ttl).toContain('<http://dcat-ap.de/def/contributors/MUSTERSTADT>');
+    expect(ttl).toContain('dcat:keyword "baum", "kataster"');
+    expect(ttl).toContain('"2024-01-15"^^xsd:date');
+    expect(ttl).toContain('dcat:startDate "2023-01-01"^^xsd:date');
+    expect(pruefeTurtle(ttl)).toEqual([]);
+  });
+
+  test('Turtle und JSON decken dieselben Felder ab', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      Object.assign(inventory[0], {
+        license: 'cc-by-4.0', keywords: 'a', theme: 'ENVI', issued: '2024-01-15',
+        modified: '2024-06-01', temporalStart: '2023-01-01', temporalEnd: '2023-12-31',
+        spatial: 'Musterstadt', geocodingKey: '05315000', geocodingLevel: 'kreis',
+        contributorID: 'X', landingPage: 'https://example.org/a',
+      });
+      const json = JSON.stringify(dcatDataset(inventory[0]));
+      return { json, ttl: turtleDataset(inventory[0]) };
+    });
+    // Jede URI aus dem JSON muss auch im Turtle stehen – sonst driften die Formate
+    const uris = [...r.json.matchAll(/https?:\/\/[^"]+/g)].map(m => m[0]);
+    expect(uris.length).toBeGreaterThan(5);
+    for (const u of uris) expect(r.ttl).toContain(u);
+  });
+
+  test('Datensatz-IRI: landingPage schlägt die relative Basis', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      inventory[0].landingPage = '';
+      const ohne = turtleDataset(inventory[0]).split('\n')[0];
+      inventory[0].landingPage = 'https://opendata.musterstadt.de/melderegister';
+      return { ohne, mit: turtleDataset(inventory[0]).split('\n')[0] };
+    });
+    expect(r.ohne).toBe('<dataset/stadt-musterstadt-einwohnermeldedaten>');
+    expect(r.mit).toBe('<https://opendata.musterstadt.de/melderegister>');
+  });
+
+  test('Download liefert die .ttl-Datei', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    const ttl = await grabDownload(page, () => page.locator('#btn-export-ttl').click());
+    expect(ttl.name).toBe('datenlotse-inventar-dcat-ap-de.ttl');
+    expect(ttl.text).toContain('a dcat:Catalog');
+    expect(pruefeTurtle(ttl.text)).toEqual([]);
+  });
+
+  test('leeres Inventar löst keinen Download aus', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => showView('inventory'));
+    let ausgeloest = false;
+    page.on('download', () => { ausgeloest = true; });
+    await page.locator('#btn-export-ttl').click();
+    expect(ausgeloest).toBe(false);
+  });
+});
