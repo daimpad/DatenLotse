@@ -120,3 +120,133 @@ test.describe('Risiko-Clearing (Modul 3a)', () => {
     await expect(page.locator('#clearing-body .inv-empty')).toBeVisible();
   });
 });
+
+test.describe('Eigene Notiz zur Clearing-Entscheidung', () => {
+  test('Notiz wird gespeichert, ohne die Ampel zu verändern', async ({ page }) => {
+    const errors = await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => { navTo('inventory'); showInventoryTab('clearing'); });
+    const karte = page.locator('.clear-card').filter({ hasText: 'Personalstammdaten' }).first();
+    const vorher = await karte.locator('.clear-ampel').textContent();
+
+    await karte.locator('[data-note]').fill('Abstimmung mit dem Datenschutz vom 12.03.');
+    // Die Notiz ist eine Ergänzung, keine Eingabe in den Entscheidungsbaum
+    await expect(karte.locator('.clear-ampel')).toHaveText(vorher);
+    const gespeichert = await page.evaluate(() =>
+      inventory.find(d => d.title === 'Personalstammdaten')._clearingNote);
+    expect(gespeichert).toBe('Abstimmung mit dem Datenschutz vom 12.03.');
+    expect(errors).toEqual([]);
+  });
+
+  test('Notiz überlebt den Reload und das Neu-Rendern nach einer Antwort', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => {
+      navTo('inventory'); showInventoryTab('clearing');
+      inventory[0]._clearingNote = 'Merker';
+      saveState();
+    });
+    await page.reload();
+    await page.waitForFunction(() => inventory.length > 0);
+    await page.evaluate(() => { navTo('inventory'); showInventoryTab('clearing'); });
+    await expect(page.locator('.clear-card').first().locator('[data-note]')).toHaveValue('Merker');
+
+    // Eine Antwort löst ein Neu-Rendern aus – die Notiz muss bleiben
+    await page.locator('.clear-card').first().locator('select[data-q="pb"]').selectOption('unklar');
+    await expect(page.locator('.clear-card').first().locator('[data-note]')).toHaveValue('Merker');
+  });
+
+  test('Notiz erscheint im Freigabeformular und im Bericht', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      inventory[0]._clearingNote = 'Aggregation auf Bezirksebene vereinbart';
+      ensureAllClearing();
+      return { freigabe: freigabeBodyHTML(), bericht: buildInventoryReportHTML() };
+    });
+    expect(r.freigabe).toContain('Aggregation auf Bezirksebene vereinbart');
+    expect(r.bericht).toContain('Aggregation auf Bezirksebene vereinbart');
+  });
+
+  test('Notiz wird escaped ausgegeben', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const html = await page.evaluate(() => {
+      inventory[0]._clearingNote = '<img src=x onerror="alert(1)">';
+      ensureAllClearing();
+      return freigabeBodyHTML();
+    });
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('&lt;img');
+  });
+});
+
+test.describe('Filter nach Publikationsreife', () => {
+  test('grenzt auf den Status aus der Qualitätsprüfung ein', async ({ page }) => {
+    const errors = await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    // Frisch importiert fehlt überall die Lizenz -> alles rot
+    await page.locator('#inv-filter-qual').selectOption('rot');
+    await expect(page.locator('.inv-card')).toHaveCount(12);
+    await page.locator('#inv-filter-qual').selectOption('gruen');
+    await expect(page.locator('.inv-empty')).toBeVisible();
+
+    await page.evaluate(() => {
+      inventory.forEach(d => Object.assign(d, {
+        keywords: 'x', landingPage: 'https://example.org', contactPoint: 'a@b.de',
+        theme: 'ENVI', contributorID: 'X', description: 'Eine ausreichend lange Beschreibung.',
+      }));
+      inventory.forEach(d => d.distributions.forEach(x => { x.license = 'dl-de/by-2-0'; x.format = 'CSV'; }));
+      renderInventoryBody();
+    });
+    await expect(page.locator('.inv-card')).toHaveCount(12);
+    expect(errors).toEqual([]);
+  });
+
+  test('wirkt mit den anderen Filtern zusammen', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    await page.locator('#inv-filter-schutz').selectOption('dsgvo');
+    const nurSchutz = await page.locator('.inv-card').count();
+    await page.locator('#inv-filter-qual').selectOption('rot');
+    await expect(page.locator('.inv-card')).toHaveCount(nurSchutz);
+    await page.locator('#inv-filter-qual').selectOption('gruen');
+    await expect(page.locator('.inv-empty')).toBeVisible();
+  });
+
+  test('Sprung aus der Qualitätsprüfung setzt auch diesen Filter zurück', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => {
+      invFilter.qual = 'gruen';
+      document.getElementById('inv-filter-qual').value = 'gruen';
+      navTo('inventory'); showInventoryTab('quality');
+    });
+    await page.locator('.qual-fix').first().click();
+    await expect(page.locator('#inv-filter-qual')).toHaveValue('');
+    await expect(page.locator('.inv-card')).toHaveCount(12);
+  });
+});
+
+test.describe('Bestandsprüfung im Bericht', () => {
+  test('Befunde stehen im PDF-Bericht', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const html = await page.evaluate(() => {
+      inventory[1].title = inventory[0].title;
+      return buildInventoryReportHTML();
+    });
+    expect(html).toContain('Bestandsprüfung');
+    expect(html).toContain('wird 2× verwendet');
+    expect(html).toContain('Warnung');
+  });
+
+  test('sauberer Bestand wird ebenfalls ausgewiesen', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const html = await page.evaluate(() => buildInventoryReportHTML());
+    expect(html).toContain('Keine Dubletten oder Schreibvarianten');
+  });
+});
