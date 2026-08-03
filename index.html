@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=34">
-  <link rel="stylesheet" href="css/styles.css?v=34">
+  <link rel="stylesheet" href="css/tokens.css?v=35">
+  <link rel="stylesheet" href="css/styles.css?v=35">
 </head>
 <body>
 
@@ -86,6 +86,7 @@
       <a href="#" data-view="pseudo"><i class="fas fa-fw fa-user-shield"></i> Textbereinigung</a>
       <a href="#" data-view="wissen"><i class="fas fa-fw fa-book-open-reader"></i> Wissen &amp; Methodik</a>
       <a href="#" data-view="vorlagen"><i class="fas fa-fw fa-file-lines"></i> Vorlagen &amp; Dokumente</a>
+      <a href="#" id="sidebar-tour"><i class="fas fa-fw fa-route"></i> Rundgang starten</a>
       <a href="#" data-view="about"><i class="fas fa-fw fa-circle-info"></i> Über DatenLotse</a>
       <a href="https://datengraf.nozilla.net/" target="_blank" rel="noopener"><i class="fas fa-fw fa-circle-nodes"></i> Zu DatenGraf</a>
     </nav>
@@ -152,6 +153,14 @@
   </section>
 
   <!-- ── Akkordeon: Über den DatenLotsen ───────────────────────── -->
+  <div class="tour-hint hidden" id="tour-hint">
+    <span class="tour-hint-text"><i class="fas fa-route"></i> Zum ersten Mal hier? Ein kurzer Rundgang zeigt, wof&uuml;r die Bausteine da sind.</span>
+    <span class="tour-hint-btns">
+      <button class="btn btn-primary btn-sm" id="tour-hint-start"><i class="fas fa-play"></i> Rundgang starten</button>
+      <button class="tour-hint-close" id="tour-hint-close" aria-label="Hinweis ausblenden"><i class="fas fa-xmark"></i></button>
+    </span>
+  </div>
+
   <section class="about-accordion" id="about-accordion">
     <details class="about-details">
       <summary class="about-summary">
@@ -595,6 +604,12 @@
       <div class="know-laws" id="wissen-laender"></div>
     </section>
 
+    <section id="wissen-sec-kommunal" class="know-section">
+      <h3 class="know-h3"><i class="fas fa-building-columns"></i> Kommunale Informationsfreiheitssatzungen</h3>
+      <p class="know-lead">Wo ein Landesgesetz fehlt &ndash; in <strong>Bayern</strong> und <strong>Niedersachsen</strong> &ndash;, k&ouml;nnen Kommunen Informationsfreiheit &uuml;ber ihre <strong>Satzungsautonomie</strong> selbst einf&uuml;hren. Welche Kommunen das getan haben, &auml;ndert sich laufend; statt einer Momentaufnahme verweisen wir deshalb auf gepflegte &Uuml;bersichten und ein amtliches Beispiel.</p>
+      <div class="know-laws" id="wissen-kommunal"></div>
+    </section>
+
     <section id="wissen-sec-models" class="know-section">
       <h3 class="know-h3"><i class="fas fa-ruler-combined"></i> Reifegrad-Modelle &amp; Methodik</h3>
       <p class="know-lead">Der <strong>Daten-Kompass</strong> stützt sich auf anerkannte Modelle:</p>
@@ -739,10 +754,14 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v34</span>
+    <span class="footer-version">v35</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
+  <div class="tour-layer hidden" id="tour-layer">
+    <div class="tour-card" id="tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title" tabindex="-1"></div>
+  </div>
+
   <div class="modal-backdrop hidden" id="faq-backdrop">
     <div class="faq-modal" role="dialog" aria-modal="true" aria-labelledby="faq-title">
       <div class="faq-modal-header">
@@ -916,6 +935,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=34"></script>
+  <script src="js/app.js?v=35"></script>
 </body>
 </html>

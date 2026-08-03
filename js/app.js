@@ -178,7 +178,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v34';
+const APP_VERSION = 'v35';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -459,6 +459,138 @@ function completeness(d) {
   const filled = REQUIRED_FIELDS.filter(f => d[f] && d[f] !== '').length;
   return Math.round((filled / REQUIRED_FIELDS.length) * 100);
 }
+
+/* ── Onboarding-Rundgang ──────────────────────────────────────────
+   Geführter Durchlauf durch die Bausteine. Bewusst KEIN Auto-Start als
+   Modal beim ersten Laden – das nimmt Erstnutzern die Kontrolle. Stattdessen
+   ein wegklickbarer Hinweis auf der Startseite plus ein Einstieg in der
+   Seitenleiste; der Rundgang lässt sich jederzeit wiederholen.
+
+   Schritte mit `needsData` brauchen ein Inventar. Statt still Beispieldaten
+   zu laden (Nebenwirkung, die niemand bestellt hat), bietet der Schritt den
+   Import an und lässt die Entscheidung beim Menschen.
+   ────────────────────────────────────────────────────────────── */
+const LS_TOUR = 'datenlotse_tour';
+const TOUR_STEPS = [
+  { view: 'home', title: 'Willkommen beim DatenLotsen',
+    text: 'Dieser Rundgang zeigt in wenigen Schritten, wofür die Bausteine da sind und in welcher Reihenfolge sie sinnvoll sind. Alles läuft lokal in deinem Browser – es gibt keinen Server, keinen Account und keine Übertragung.' },
+  { view: 'kompass', target: '#kompass-score', title: 'Überblick: Daten-Kompass',
+    text: 'Der Einstieg. Eine Reifegrad-Checkliste nach anerkannten Modellen (ODRA, EU Open Data Maturity, 5-Sterne, DCAT-AP.de, DSGVO/FAIR) sagt dir, wo ihr steht – und empfiehlt den nächsten sinnvollen Schritt.' },
+  { view: 'governance', target: '#gov-questions', title: 'Phase 1: Governance & Rollen',
+    text: 'Acht gewichtete Fragen ergeben einen Reifegrad. Die RACI-Matrix leitet sich später aus dem Inventar ab und markiert Rollen, die noch nicht besetzt sind. Der Fragebogen funktioniert auch ohne importierte Daten.' },
+  { view: 'inventory', target: '.inv-card', needsData: true, title: 'Phase 2: Dateninventar',
+    text: 'Aus jedem kartierten Datenfluss wird ein DCAT-AP.de-Datensatz. Die Felder ergänzt ihr direkt in der Karte; die Prozentzahl zeigt live, wie vollständig der Datensatz für eine Veröffentlichung ist.' },
+  { view: 'inventory', target: '#tab-quality', needsData: true, title: 'Publikationsreife prüfen',
+    text: 'Die Qualitätsprüfung trennt echte Fehler (fehlende Pflichtfelder, ungültige Werte) von Warnungen – damit ihr vor dem Harvesting wisst, was ein Portal ablehnen würde.' },
+  { view: 'inventory', target: '#tab-clearing', needsData: true, title: 'Phase 3: Risiko-Clearing',
+    text: 'Ein transparenter Entscheidungsbaum je Datensatz: Grün ist unstrittig, Rot gesperrt, und eure Prüfkapazität konzentriert sich auf das Gelb. Kein maschinelles Lernen – jedes Ergebnis ist begründet und nachvollziehbar.' },
+  { view: 'pseudo', target: '.pseudo-tabs', title: 'Phase 3: Textbereinigung',
+    text: 'Freitexte und CSV-Spalten von personenbezogenen Angaben befreien – strukturerhaltend, mit konsistenten Platzhaltern und einer Zuordnungstabelle für die Dokumentation. Die manuelle Nachkontrolle bleibt Pflicht.' },
+  { view: 'wissen', target: '#wissen-search', title: 'Nachschlagen statt raten',
+    text: 'Glossar, Rechtsgrundlagen des Bundes und aller 16 Länder sowie die Modelle hinter dem Kompass – durchsuchbar an der Stelle, an der ihr arbeitet. Ausdrücklich keine Rechtsberatung.' },
+  { view: 'vorlagen', target: '.vorlage-card', title: 'Fertige Dokumente',
+    text: 'Richtlinie, DSFA-Checkliste, Freigabeformulare und VVT-Auszug entstehen aus dem Stand, den ihr ohnehin erfasst habt – als PDF, Markdown oder CSV.' },
+  { view: 'home', target: '#project-save-btn', openSidebar: true, title: 'Arbeitsstand sichern',
+    text: 'Alles bleibt im Browser. Damit nichts verloren geht, sichert „Projekt speichern" den kompletten Stand als eine Datei – für Backup, Gerätewechsel oder zum Teilen im Team.' },
+  { view: 'home', title: 'Los geht es',
+    text: 'Am besten startet ihr mit dem Daten-Kompass: Er sagt euch in zehn Minuten, wo ihr steht und was als Nächstes dran ist. Diesen Rundgang findet ihr jederzeit in der Seitenleiste.' },
+];
+const tour = { i: 0, active: false };
+
+function tourSeen() {
+  try { return localStorage.getItem(LS_TOUR) === 'done'; } catch (e) { return false; }
+}
+function markTourSeen() {
+  try { localStorage.setItem(LS_TOUR, 'done'); } catch (e) { /* ignorieren */ }
+  document.getElementById('tour-hint')?.classList.add('hidden');
+}
+
+function startTour() {
+  tour.i = 0;
+  tour.active = true;
+  document.getElementById('tour-layer')?.classList.remove('hidden');
+  renderTour();
+}
+function endTour() {
+  tour.active = false;
+  document.getElementById('tour-layer')?.classList.add('hidden');
+  document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+  closeSidebar();
+  markTourSeen();
+}
+function tourGo(delta) {
+  const next = tour.i + delta;
+  if (next < 0) return;
+  if (next >= TOUR_STEPS.length) { endTour(); return; }
+  tour.i = next;
+  renderTour();
+}
+
+function renderTour() {
+  const layer = document.getElementById('tour-layer');
+  const card = document.getElementById('tour-card');
+  if (!layer || !card || !tour.active) return;
+  const step = TOUR_STEPS[tour.i];
+
+  document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+  if (step.view) navTo(step.view);
+  if (step.openSidebar) openSidebar(); else closeSidebar();
+
+  const fehlt = step.needsData && !inventory.length;
+  const ziel = fehlt || !step.target ? null : document.querySelector(step.target);
+  if (ziel) {
+    ziel.classList.add('tour-highlight');
+    ziel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  card.innerHTML =
+    `<div class="tour-head">
+       <span class="tour-count">Schritt ${tour.i + 1} von ${TOUR_STEPS.length}</span>
+       <button class="icon-close" id="tour-close" aria-label="Rundgang beenden"><i class="fas fa-xmark"></i></button>
+     </div>
+     <h2 class="tour-title" id="tour-title">${esc(step.title)}</h2>
+     <p class="tour-text">${esc(step.text)}</p>
+     ${fehlt ? `<p class="tour-note"><i class="fas fa-circle-info"></i> Dieser Baustein braucht Daten. Lade den Beispieldatensatz, um ihn im Einsatz zu sehen.</p>
+       <button class="btn btn-secondary tour-sample" id="tour-sample"><i class="fas fa-flask"></i> Beispiel laden</button>` : ''}
+     <div class="tour-actions">
+       <button class="btn btn-secondary" id="tour-prev"${tour.i === 0 ? ' disabled' : ''}><i class="fas fa-arrow-left"></i> Zurück</button>
+       <button class="btn btn-secondary" id="tour-skip">Überspringen</button>
+       <button class="btn btn-primary" id="tour-next">${tour.i === TOUR_STEPS.length - 1 ? 'Fertig' : 'Weiter'} <i class="fas fa-arrow-right"></i></button>
+     </div>`;
+
+  document.getElementById('tour-close')?.addEventListener('click', endTour);
+  document.getElementById('tour-skip')?.addEventListener('click', endTour);
+  document.getElementById('tour-prev')?.addEventListener('click', () => tourGo(-1));
+  document.getElementById('tour-next')?.addEventListener('click', () => tourGo(1));
+  document.getElementById('tour-sample')?.addEventListener('click', () => {
+    loadSampleData();
+    // renderInventory() wechselt die Ansicht – den Schritt danach neu aufbauen
+    setTimeout(() => { if (tour.active) renderTour(); }, 150);
+  });
+  card.focus();
+}
+
+function refreshTourHint() {
+  const hint = document.getElementById('tour-hint');
+  if (!hint) return;
+  // Nur für Erstnutzer und nur auf der Startseite – und nie während des Rundgangs
+  hint.classList.toggle('hidden', tourSeen() || tour.active);
+}
+
+document.getElementById('sidebar-tour')?.addEventListener('click', e => {
+  e.preventDefault();
+  closeSidebar();
+  startTour();
+});
+document.getElementById('tour-hint-start')?.addEventListener('click', startTour);
+document.getElementById('tour-hint-close')?.addEventListener('click', markTourSeen);
+
+document.addEventListener('keydown', e => {
+  if (!tour.active) return;
+  if (e.key === 'Escape') { e.preventDefault(); endTour(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); tourGo(1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); tourGo(-1); }
+});
 
 /* ── Modul 3a: Clearing-Ampel (deterministischer Entscheidungsbaum)
    Antworten je Datensatz:
@@ -1527,7 +1659,7 @@ function showView(name) {
   // stattdessen ihren eigenen, kontextpassenden „Wie geht es weiter?"-Block.
   const cta = document.querySelector('.consult-cta');
   if (cta) cta.style.display = (name === 'home') ? '' : 'none';
-  if (name === 'home') refreshDashboard();
+  if (name === 'home') { refreshDashboard(); refreshTourHint(); }
   else { const dash = document.getElementById('dashboard'); if (dash) dash.classList.add('hidden'); }
   window.scrollTo({ top: 0 });
 }
@@ -1734,7 +1866,7 @@ const LEGAL_BASIS_LAENDER = [
     summary: 'Anspruch auf Zugang zu amtlichen Informationen gegenüber Landes- und Kommunalbehörden.',
     url: 'https://www.landesrecht-mv.de/bsmv/document/jlr-InfFrGMVV1P1' },
   { land: 'Niedersachsen', name: 'Niedersächsisches Umweltinformationsgesetz', abbr: 'NUIG', kind: 'kein',
-    summary: 'Kein allgemeines Landes-Informationsfreiheitsgesetz. Zugangsansprüche bestehen fachbezogen, etwa für Umweltinformationen nach dem NUIG.',
+    summary: 'Kein allgemeines Landes-Informationsfreiheitsgesetz. Zugangsansprüche bestehen fachbezogen, etwa für Umweltinformationen nach dem NUIG – einzelne Kommunen haben eigene Informationsfreiheitssatzungen beschlossen.',
     url: 'https://nds-voris.de/jportal/?max=true&psml=bsvorisprod.psml&quelle=jlink&query=UIG+ND+%C2%A7+6' },
   { land: 'Nordrhein-Westfalen', name: 'Informationsfreiheitsgesetz Nordrhein-Westfalen', abbr: 'IFG NRW', kind: 'ifg',
     summary: 'Anspruch auf Zugang zu amtlichen Informationen des Landes und der Kommunen.',
@@ -1758,6 +1890,29 @@ const LEGAL_BASIS_LAENDER = [
     summary: 'Transparenzgesetz mit aktiver Veröffentlichungspflicht; löste das frühere Thüringer Informationsfreiheitsgesetz ab.',
     url: 'https://landesrecht.thueringen.de/bsth/document/jlr-TranspGTHrahmen' },
 ];
+/* Kommunale Informationsfreiheitssatzungen. Wo ein Landesgesetz fehlt, können
+   Kommunen Informationsfreiheit über ihre Satzungsautonomie selbst einführen.
+
+   BEWUSST KEINE LISTE der einzelnen Kommunen: es sind mehrere Dutzend, der
+   Stand ändert sich laufend, und eine eingefrorene Momentaufnahme im Werkzeug
+   wäre nach kurzer Zeit falsch. Verlinkt werden deshalb gepflegte Übersichten
+   plus ein amtliches Beispiel. `amtlich` unterscheidet die amtliche Fundstelle
+   von zivilgesellschaftlichen Sammlungen – das gehört offengelegt. */
+const KOMMUNAL_SATZUNGEN = [
+  { name: 'Übersicht der bayerischen Kommunen', amtlich: false,
+    summary: 'Laufend gepflegte Liste des Bündnisses Informationsfreiheit für Bayern; nach dessen Angaben haben rund 80 Kommunen eine Satzung, darunter alle bayerischen Großstädte. Die Daten liegen zusätzlich maschinenlesbar vor.',
+    url: 'https://informationsfreiheit.org/ubersicht/' },
+  { name: 'Kommunale Satzungen (FragDenStaat)', amtlich: false,
+    summary: 'Erläutert, was eine kommunale Satzung gegenüber einem Landesgesetz leistet und worauf bei einer Anfrage zu achten ist.',
+    url: 'https://fragdenstaat.de/hilfe/erste-anfrage/welche-besonderheiten-gibt-es-in-den-laendergesetzen/kommunale-satzungen/' },
+  { name: 'Beispiel München: Informationsfreiheitssatzung', amtlich: true,
+    summary: 'Amtlicher Volltext im Stadtrecht der Landeshauptstadt – zeigt, wie eine solche Satzung konkret aufgebaut ist.',
+    url: 'https://stadt.muenchen.de/rathaus/stadtrecht/vorschrift/38/version1/0.html' },
+  { name: 'Beispiele aus Niedersachsen', amtlich: false,
+    summary: 'Auch ohne Landesgesetz haben niedersächsische Kommunen Satzungen beschlossen (u. a. Oldenburg, Hameln, Lingen, Salzgitter). Rechtsgrundlage ist die kommunale Satzungsautonomie.',
+    url: 'https://informationsfreiheit.org/category/woanders/niedersachsen/' },
+];
+
 const LAENDER_KIND = {
   transparenz: { label: 'Transparenzgesetz', hint: 'aktive Veröffentlichungspflicht' },
   ifg:         { label: 'Informationsfreiheitsgesetz', hint: 'Zugang auf Antrag' },
@@ -1805,6 +1960,15 @@ function renderWissen() {
         <span class="know-law-sum">${esc(l.summary)}</span></a>`).join('')
     : '<p class="know-empty">Keine Landesregelung passt zur Suche.</p>';
 
+  const kommunal = KOMMUNAL_SATZUNGEN.filter(k => match(k.name, k.summary, 'kommunale Satzung Informationsfreiheitssatzung'));
+  const kmEl = document.getElementById('wissen-kommunal');
+  if (kmEl) kmEl.innerHTML = kommunal.length
+    ? kommunal.map(k => `<a class="know-law know-law--kommunal" href="${esc(k.url)}" target="_blank" rel="noopener">
+        <span class="know-law-land"><span class="know-kind know-kind--${k.amtlich ? 'amtlich' : 'sammlung'}">${k.amtlich ? 'Amtliche Fundstelle' : 'Zivilgesellschaftliche Sammlung'}</span></span>
+        <span class="know-law-name">${esc(k.name)} <i class="fas fa-arrow-up-right-from-square"></i></span>
+        <span class="know-law-sum">${esc(k.summary)}</span></a>`).join('')
+    : '<p class="know-empty">Nichts passt zur Suche.</p>';
+
   const mEl = document.getElementById('wissen-models');
   if (mEl) mEl.innerHTML = models.length
     ? models.map(m => `<div class="know-model"><strong>${esc(m.name)}</strong><span class="know-model-by">${esc(m.by)}</span><p>${esc(m.desc)}</p></div>`).join('')
@@ -1815,6 +1979,9 @@ function renderWissen() {
   document.getElementById('wissen-sec-laws')?.classList.toggle('hidden', laws.length === 0);
   document.getElementById('wissen-sec-models')?.classList.toggle('hidden', models.length === 0);
   document.getElementById('wissen-sec-laender')?.classList.toggle('hidden', laender.length === 0);
+  // Der Bundesland-Filter meint Landesrecht – die kommunale Ebene blendet er aus
+  document.getElementById('wissen-sec-kommunal')?.classList.toggle('hidden',
+    kommunal.length === 0 || !!wissenFilter.land);
   document.getElementById('wissen-noresult')?.classList.toggle('hidden',
     glossary.length + laws.length + models.length + laender.length > 0);
 }
@@ -2904,6 +3071,7 @@ document.getElementById('reset-data-btn')?.addEventListener('click', () => {
 // Beim Laden den gespeicherten Stand wiederherstellen (still – Daten sind über die Views erreichbar)
 loadState();
 refreshDashboard();   // Status-Dashboard auf der Startseite zeigen, falls bereits Daten vorliegen
+refreshTourHint();    // Rundgang-Hinweis nur für Erstnutzer
 
 /* ──────────────────────────────────────────────────────────────
    ROADMAP / BAUAUFTRÄGE
