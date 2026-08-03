@@ -184,7 +184,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v42';
+const APP_VERSION = 'v43';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -773,6 +773,22 @@ function filteredInventory() {
   if (invFilter.sort === 'title') list.sort((a, b) => a.d.title.localeCompare(b.d.title, 'de'));
   else if (invFilter.sort === 'complete-desc') list.sort((a, b) => completeness(b.d) - completeness(a.d));
   else if (invFilter.sort === 'complete-asc') list.sort((a, b) => completeness(a.d) - completeness(b.d));
+  /* Publikationsreife: dieselbe Auswertung wie im Qualitäts-Tab. Bei gleichem
+     Status entscheidet die Zahl der Befunde – sonst stünden zwölf gelbe
+     Datensätze in beliebiger Reihenfolge, obwohl einer neun Warnungen hat
+     und ein anderer eine. */
+  else if (invFilter.sort === 'qual-worst' || invFilter.sort === 'qual-best') {
+    const rang = { rot: 0, gelb: 1, gruen: 2 };
+    const bewertet = new Map(list.map(({ d, idx }) => {
+      const issues = validateDataset(d);
+      return [idx, { rang: rang[qualityStatus(issues)], n: issues.length }];
+    }));
+    const richtung = invFilter.sort === 'qual-worst' ? 1 : -1;
+    list.sort((a, b) => {
+      const x = bewertet.get(a.idx), y = bewertet.get(b.idx);
+      return richtung * ((x.rang - y.rang) || (y.n - x.n));
+    });
+  }
   return list;
 }
 

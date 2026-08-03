@@ -624,3 +624,85 @@ test.describe('Verteilungen (dcat:Distribution)', () => {
     expect(r.zweite.license).toBe('cc-zero');
   });
 });
+
+test.describe('Sortierung nach Publikationsreife', () => {
+  /** Liest den Publikationsstatus in der aktuell gerenderten Reihenfolge. */
+  const reihenfolge = page => page.evaluate(() =>
+    filteredInventory().map(({ d }) => qualityStatus(validateDataset(d))));
+
+  test('„Fehler zuerst" stellt Rot vor Gelb vor Grün', async ({ page }) => {
+    const errors = await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => {
+      // Drei Gruppen erzeugen: grün, gelb, rot
+      inventory.forEach(d => Object.assign(d, {
+        keywords: 'x', landingPage: 'https://example.org', contactPoint: 'a@b.de',
+        theme: 'ENVI', contributorID: 'X', description: 'Eine ausreichend lange Beschreibung.',
+      }));
+      inventory.forEach(d => d.distributions.forEach(x => { x.license = 'dl-de/by-2-0'; x.format = 'CSV'; }));
+      inventory[4].keywords = '';        // Warnung
+      inventory[7].title = '';           // Fehler
+      navTo('inventory');
+    });
+    await page.locator('#inv-sort').selectOption('qual-worst');
+    const r = await reihenfolge(page);
+    const rang = { rot: 0, gelb: 1, gruen: 2 };
+    expect(r.map(s => rang[s])).toEqual([...r.map(s => rang[s])].sort((a, b) => a - b));
+    expect(r[0]).toBe('rot');
+    expect(errors).toEqual([]);
+  });
+
+  test('„bereit zuerst" dreht die Reihenfolge um', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => {
+      inventory.forEach(d => Object.assign(d, {
+        keywords: 'x', landingPage: 'https://example.org', contactPoint: 'a@b.de',
+        theme: 'ENVI', contributorID: 'X', description: 'Eine ausreichend lange Beschreibung.',
+      }));
+      inventory.forEach(d => d.distributions.forEach(x => { x.license = 'dl-de/by-2-0'; x.format = 'CSV'; }));
+      inventory[7].title = '';
+      navTo('inventory');
+    });
+    await page.locator('#inv-sort').selectOption('qual-best');
+    const r = await reihenfolge(page);
+    expect(r[0]).toBe('gruen');
+    expect(r[r.length - 1]).toBe('rot');
+  });
+
+  test('bei gleichem Status entscheidet die Zahl der Befunde', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      // Alle gelb, aber unterschiedlich viele Warnungen
+      inventory.forEach(d => Object.assign(d, {
+        keywords: 'x', landingPage: 'https://example.org', contactPoint: 'a@b.de',
+        theme: 'ENVI', contributorID: 'X', description: 'Eine ausreichend lange Beschreibung.',
+      }));
+      inventory.forEach(d => d.distributions.forEach(x => { x.license = 'dl-de/by-2-0'; x.format = 'CSV'; }));
+      inventory[2].keywords = ''; inventory[2].theme = '';        // zwei Warnungen
+      inventory[5].keywords = '';                                  // eine Warnung
+      invFilter.sort = 'qual-worst';
+      return filteredInventory().map(({ d }) => validateDataset(d).length);
+    });
+    expect(r).toEqual([...r].sort((a, b) => b - a));
+    expect(r[0]).toBe(2);
+  });
+
+  test('Sortierung wirkt über einer gefilterten Teilmenge und trifft den richtigen Datensatz', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => navTo('inventory'));
+    await page.locator('#inv-filter-schutz').selectOption('dsgvo');
+    await page.locator('#inv-sort').selectOption('qual-worst');
+    const n = await page.locator('.inv-card').count();
+    expect(n).toBe(4);
+
+    // Der echte Index wird durch Filter UND Sortierung mitgeführt
+    await page.locator('.inv-card').first().locator('[data-field="keywords"]').fill('sortier-test');
+    const treffer = await page.evaluate(() =>
+      inventory.filter(d => d.keywords === 'sortier-test').map(d => d._grafSchutzbedarf));
+    expect(treffer.length).toBe(1);
+    expect(treffer[0]).toMatch(/DSGVO/i);
+  });
+});
