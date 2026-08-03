@@ -65,8 +65,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=35">
-  <link rel="stylesheet" href="css/styles.css?v=35">
+  <link rel="stylesheet" href="css/tokens.css?v=36">
+  <link rel="stylesheet" href="css/styles.css?v=36">
 </head>
 <body>
 
@@ -510,6 +510,7 @@
     <p class="inventory-hint">Die Checkliste folgt anerkannten Reifegradmodellen für offene Daten (World-Bank&nbsp;ODRA, EU&nbsp;Open&nbsp;Data&nbsp;Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR). Status je Punkt: <em>Offen · Teilweise · Erfüllt · Nicht relevant</em>. Manche Punkte sind aus deinem aktuellen Stand vorbelegt. Alles bleibt lokal im Browser.</p>
 
     <div class="kompass-score" id="kompass-score"></div>
+    <div class="kompass-history" id="kompass-history"></div>
     <div class="kompass-dims" id="kompass-dims"></div>
 
     <details class="kompass-sources">
@@ -608,6 +609,12 @@
       <h3 class="know-h3"><i class="fas fa-building-columns"></i> Kommunale Informationsfreiheitssatzungen</h3>
       <p class="know-lead">Wo ein Landesgesetz fehlt &ndash; in <strong>Bayern</strong> und <strong>Niedersachsen</strong> &ndash;, k&ouml;nnen Kommunen Informationsfreiheit &uuml;ber ihre <strong>Satzungsautonomie</strong> selbst einf&uuml;hren. Welche Kommunen das getan haben, &auml;ndert sich laufend; statt einer Momentaufnahme verweisen wir deshalb auf gepflegte &Uuml;bersichten und ein amtliches Beispiel.</p>
       <div class="know-laws" id="wissen-kommunal"></div>
+    </section>
+
+    <section id="wissen-sec-tools" class="know-section">
+      <h3 class="know-h3"><i class="fas fa-clipboard-check"></i> Pr&uuml;fwerkzeuge &amp; Normtexte</h3>
+      <p class="know-lead">Die Qualit&auml;tspr&uuml;fung im Inventar f&auml;ngt die h&auml;ufigsten Fehler ab, ist aber <strong>keine vollst&auml;ndige SHACL-Validierung</strong> &ndash; die br&auml;uchte eine RDF-Bibliothek und damit eine Laufzeit-Abh&auml;ngigkeit, die DatenLotse bewusst nicht hat. F&uuml;r die abschlie&szlig;ende Pr&uuml;fung vor der Ver&ouml;ffentlichung:</p>
+      <div class="know-laws" id="wissen-tools"></div>
     </section>
 
     <section id="wissen-sec-models" class="know-section">
@@ -754,7 +761,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v35</span>
+    <span class="footer-version">v36</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -831,8 +838,23 @@
 
         <p class="modal-privacy"><i class="fas fa-lock"></i> Alles läuft lokal im Browser – kein Server, kein Upload, kein Account. Dein gespeicherter Stand bleibt auf diesem Gerät.</p>
 
+        <p class="modal-sample-lead"><i class="fas fa-flask"></i> Ohne eigene Daten ausprobieren &ndash; drei Beispielorganisationen mit unterschiedlichem Zuschnitt:</p>
+        <div class="sample-choice">
+          <button class="sample-card" data-sample="data/sample-kommune.csv">
+            <span class="sample-card-name"><i class="fas fa-city"></i> Stadtverwaltung</span>
+            <span class="sample-card-desc">12 Datens&auml;tze einer kreisfreien Stadt &ndash; B&uuml;rgeramt, K&auml;mmerei, Stadtplanung, Bibliothek.</span>
+          </button>
+          <button class="sample-card" data-sample="data/sample-landkreis.csv">
+            <span class="sample-card-name"><i class="fas fa-map"></i> Landkreis</span>
+            <span class="sample-card-desc">12 Datens&auml;tze einer Kreisverwaltung &ndash; Gesundheitsamt, Jobcenter, Kataster, Bauaufsicht.</span>
+          </button>
+          <button class="sample-card" data-sample="data/sample-landesbehoerde.csv">
+            <span class="sample-card-name"><i class="fas fa-landmark"></i> Landesbeh&ouml;rde</span>
+            <span class="sample-card-desc">12 Datens&auml;tze auf Landesebene &ndash; Statistik, Umweltmessnetz, Geobasisdaten, Archiv.</span>
+          </button>
+        </div>
+
         <div class="modal-cta-row">
-          <button class="btn btn-secondary" id="inv-modal-sample"><i class="fas fa-flask"></i> Beispiel laden</button>
           <button class="btn btn-primary" id="inv-modal-import"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
         </div>
       </div>
@@ -935,6 +957,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=35"></script>
+  <script src="js/app.js?v=36"></script>
 </body>
 </html>

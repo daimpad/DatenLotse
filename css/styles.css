@@ -849,6 +849,97 @@ a { color: var(--c-accent); }
 .know-law-name i { font-size: 11px; }
 .know-law-sum { font-size: 12.5px; color: var(--c-text); line-height: 1.55; }
 
+/* ── Kompass-Verlauf ──────────────────────────────────────────── */
+.kompass-history {
+  max-width: 1180px;
+  margin: 0 auto 22px;
+  padding: 16px 18px;
+  background: var(--glass-bg);
+  border: 1px solid var(--c-border-s);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+.khist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.khist-title { font-size: 13.5px; font-weight: 700; color: var(--c-accent); display: flex; align-items: center; gap: 8px; }
+.khist-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.khist-empty, .khist-trend { margin: 10px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--c-muted); }
+.khist-trend { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.khist-trend--up   { color: var(--ampel-gruen); }
+.khist-trend--down { color: var(--ampel-rot); }
+.khist-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 110px;
+  margin-top: 14px;
+  padding-top: 6px;
+  overflow-x: auto;
+  min-width: 0;
+}
+.khist-bar {
+  flex: 1 1 26px;
+  min-width: 26px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 5px;
+}
+.khist-fill {
+  width: 100%;
+  background: linear-gradient(180deg, var(--c-accent), rgba(66, 0, 147, 0.55));
+  border-radius: 5px 5px 0 0;
+  min-height: 3px;
+}
+.khist-label { font-size: 10px; color: var(--c-muted); white-space: nowrap; }
+
+/* ── Auswahl der Beispieldatensätze ───────────────────────────── */
+.modal-sample-lead {
+  margin: 18px 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal-sample-lead i { color: var(--c-accent); }
+.sample-choice {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.sample-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--c-border-s);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-fluid), box-shadow 0.15s var(--ease-fluid), border-color 0.15s;
+  min-width: 0;
+}
+.sample-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: rgba(66, 0, 147, 0.3); }
+.sample-card:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.sample-card-name { font-size: 13.5px; font-weight: 700; color: var(--c-accent); display: flex; align-items: center; gap: 8px; }
+.sample-card-desc { font-size: 12px; line-height: 1.5; color: var(--c-muted); }
+@media (prefers-reduced-motion: reduce) {
+  .sample-card { transition: none; }
+  .sample-card:hover { transform: none; }
+}
+
 /* ── Onboarding-Rundgang ──────────────────────────────────────── */
 .tour-hint.hidden { display: none; }
 .tour-hint {
@@ -1045,6 +1136,7 @@ a { color: var(--c-accent); }
 .know-kind--amtlich  { background: rgba(66, 0, 147, 0.10); color: var(--c-accent); }
 .know-kind--sammlung { background: rgba(122, 117, 145, 0.14); color: var(--c-muted); }
 .know-law--kommunal  { border-left: 3px solid var(--c-border-s); }
+.know-law--tool      { border-left: 3px solid var(--c-accent); }
 .know-law--transparenz { border-left: 3px solid var(--ampel-gruen); }
 .know-law--ifg         { border-left: 3px solid var(--c-accent); }
 .know-law--kein        { border-left: 3px solid var(--ampel-gelb); }
