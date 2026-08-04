@@ -17,7 +17,7 @@ const HVD_OK = {
   accessRights: 'PUBLIC', theme: 'REGI', keywords: 'adressen, geobasis',
   accrualPeriodicity: 'QUARTERLY', contributorID: 'MUSTERSTADT',
   landingPage: 'https://opendata.musterstadt.de/adressen',
-  hvd: 'georaum', hvdCategoryURI: 'http://data.europa.eu/bna/c_beispiel',
+  hvd: 'c_c3de25e4',   // Georaum → Adressen (amtlicher Code)
   distributions: [{ title: '', format: 'GeoJSON', accessURL: 'https://api.musterstadt.de/adressen', license: 'cc-by-4.0' }],
 };
 const mit = patch => ({ ...HVD_OK, ...patch });
@@ -63,7 +63,7 @@ test.describe('HVD – Einstufung', () => {
       const vor = hvdVorschlaege();
       if (!vor.length) return null;
       const idx = vor[0].idx;
-      inventory[idx].hvd = 'statistik';
+      inventory[idx].hvd = 'c_e1da4e07';
       return { vorher: vor.length, nachher: hvdVorschlaege().length };
     });
     expect(r).not.toBeNull();
@@ -72,10 +72,86 @@ test.describe('HVD – Einstufung', () => {
 
   test('unbekannte Kategorie wird gemeldet und stoppt die weitere Prüfung', async ({ page }) => {
     await openApp(page);
-    const issues = await hvd(page, mit({ hvd: 'phantasie' }));
+    const issues = await hvd(page, mit({ hvd: 'c_phantasie' }));
     expect(issues).toHaveLength(1);
     expect(issues[0].sev).toBe('warn');
-    expect(issues[0].msg).toContain('2023/138');
+    expect(issues[0].msg).toContain('High-value dataset categories');
+  });
+});
+
+test.describe('HVD – amtliches Vokabular', () => {
+  test('alle sechs Kategorien der Verordnung mit ihren amtlichen Codes', async ({ page }) => {
+    await openApp(page);
+    const oben = await page.evaluate(() => HVD_CATEGORIES.map(c => [c.id, c.label]));
+    // Aus der RDF/SKOS-Fassung des Vokabulars der EU-Publikationsstelle
+    // (skos:topConceptOf → http://data.europa.eu/bna/asd487ae75).
+    expect(oben).toEqual([
+      ['c_ac64a52d', 'Georaum'],
+      ['c_dd313021', 'Erdbeobachtung und Umwelt'],
+      ['c_164e0bf5', 'Meteorologie'],
+      ['c_e1da4e07', 'Statistik'],
+      ['c_a9135398', 'Unternehmen und Eigentümerschaft von Unternehmen'],
+      ['c_b79e35eb', 'Mobilität'],
+    ]);
+  });
+
+  test('das vollständige Register steht zur Auswahl, nicht nur die Oberkategorien', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => ({
+      konzepte: Object.keys(HVD_META).length,
+      leer: Object.values(HVD_META).filter(m => !m.label || !m.top).length,
+      doppelt: Object.keys(HVD_META).length !== new Set(Object.keys(HVD_META)).size,
+    }));
+    // 6 Kategorien + 65 Unterkategorien + 25 Binnenschifffahrts-Begriffe
+    expect(r.konzepte).toBe(96);
+    expect(r.leer).toBe(0);
+    expect(r.doppelt).toBe(false);
+  });
+
+  test('das Dropdown gruppiert nach Oberkategorie und erhält unbekannte Werte', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      const box = document.createElement('div');
+      box.innerHTML = `<select>${hvdSelectHTML('c_c3de25e4')}</select>`;
+      const sel = box.querySelector('select');
+      box.innerHTML = `<select>${hvdSelectHTML('c_fremd')}</select>`;
+      const fremd = box.querySelector('select');
+      return {
+        gruppen: sel.querySelectorAll('optgroup').length,
+        optionen: sel.querySelectorAll('option').length,
+        gewaehlt: sel.value,
+        fremdErhalten: fremd.value,
+      };
+    });
+    expect(r.gruppen).toBe(6);
+    expect(r.optionen).toBe(97);        // 96 Konzepte + „nein / nicht geprüft"
+    expect(r.gewaehlt).toBe('c_c3de25e4');
+    // Ein Code aus einem fremden Katalog darf nicht stillschweigend wegfallen
+    expect(r.fremdErhalten).toBe('c_fremd');
+  });
+
+  test('nur die Oberkategorie ist zulässig, aber ein Hinweis wert', async ({ page }) => {
+    await openApp(page);
+    const grob = await hvd(page, mit({ hvd: 'c_ac64a52d' }));   // Georaum
+    expect(grob.some(i => i.sev === 'warn' && /genauesten/.test(i.msg))).toBe(true);
+    const genau = await hvd(page, mit({ hvd: 'c_c3de25e4' }));  // Adressen
+    expect(genau).toEqual([]);
+  });
+
+  test('Stände aus v46 werden auf die amtlichen Codes gehoben', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      inventory = [
+        { id: 'a', title: 'A', hvd: 'georaum', distributions: [newDistribution()] },
+        { id: 'b', title: 'B', hvd: '', hvdCategoryURI: 'http://data.europa.eu/bna/c_43f88346', distributions: [newDistribution()] },
+        { id: 'c', title: 'C', distributions: [newDistribution()] },
+      ];
+      migrateInventory();
+      return inventory.map(d => [d.hvd, 'hvdCategoryURI' in d]);
+    });
+    expect(r[0]).toEqual(['c_ac64a52d', false]);   // eigener Schlüssel → amtlicher Code
+    expect(r[1]).toEqual(['c_43f88346', false]);   // URI aus dem Altfeld → Code (Wasser)
+    expect(r[2]).toEqual([undefined, false]);      // ohne Einstufung bleibt es dabei
   });
 });
 
@@ -144,14 +220,15 @@ test.describe('HVD – verbindliche Vorgaben', () => {
 test.describe('HVD – Export', () => {
   test('Kennzeichnung und Kategorie werden nur gemeinsam geschrieben', async ({ page }) => {
     await openApp(page);
-    // Ohne Kategorie-URI bliebe der Datensatz beim Harvesting in der
-    // SHACL-Validierung hängen – dann lieber gar keine HVD-Angabe.
-    const ohne = await page.evaluate(d => dcatDataset(d), mit({ hvdCategoryURI: '' }));
+    // Eine Kategorie ausserhalb des Vokabulars ergäbe eine URI, die beim
+    // Harvesting in der SHACL-Validierung hängen bliebe – dann lieber gar
+    // keine HVD-Angabe.
+    const ohne = await page.evaluate(d => dcatDataset(d), mit({ hvd: 'c_phantasie' }));
     expect(ohne['dcatap:hvdCategory']).toBeUndefined();
     expect(ohne['dcatap:applicableLegislation']).toBeUndefined();
 
     const mitUri = await page.evaluate(d => dcatDataset(d), HVD_OK);
-    expect(mitUri['dcatap:hvdCategory']).toBe(HVD_OK.hvdCategoryURI);
+    expect(mitUri['dcatap:hvdCategory']).toBe('http://data.europa.eu/bna/c_c3de25e4');
     expect(mitUri['dcatap:applicableLegislation']).toBe('http://data.europa.eu/eli/reg_impl/2023/138/oj');
   });
 
@@ -163,8 +240,8 @@ test.describe('HVD – Export', () => {
     }, HVD_OK);
     expect(r.ttl).toContain('@prefix dcatap: <http://data.europa.eu/r5r/>');
     expect(r.ttl).toContain('dcatap:applicableLegislation <http://data.europa.eu/eli/reg_impl/2023/138/oj>');
-    expect(r.ttl).toContain(`dcatap:hvdCategory <${HVD_OK.hvdCategoryURI}>`);
-    expect(r.json).toContain(HVD_OK.hvdCategoryURI);
+    expect(r.ttl).toContain('dcatap:hvdCategory <http://data.europa.eu/bna/c_c3de25e4>');
+    expect(r.json).toContain('http://data.europa.eu/bna/c_c3de25e4');
   });
 
   test('Round-Trip über die Inventar-CSV erhält die Einstufung', async ({ page }) => {
@@ -174,13 +251,12 @@ test.describe('HVD – Export', () => {
       const csv = buildInventoryCSV();
       inventory = [];
       importInventoryCSV(csv);
-      return { hvd: inventory[0].hvd, uri: inventory[0].hvdCategoryURI };
+      return { hvd: inventory[0].hvd };
     }, HVD_OK);
-    expect(r.hvd).toBe('georaum');
-    expect(r.uri).toBe(HVD_OK.hvdCategoryURI);
+    expect(r.hvd).toBe('c_c3de25e4');
   });
 
-  test('Katalog-Import übernimmt die Kategorie-URI, statt sie zu verwerfen', async ({ page }) => {
+  test('Katalog-Import führt die Kategorie-URI auf ihren Code zurück', async ({ page }) => {
     await openApp(page);
     const uri = await page.evaluate(() => {
       inventory = [];
@@ -192,9 +268,10 @@ test.describe('HVD – Export', () => {
           'dcatap:hvdCategory': { '@id': 'http://data.europa.eu/bna/c_unbekannt' },
         }],
       }));
-      return inventory[0].hvdCategoryURI;
+      return inventory[0].hvd;
     });
-    expect(uri).toBe('http://data.europa.eu/bna/c_unbekannt');
+    // unbekannter Code bleibt stehen statt still verworfen zu werden
+    expect(uri).toBe('c_unbekannt');
   });
 });
 
@@ -205,23 +282,23 @@ test.describe('HVD – Oberfläche', () => {
     await page.evaluate(() => navTo('inventory'));
     const block = page.locator('.inv-card').first().locator('.inv-hvd');
     await expect(block).toBeHidden();
-    await page.locator('.inv-card').first().locator('select[data-field="hvd"]').selectOption('georaum');
+    await page.locator('.inv-card').first().locator('select[data-field="hvd"]').selectOption('c_c3de25e4');
     await expect(block).toBeVisible();
     // und der Wert landet im State
-    expect(await page.evaluate(() => inventory[0].hvd)).toBe('georaum');
+    expect(await page.evaluate(() => inventory[0].hvd)).toBe('c_c3de25e4');
   });
 
   test('das Vokabular ist verlinkt statt geraten', async ({ page }) => {
     await openApp(page);
     await loadSample(page);
-    await page.evaluate(() => { inventory[0].hvd = 'georaum'; renderInventory(); });
+    await page.evaluate(() => { inventory[0].hvd = 'c_c3de25e4'; renderInventory(); });
     const link = page.locator('.inv-card').first().locator('.inv-hvd-src a');
     await expect(link).toHaveAttribute('href', 'http://data.europa.eu/bna/asd487ae75');
-    // Regression v46: solange die Register-URIs nicht gegen das amtliche
-    // Vokabular geprüft sind, darf keine Kategorie eine erfundene URI führen.
-    const erfunden = await page.evaluate(() =>
-      HVD_CATEGORIES.filter(c => c.uri && !/^https?:\/\/data\.europa\.eu\/bna\//.test(c.uri)).map(c => c.id));
-    expect(erfunden).toEqual([]);
+    // Jeder Schlüssel im Register ist ein amtlicher Code – daraus entsteht die
+    // URI durch blosses Voranstellen, es gibt nichts zuzuordnen und nichts zu raten.
+    const schlecht = await page.evaluate(() =>
+      Object.keys(HVD_META).filter(id => !/^c_[0-9a-f]{8}$/.test(id)));
+    expect(schlecht).toEqual([]);
   });
 
   test('der Hinweisblock im Qualitäts-Tab springt zur Karte', async ({ page }) => {
