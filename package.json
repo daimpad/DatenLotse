@@ -12,6 +12,8 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "serve": "python3 -m http.server 8080",
-    "wissen": "node tools/generate-wissen.js"
+    "wissen": "node tools/generate-wissen.js",
+    "icons": "python3 tools/build-icons.py",
+    "icons:check": "python3 tools/build-icons.py --check"
   }
 }

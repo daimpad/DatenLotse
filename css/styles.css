@@ -1545,7 +1545,7 @@ a { color: var(--c-accent); }
   transition: color 0.15s;
 }
 .footer-links a:hover { color: var(--c-accent-h); text-decoration: underline; }
-.footer-links .fab.fa-github { font-size: 16px; }
+.footer-github { display: block; width: 16px; height: 16px; }
 .footer-sep { color: var(--c-muted); user-select: none; }
 .footer-version {
   font-size: 11px;

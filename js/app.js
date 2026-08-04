@@ -184,7 +184,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v44';
+const APP_VERSION = 'v45';
 
 function buildProjectJSON() {
   return JSON.stringify({

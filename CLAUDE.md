@@ -29,7 +29,13 @@ python3 -m http.server 8080
 <script src="js/app.js?v=2"></script>
 ```
 
-**Fonts/Icons:** Lokal unter `assets/fonts/` — **kein CDN**. Inter (woff2, 400/500/600/700) + Font Awesome 6.7.2 (solid/regular/brands). Ziel sind **null externe Laufzeit-Aufrufe**.
+**Fonts/Icons:** Lokal unter `assets/fonts/` — **kein CDN**. Inter (woff2, 400/500/600/700) + Font Awesome 6.7.2. Ziel sind **null externe Laufzeit-Aufrufe**.
+
+Font Awesome wird **zugeschnitten ausgeliefert** (`tools/build-icons.py`, `npm run icons`): das vollständige Paket bringt 1.895 Icon-Regeln und ~300 KB Schrift mit, benutzt werden rund 80 Zeichen. Geladen werden `assets/fonts/fa/icons.min.css` und `assets/fonts/webfonts/fa-*.subset.woff2`; die vollständigen Dateien bleiben als **Quelle für die Neuerzeugung** im Repo und werden zur Laufzeit nicht mehr angefasst.
+
+> ⚠️ **Nach jedem neuen Icon im Markup `npm run icons` ausführen** und das Ergebnis mitcommitten – sonst fehlt der Glyph und es erscheint ein leeres Kästchen. `tests/assets.spec.js` macht genau das rot (zwei Tests: CSS-Abgleich und echtes Rendern auf Canvas), damit es nicht unbemerkt passiert. Der Test selbst braucht **kein** `fonttools` – nur das Erzeugen (`pip install fonttools brotli`).
+
+Das Zuschneiden der CSS ist rein **subtraktiv**: entfernt werden nur die `--fa`-Regeln nicht benutzter Icons und die `@font-face`-Blöcke nicht benutzter Familien, der Rest bleibt Wort für Wort das Original. Neu geschrieben werden nur die `@font-face`-Blöcke – mit `font-display: swap` statt `block`, damit die Textausgabe nicht auf die Icon-Schrift wartet.
 
 ---
 
@@ -40,7 +46,7 @@ Die App hat keinen Build-Schritt – getestet wird **die ausgelieferte App**, al
 ```bash
 npm install                      # nur Dev: @playwright/test (exakt gepinnt)
 npx playwright install chromium  # einmalig
-npm test                         # 100 Tests, ~30 s
+npm test                         # 236 Tests, ~90 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -58,6 +64,7 @@ npm run test:ui                  # interaktiver Modus
 | `tests/governance.spec.js` | Reifegrad-Gewichtung, RACI, Kompass-Score, Wissens-Center, Vorlagen |
 | `tests/export.spec.js` | DCAT-NAL-URIs, Downloads, LocalStorage, Projekt-Round-Trip + Ablehnungen |
 | `tests/a11y.spec.js` | Skip-Link, Fokus-Falle, Tab-Order der Seitenleiste, ARIA-Tabs, Kontrast, Überlauf bei 360/375/390 px |
+| `tests/assets.spec.js` | Icon-Zuschnitt (CSS-Abgleich, echtes Rendern auf Canvas, `font-display: swap`, keine Brands-Schrift), Ladegewicht-Budget der Startseite |
 
 **Konvention:** Jeder Review-Befund bekommt einen Test, der die alte Fassung rot macht – die Kommentare im Test nennen die Version des Befunds (`Regression v28: …`). Bei App-Änderungen zuerst prüfen, ob ein bestehender Test die Regel absichert, statt sie doppelt zu implementieren.
 
@@ -478,6 +485,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v16 | Daten-Kompass (Herzstück) – eigene View + Hero-Haupt-CTA (Topbar-„Loslegen" zeigt ebenfalls darauf): ausführliche Open-Data-Reifegrad-Checkliste nach ODRA / EU Open Data Maturity / 5-Sterne / DCAT-AP.de / DSGVO·FAIR (7 Dimensionen, Quellenangaben), Status je Item mit Score & Ampel, Vorbelegung aus dem App-Stand, adaptive Sprünge in die passenden Bausteine, Persistenz (`datenlotse_kompass`) und PDF-Export; leeres „Loslegen"-Platzhalter-Modal entfernt |
 | v17 | Weiterer Ausbau (1/4) – Inventar Suche, Filter & Sortierung: `renderInventory()` in `renderInventory()` + `renderInventoryBody()` aufgeteilt; `.inv-controls` (Volltextsuche + Schutzbedarf-/Clearing-Ampel-Filter + Sortierung Titel/Vollständigkeit) über `invFilter`-State und `filteredInventory()`; der echte `idx` wird durch den Filter mitgeführt, sodass Editieren über gefilterten Teilmengen weiterhin den richtigen Datensatz trifft; Live-Meta „X von Y" + Empty-State |
 | v18 | Weiterer Ausbau (2/4) – Pseudonymisierung erweitert: drei neue Muster (Sozialversicherungsnummer, Steuer-ID *kontextgetriggert*, Kfz-Kennzeichen), Aktenzeichen um Geschäftszeichen/„Gz." und buchstabenhaltige Kerne erweitert, zusätzliche Geburtsdatum-Trigger („Geburtsdatum"/„Geburtstag"); Mapping-Export als CSV (`buildPseudoMappingCSV` + Button im Mapping-Kopf); Demo-Text und Grenzen-Liste aktualisiert; verifiziert auf Determinismus, Platzhalter-Konsistenz und Null-Falschtreffer auf neutralem Verwaltungstext |
+| v45 | **Ladegewicht halbiert: Font Awesome zugeschnitten.** Die Startseite übertrug 918 KB, davon rund 370 KB Icon-Paket – für knapp 80 benutzte Zeichen. `tools/build-icons.py` erzeugt daraus die Teilmenge, die die App wirklich braucht: CSS 72 → 10 KB, Solid-Schrift 155 → 9 KB. Die **Brands-Familie entfällt ganz** – sie steckte nur wegen des einen GitHub-Zeichens im Fuß in der Auslieferung und kostete dafür 116 KB; es ist jetzt ein Inline-SVG. Der Zuschnitt der CSS ist rein **subtraktiv** (nur unbenutzte `--fa`-Regeln und `@font-face`-Blöcke fallen weg), damit er das Verhalten der Bibliothek nicht verändern kann; die vollständigen Dateien bleiben als Quelle im Repo. `font-display` steht jetzt auf `swap` statt `block` – die Textausgabe wartete sonst auf die Icon-Schrift. Dazu das `logo.svg` von 124 auf 108 KB (51,7 → 41,5 KB gzip): Zahlen auf eine Nachkommastelle gerundet, gemessen über einen Pixelvergleich bei 44/172/344/1024 px – ein erster, naiver Versuch mit einer Zahlen-Regex zerlegte aneinanderhängende Werte (`1.5.5`) falsch und zerstörte die Grafik sichtbar. Abgesichert durch `tests/assets.spec.js`: der CSS-Abgleich und ein echtes Canvas-Rendern werden rot, wenn jemand ein Icon ergänzt ohne `npm run icons` – beides mit einer Mutation geprüft. |
 | v44 | **SEO: statische Wissensseiten, Vorschaubild, FAQ-Markup.** Die Wissensinhalte lagen in `app.js` und wurden nur zur Laufzeit in ausgeblendete Views gerendert – rund die Hälfte der Substanz hinter genau einer URL. `tools/generate-wissen.js` erzeugt daraus acht statische Seiten unter `/wissen/`, crawlbar und ohne JavaScript lesbar. **Keine zweite Quelle**: der Generator liest die Arrays aus der laufenden App; `--check` vergleicht, und ein Test macht rot, wer die Daten ändert ohne zu regenerieren. Dazu vier konkrete Defekte behoben: `short_name` im Manifest hieß „DatenLose", `og:image` war ein **SVG** (Facebook, LinkedIn und WhatsApp rendern das nicht) und ist jetzt ein PNG mit Alt-Text, die Sitemap war auf 2026-06-28 eingefroren und listet nun alle Seiten, und die bereits vorhandene FAQ trägt `FAQPage`-Markup – exakt die sechs angezeigten Fragen, per Test abgesichert. |
 | v43 | **Sortierung nach Publikationsreife.** Der Filter aus v42 hatte kein Gegenstück beim Sortieren – jetzt lässt sich das Inventar nach „Fehler zuerst" bzw. „bereit zuerst" ordnen. Verwendet dieselbe Auswertung wie der Qualitäts-Tab, es gibt also keine zweite Wahrheit. Bei gleichem Status entscheidet die **Zahl der Befunde**: sonst stünden zwölf gelbe Datensätze in beliebiger Reihenfolge, obwohl einer neun Warnungen hat und ein anderer eine. |
 | v42 | **Notiz zur Clearing-Entscheidung, Filter nach Publikationsreife, Bestandsprüfung im Bericht.** Die automatische Begründung sagt, *warum* die Ampel so steht – für die Akte braucht es oft eine eigene Notiz (Abstimmung mit dem Datenschutz, vereinbarte Auflage). `d._clearingNote` ergänzt sie, geht bewusst **nicht** in den Entscheidungsbaum ein und erscheint in Bericht und Freigabeformular. Der Inventar-Filter kennt jetzt die **Publikationsreife** (grün/gelb/rot aus der Qualitätsprüfung) – die Ampel gab es, filtern konnte man nicht danach. Und die **Bestandsprüfung wandert in den PDF-Bericht**, damit die übergreifenden Befunde in die Abstimmung mit den Fachbereichen gehen und nicht nur auf dem Bildschirm stehen. |
