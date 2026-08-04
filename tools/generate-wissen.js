@@ -86,7 +86,7 @@ function seite({ slug, title, description, lead, bodyHTML, jsonld }) {
   <meta name="twitter:image" content="${BASE}/social-preview.png">
 ${daten.map(d => `  <script type="application/ld+json">\n  ${JSON.stringify(d, null, 2).replace(/\n/g, '\n  ')}\n  </script>`).join('\n')}
   <link rel="stylesheet" href="/assets/fonts/inter/inter.css">
-  <link rel="stylesheet" href="/assets/fonts/fa/icons.min.css?v=46">
+  <link rel="stylesheet" href="/assets/fonts/fa/icons.min.css?v=47">
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/styles.css">
 </head>

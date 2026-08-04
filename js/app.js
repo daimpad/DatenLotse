@@ -149,29 +149,163 @@ const DCAT_THEMES = [
 const HVD_ELI = 'http://data.europa.eu/eli/reg_impl/2023/138/oj';
 // Kontrolliertes Vokabular „High-value dataset categories" der EU-Publikationsstelle
 const HVD_SCHEME = 'http://data.europa.eu/bna/asd487ae75';
+const HVD_BNA = 'http://data.europa.eu/bna/';
 
-/* `uri` bleibt leer, solange der Wert nicht gegen das amtliche Vokabular
-   geprüft ist: eine erfundene Kategorie-URI wäre in einem Rechtskontext das
-   Schlechteste, was das Werkzeug ausgeben kann (dieselbe Linie wie beim
-   `@base` im Turtle-Export). Bis dahin trägt der Datensatz die URI im Feld
-   `hvdCategoryURI` selbst – ein Feld, das die Karte verlinkt und erklärt. */
+/* Das vollständige Vokabular „High-value dataset categories" der EU-
+   Publikationsstelle: sechs Kategorien der Verordnung, darunter die
+   Unterkategorien (bei den Binnenschifffahrtsdaten eine dritte Ebene).
+   Die Spezifikation empfiehlt ausdrücklich, den GENAUESTEN Begriff zu
+   vergeben – deshalb steht das ganze Register im Dropdown und nicht nur
+   die sechs Oberkategorien, analog zum Lizenz-Register.
+
+   `id` ist der amtliche Code (`c_…`); die URI ist `HVD_BNA + id`. Damit
+   gibt es keine zweite Wahrheit und nichts zu erfinden. Erzeugt aus der
+   RDF/SKOS-Fassung des Vokabulars (Konzepte über `skos:topConceptOf`
+   bzw. `skos:broader`, deutsche `skos:prefLabel`).
+   ────────────────────────────────────────────────────────────── */
 const HVD_CATEGORIES = [
-  { id: 'georaum', label: 'Georaum', uri: '',
-    beispiele: 'Flurstücke, Gebäude, Adressen, Verwaltungseinheiten, geografische Bezeichnungen, Referenzsysteme' },
-  { id: 'erdbeobachtung', label: 'Erdbeobachtung und Umwelt', uri: '',
-    beispiele: 'Boden, Wasser, Luft, Lärm, Abfall, Emissionen, Klima, Naturschutz, Energieverbrauch' },
-  { id: 'meteorologie', label: 'Meteorologie', uri: '',
-    beispiele: 'Messwerte von Wetterstationen, Radardaten, Warnmeldungen, Vorhersagemodelle, Klimareihen' },
-  { id: 'statistik', label: 'Statistik', uri: '',
-    beispiele: 'Bevölkerung, Arbeitsmarkt, Preise, Außenhandel, Gesundheit, Bildung, Unternehmensstatistik' },
-  { id: 'unternehmen', label: 'Unternehmen und Eigentümerschaft von Unternehmen', uri: '',
-    beispiele: 'Basisdaten aus Handels- und Unternehmensregistern, Kennungen, Rechtsform, Sitz, Jahresabschlüsse' },
-  { id: 'mobilitaet', label: 'Mobilität', uri: '',
-    beispiele: 'Verkehrsnetze, Fahrpläne des ÖPNV, Verkehrszeichen, Baustellen, Parkraum, Binnenwasserstraßen' },
+  { id: 'c_ac64a52d', label: 'Georaum', kinder: [
+    { id: 'c_c3de25e4', label: 'Adressen' },
+    { id: 'c_6a3f6896', label: 'Flurstücke/Grundstücke (Katasterparzellen)' },
+    { id: 'c_60182062', label: 'Gebäude' },
+    { id: 'c_6c2bb82d', label: 'Geografische Bezeichnungen' },
+    { id: 'c_642643e6', label: 'Landwirtschaftliche Parzellen' },
+    { id: 'c_fbd2fc3f', label: 'Referenzparzellen' },
+    { id: 'c_9427236f', label: 'Verwaltungseinheiten' },
+  ] },
+  { id: 'c_dd313021', label: 'Erdbeobachtung und Umwelt', kinder: [
+    { id: 'c_38933a65', label: 'Abfall' },
+    { id: 'c_af646f5b', label: 'Bewirtschaftungsgebiete/Schutzgebiete/geregelte Gebiete und Berichterstattungseinheiten' },
+    { id: 'c_c873f344', label: 'Biogeografische Regionen' },
+    { id: 'c_87a129d9', label: 'Boden' },
+    { id: 'c_b21e1296', label: 'Bodenbedeckung' },
+    { id: 'c_ad9ae929', label: 'Bodennutzung' },
+    { id: 'c_4ba9548e', label: 'Emissionen' },
+    { id: 'c_b7de66cd', label: 'Energiequellen' },
+    { id: 'c_b7f6a4f3', label: 'Erhaltung der Natur und der biologischen Vielfalt' },
+    { id: 'c_63be22bd', label: 'Gebiete mit naturbedingten Risiken' },
+    { id: 'c_e3f55603', label: 'Geologie' },
+    { id: 'c_06b1eec4', label: 'Gewässernetz' },
+    { id: 'c_4d63300b', label: 'Horizontale Rechtsvorschriften' },
+    { id: 'c_315692ad', label: 'Höhe' },
+    { id: 'c_59e64dd4', label: 'Klima' },
+    { id: 'c_c3919aec', label: 'Lebensräume und Biotope' },
+    { id: 'c_63b37dd4', label: 'Luft' },
+    { id: 'c_e4358335', label: 'Lärm' },
+    { id: 'c_f399050e', label: 'Meeresregionen' },
+    { id: 'c_4dd389c5', label: 'Mineralische Bodenschätze' },
+    { id: 'c_91185a85', label: 'Orthofotografie' },
+    { id: 'c_b40e6d46', label: 'Ozeanografisch-geografische Kennwerte' },
+    { id: 'c_59c93ba5', label: 'Produktions- und Industrieanlagen' },
+    { id: 'c_83aa10a6', label: 'Schutzgebiete' },
+    { id: 'c_7b8fbb64', label: 'Umweltüberwachungseinrichtungen' },
+    { id: 'c_793164b6', label: 'Verteilung der Arten' },
+    { id: 'c_43f88346', label: 'Wasser' },
+  ] },
+  { id: 'c_164e0bf5', label: 'Meteorologie', kinder: [
+    { id: 'c_3af3368c', label: 'Beobachtungsmessdaten von Wetterstationen' },
+    { id: 'c_36807466', label: 'Klimadaten: validierte Beobachtungen' },
+    { id: 'c_13e3cf16', label: 'NWP-Modelldaten' },
+    { id: 'c_d13a4420', label: 'Radardaten' },
+    { id: 'c_be47b010', label: 'Wetterwarnungen' },
+  ] },
+  { id: 'c_e1da4e07', label: 'Statistik', kinder: [
+    { id: 'c_04bf94a3', label: 'Armut' },
+    { id: 'c_4ac557e7', label: 'Ausgaben und Einnahmen des Staates' },
+    { id: 'c_f2b50efd', label: 'Bevölkerung' },
+    { id: 'c_317b9493', label: 'Bevölkerung, Fertilität, Mortalität' },
+    { id: 'c_fd4e881c', label: 'Erwerbslosigkeit' },
+    { id: 'c_a2c6dcd8', label: 'Erwerbstätigkeit' },
+    { id: 'c_6a7250c1', label: 'Fertilität' },
+    { id: 'c_c0022235', label: 'Harmonisierte Verbraucherpreisindizes' },
+    { id: 'c_2aed31f9', label: 'Industrieller Erzeugerpreisindex – Aufschlüsselung nach Tätigkeit' },
+    { id: 'c_34abf8c1', label: 'Industrieproduktion' },
+    { id: 'c_dd8f4797', label: 'Konsolidierte Bruttoverschuldung des Staates' },
+    { id: 'c_424bb0b4', label: 'Laufende Gesundheitsausgaben' },
+    { id: 'c_4acb6bf3', label: 'Mortalität' },
+    { id: 'c_23385471', label: 'Potenzielle Arbeitskräfte' },
+    { id: 'c_20cd11bb', label: 'Statistik des internationalen Warenverkehrs der EU – Ausfuhren und Einfuhren Aufschlüsselung gleichzeitig nach Partnern, Produkten und Warenströmen' },
+    { id: 'c_a3767648', label: 'Tourismusströme in Europa' },
+    { id: 'c_92874eb2', label: 'Umweltgesamtrechnungen und -statistiken' },
+    { id: 'c_a8b937c4', label: 'Ungleichheit' },
+    { id: 'c_a49ec591', label: 'Verkaufsmengen nach Tätigkeit' },
+    { id: 'c_b72b721f', label: 'Volkswirtschaftliche Gesamtrechnungen – BIP-Hauptaggregate' },
+    { id: 'c_95da87c7', label: 'Volkswirtschaftliche Gesamtrechnungen – Schlüsselindikatoren für Kapitalgesellschaften' },
+    { id: 'c_59627af3', label: 'Volkswirtschaftliche Gesamtrechnungen – Schlüsselindikatoren für private Haushalte' },
+  ] },
+  { id: 'c_a9135398', label: 'Unternehmen und Eigentümerschaft von Unternehmen', kinder: [
+    { id: 'c_56a1bf47', label: 'Grundlegende Angaben zum Unternehmen: Schlüsselattribute' },
+    { id: 'c_8f0fac04', label: 'Unternehmensunterlagen und -abschlüsse' },
+  ] },
+  { id: 'c_b79e35eb', label: 'Mobilität', kinder: [
+    { id: 'c_b151a0ba', label: 'Binnenschifffahrtsdatensätze', kinder: [
+      { id: 'c_f6886b00', label: 'Beschränkungen infolge von Hochwasser und Eis' },
+      { id: 'c_664c9e5a', label: 'Fahrwasser-/Fahrrinnengrenzen' },
+      { id: 'c_f76b01e6', label: 'Fahrwassermerkmale' },
+      { id: 'c_e5f69a04', label: 'Gegenwärtige und zukünftige Wasserstände an den Pegeln' },
+      { id: 'c_25f43866', label: 'Höhe der Abgaben für die Wasserstraßen-Infrastruktur' },
+      { id: 'c_99bc517f', label: 'Isolierte Gefahrenstellen im Fahrwasser/in der Fahrrinne unter und über Wasser' },
+      { id: 'c_593bc53d', label: 'Kurzfristige Änderungen bei den Schifffahrtszeichen' },
+      { id: 'c_66b946cb', label: 'Kurzfristige Änderungen der Betriebszeiten von Schleusen und Brücken' },
+      { id: 'c_3e8e3bf7', label: 'Lage und Merkmale von Häfen und Umschlagstellen' },
+      { id: 'c_407951ff', label: 'Lage von Häfen und Umschlagstellen' },
+      { id: 'c_fa2a1c3a', label: 'Langzeitbehinderungen im Fahrweg und Zuverlässigkeit' },
+      { id: 'c_298ffb73', label: 'Links zu den externen xml-Dateien mit Betriebszeiten einschränkender Infrastrukturen' },
+      { id: 'c_9cbe4435', label: 'Liste der Navigationshilfen und Verkehrszeichen' },
+      { id: 'c_03ba8d92', label: 'Normale Betriebszeiten der Schleusen und Brücken' },
+      { id: 'c_b24028d7', label: 'Offizielle Schifffahrtszeichen (z. B. Tonnen, Baken, Leuchtzeichen, Tafelzeichen)' },
+      { id: 'c_1e787364', label: 'Referenzdaten für die schifffahrtsrelevanten Pegel' },
+      { id: 'c_7e19ef26', label: 'Sonstige physische Beschränkungen auf Wasserstraßen' },
+      { id: 'c_fef208ab', label: 'Tiefenlinien in der Fahrrinne' },
+      { id: 'c_1226dc1a', label: 'Ufer der Wasserstraße bei Mittelwasser' },
+      { id: 'c_bc8941d9', label: 'Uferbefestigung' },
+      { id: 'c_883d0205', label: 'Umrisse der Schleusen und Wehre' },
+      { id: 'c_2037ada4', label: 'Vorschriften und Empfehlungen für die Schifffahrt' },
+      { id: 'c_b121e2f6', label: 'Vorübergehende Hindernisse im Fahrwasser' },
+      { id: 'c_c19af83a', label: 'Wasserstraßenachse mit Kilometerangabe' },
+      { id: 'c_e50004c6', label: 'Zustand der Flüsse, Kanäle, Schleusen und Brücken' },
+    ] },
+    { id: 'c_4b74ea13', label: 'Verkehrsnetze' },
+  ] },
 ];
+/* Flache Nachschlage-Map über alle drei Ebenen. `top` ist die Oberkategorie
+   der Verordnung – sie steht in der Anzeige immer daneben, damit ein Begriff
+   wie „Höhe" oder „Wasser" einordenbar bleibt. */
 const HVD_META = {};
-HVD_CATEGORIES.forEach(c => { HVD_META[c.id] = c; });
-const HVD_OPTIONS = [['', 'nein / nicht geprüft'], ...HVD_CATEGORIES.map(c => [c.id, c.label])];
+(function sammle(liste, top) {
+  liste.forEach(c => {
+    HVD_META[c.id] = { id: c.id, label: c.label, top: top || c.label };
+    if (c.kinder) sammle(c.kinder, top || c.label);
+  });
+})(HVD_CATEGORIES, null);
+
+/* Dropdown mit <optgroup> je Oberkategorie – wie beim Lizenz-Register.
+   Unterkategorien der dritten Ebene werden eingerückt, damit die Hierarchie
+   in einem flachen <select> sichtbar bleibt. */
+function hvdSelectHTML(selected) {
+  const opt = (c, tiefe) =>
+    `<option value="${esc(c.id)}"${c.id === selected ? ' selected' : ''}>` +
+    `${'  '.repeat(tiefe)}${esc(c.label)}</option>`;
+  const zweig = (c, tiefe) =>
+    opt(c, tiefe) + (c.kinder || []).map(k => zweig(k, tiefe + 1)).join('');
+  let html = `<option value=""${selected ? '' : ' selected'}>nein / nicht geprüft</option>`;
+  html += HVD_CATEGORIES.map(c =>
+    `<optgroup label="${esc(c.label)}">` +
+    opt({ id: c.id, label: c.label + ' (gesamte Kategorie)' }, 0) +
+    (c.kinder || []).map(k => zweig(k, 0)).join('') +
+    `</optgroup>`).join('');
+  // Ein unbekannter Wert (z. B. aus einem fremden Katalog) bleibt erhalten
+  if (selected && !HVD_META[selected])
+    html += `<option value="${esc(selected)}" selected>${esc(selected)} (unbekannte Kategorie)</option>`;
+  return html;
+}
+
+/* Migration der ersten Fassung (v46): dort standen eigene Schlüssel statt der
+   amtlichen Codes, und die URI lag in einem eigenen Feld. */
+const HVD_LEGACY = {
+  georaum: 'c_ac64a52d', erdbeobachtung: 'c_dd313021', meteorologie: 'c_164e0bf5',
+  statistik: 'c_e1da4e07', unternehmen: 'c_a9135398', mobilitaet: 'c_b79e35eb',
+};
 
 /* CC0, CC BY 4.0 „oder eine gleichwertige oder weniger einschränkende offene
    Lizenz". Share-Alike ist MEHR einschränkend und deshalb nicht dabei –
@@ -182,16 +316,20 @@ const HVD_LICENSES = ['cc-zero', 'cc-by-4.0', 'dl-de/zero-2-0', 'dl-de/by-2-0',
 const HVD_MACHINE_RE = /\b(csv|json|geojson|xml|gml|rdf|ttl|turtle|jsonld|json-ld|xlsx|ods|parquet|netcdf|gtfs|datex|wfs|wms|api|zip)\b/i;
 
 /* Stichwort-Heuristik, bewusst konservativ – wie `guessTheme()`. Sie SETZT
-   nichts, sondern liefert einen Vorschlag, den die Qualitätsprüfung anzeigt. */
+   nichts, sondern liefert einen Vorschlag, den die Qualitätsprüfung anzeigt.
+
+   Vorgeschlagen wird immer die OBERKATEGORIE. Den genaueren Begriff aus dem
+   Register wählt der Mensch – eine Stichwortliste, die zwischen „Boden" und
+   „Bodenbedeckung" unterscheiden will, tut nur so, als wüsste sie es. */
 const HVD_HINTS = [
   // „adress" allein ist zu grob: es steht in jeder zweiten Anmerkung über
   // personenbezogene Unterlagen („Bescheide mit Namen, Adressen …").
-  ['georaum',        /flurstück|katast|liegenschaft|gebäudedaten|adressdaten|adressregister|adressverzeichnis|hauskoordinat|verwaltungsgrenze|gemarkung|topograph|geobasis|alkis|atkis|orthophoto|geodät/i],
-  ['meteorologie',   /wetter|meteorolog|niederschlag|temperaturmess|windmess|klimareihe|unwetter|wettervorhersage/i],
-  ['erdbeobachtung', /umwelt|emission|immission|luftqualit|gewässer|grundwasser|boden|lärm|abfall|naturschutz|biotop|klimaschutz|energieverbrauch|fernerkund|satellit/i],
-  ['mobilitaet',     /verkehr|öpnv|fahrplan|haltestelle|gtfs|radweg|straßennetz|baustelle|parkraum|parkplatz|ladesäule|verkehrszeichen|wasserstraße/i],
-  ['unternehmen',    /handelsregister|unternehmensregister|gewerberegister|firmendaten|jahresabschluss|vereinsregister/i],
-  ['statistik',      /statistik|bevölkerungs|einwohnerzahl|zensus|arbeitsmarkt|erwerbstätig|preisindex|wahlergebnis|bildungsstatistik/i],
+  ['c_ac64a52d', /flurstück|katast|liegenschaft|gebäudedaten|adressdaten|adressregister|adressverzeichnis|hauskoordinat|verwaltungsgrenze|gemarkung|topograph|geobasis|alkis|atkis|orthophoto|geodät/i],
+  ['c_164e0bf5', /wetter|meteorolog|niederschlag|temperaturmess|windmess|klimareihe|unwetter|wettervorhersage/i],
+  ['c_dd313021', /umwelt|emission|immission|luftqualit|gewässer|grundwasser|boden|lärm|abfall|naturschutz|biotop|klimaschutz|energieverbrauch|fernerkund|satellit/i],
+  ['c_b79e35eb', /verkehr|öpnv|fahrplan|haltestelle|gtfs|radweg|straßennetz|baustelle|parkraum|parkplatz|ladesäule|verkehrszeichen|wasserstraße/i],
+  ['c_a9135398', /handelsregister|unternehmensregister|gewerberegister|firmendaten|jahresabschluss|vereinsregister/i],
+  ['c_e1da4e07', /statistik|bevölkerungs|einwohnerzahl|zensus|arbeitsmarkt|erwerbstätig|preisindex|wahlergebnis|bildungsstatistik/i],
 ];
 function guessHvd(d) {
   /* Personenbezogene Bestände scheiden aus. Hochwertige Datensätze sind
@@ -204,19 +342,16 @@ function guessHvd(d) {
   const treffer = HVD_HINTS.find(([, re]) => re.test(text));
   return treffer ? treffer[0] : '';
 }
-/* Die Kategorie-URI für den Export: erst das (künftig gepflegte) Register,
-   sonst der vom Menschen eingetragene Wert. */
+/* URI und Code sind dasselbe mit und ohne Präfix – deshalb braucht es weder
+   eine Zuordnungstabelle noch ein Feld, in das jemand die URI abschreibt. */
 function hvdCategoryUri(d) {
-  const meta = HVD_META[d.hvd];
-  return (meta && meta.uri) || (d.hvdCategoryURI || '').trim();
+  return HVD_META[d.hvd] ? HVD_BNA + d.hvd : '';
 }
-/* Gegenrichtung beim Einlesen eines Katalogs. Solange die Register-URIs nicht
-   gepflegt sind, findet das nichts – der Wert bleibt dann in
-   `hvdCategoryURI` stehen, statt still verworfen zu werden. */
+/* Gegenrichtung beim Einlesen eines Katalogs. Ein unbekannter Code bleibt
+   stehen, statt still verworfen zu werden – die Qualitätsprüfung meldet ihn. */
 function hvdFromURI(uri) {
-  if (!uri) return '';
-  const treffer = HVD_CATEGORIES.find(c => c.uri && c.uri === String(uri).trim());
-  return treffer ? treffer.id : '';
+  const code = String(uri || '').trim().replace(/^.*\/bna\//, '');
+  return code || '';
 }
 
 /* ── Globaler State ───────────────────────────────────────────── */
@@ -272,7 +407,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v46';
+const APP_VERSION = 'v47';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -565,7 +700,17 @@ function ensureDistributions(d) {
   delete d.format; delete d.license;
   return d.distributions;
 }
-function migrateInventory() { inventory.forEach(ensureDistributions); }
+function migrateInventory() { inventory.forEach(d => { ensureDistributions(d); migrateHvd(d); }); }
+
+/* v46 speicherte eigene HVD-Schlüssel („georaum") und die Kategorie-URI in
+   einem zweiten Feld. Seit dem vollständigen Vokabular ist der amtliche Code
+   der Schlüssel; beides wird hier überführt und das Altfeld entfernt, damit
+   es keine zweite Wahrheit gibt. */
+function migrateHvd(d) {
+  if (d.hvd && HVD_LEGACY[d.hvd]) d.hvd = HVD_LEGACY[d.hvd];
+  if (!d.hvd && d.hvdCategoryURI) d.hvd = hvdFromURI(d.hvdCategoryURI);
+  delete d.hvdCategoryURI;
+}
 
 /* Lizenz gilt als erfüllt, wenn JEDE Verteilung eine hat – nach DCAT-AP.de
    ist `dct:license` je Verteilung Pflicht, nicht einmal je Datensatz. */
@@ -1039,7 +1184,7 @@ function renderInventoryBody() {
           <input data-field="keywords" value="${esc(d.keywords || '')}" placeholder="komma, getrennt">
         </label>
         <label>Hochwertiger Datensatz (HVD)
-          <select data-field="hvd" aria-describedby="hvd-hint-${idx}">${optionsHTML(HVD_OPTIONS, d.hvd || '')}</select>
+          <select data-field="hvd" aria-describedby="hvd-hint-${idx}">${hvdSelectHTML(d.hvd || '')}</select>
         </label>
         <label>Aktualisierungszyklus
           <select data-field="accrualPeriodicity">${optionsHTML(FREQ_OPTIONS, d.accrualPeriodicity)}</select>
@@ -1054,12 +1199,11 @@ function renderInventoryBody() {
           <p><i class="fas fa-gavel"></i> <strong>Pflichten nach Durchführungsverordnung (EU) 2023/138:</strong>
           kostenfrei, maschinenlesbar, über eine API bereitgestellt und unter CC BY 4.0, CC0 oder einer
           gleichwertigen bzw. weniger einschränkenden Lizenz. Die Qualitätsprüfung meldet Verstöße als Fehler.</p>
-          <label>Kategorie-URI aus dem EU-Vokabular
-            <input data-field="hvdCategoryURI" value="${esc(d.hvdCategoryURI || '')}" placeholder="${esc(HVD_SCHEME)}/…">
-          </label>
-          <p class="inv-hvd-src">Die genaue Kategorie-URI steht im amtlichen Vokabular der EU-Publikationsstelle:
-            <a href="${esc(HVD_SCHEME)}" target="_blank" rel="noopener">High-value dataset categories <i class="fas fa-arrow-up-right-from-square"></i></a>.
-            DatenLotse trägt sie bewusst nicht selbst ein – eine geratene URI wäre hier schlechter als keine.</p>
+          <p class="inv-hvd-src">Kategorie im Export:
+            <code class="inv-hvd-uri">${esc(hvdCategoryUri(d) || '—')}</code>
+            aus dem amtlichen Vokabular der EU-Publikationsstelle
+            (<a href="${esc(HVD_SCHEME)}" target="_blank" rel="noopener">High-value dataset categories <i class="fas fa-arrow-up-right-from-square"></i></a>).
+            Je genauer der Begriff, desto besser – die Spezifikation empfiehlt ausdrücklich den präzisesten.</p>
         </div>
       </div>
       <div class="inv-dists">
@@ -1174,8 +1318,11 @@ function renderInventoryBody() {
         inventory[idx][el.dataset.field] = el.value;
         // Die HVD-Pflichten erscheinen erst, wenn eingestuft wurde – ein
         // Neu-Rendern der Karte würde hier den Fokus aus dem Feld reißen.
-        if (el.dataset.field === 'hvd')
+        if (el.dataset.field === 'hvd') {
           card.querySelector('.inv-hvd')?.classList.toggle('hidden', !el.value);
+          const uri = card.querySelector('.inv-hvd-uri');
+          if (uri) uri.textContent = hvdCategoryUri(inventory[idx]) || '—';
+        }
         const pct = completeness(inventory[idx]);
         const badge = card.querySelector('.inv-complete');
         badge.textContent = pct + '%';
@@ -1428,7 +1575,7 @@ function hvdIssues(d) {
   const empty = v => v == null || String(v).trim() === '';
   if (empty(d.hvd)) return issues;
   if (!HVD_META[d.hvd]) {
-    issues.push({ sev: 'warn', msg: 'HVD-Kategorie nicht aus dem Vokabular der Durchführungsverordnung (EU) 2023/138.' });
+    issues.push({ sev: 'warn', msg: 'HVD-Kategorie nicht aus dem amtlichen Vokabular „High-value dataset categories" – bitte aus der Liste wählen.' });
     return issues;
   }
 
@@ -1444,8 +1591,10 @@ function hvdIssues(d) {
     issues.push({ sev: 'error', msg: 'Keine Verteilung in maschinenlesbarem Format – die Verordnung verlangt ein maschinenlesbares Format (PDF und Bildformate genügen nicht).' });
   if (dists.length && !dists.some(x => !empty(x.accessURL)))
     issues.push({ sev: 'warn', msg: 'Keine Zugriffs-URL hinterlegt – hochwertige Datensätze sind über eine API und, wo einschlägig, als Massen-Download bereitzustellen.' });
-  if (!hvdCategoryUri(d))
-    issues.push({ sev: 'warn', msg: `Kategorie-URI aus dem amtlichen EU-Vokabular fehlt (${HVD_SCHEME}) – ohne sie fehlt dem Export das Merkmal dcatap:hvdCategory.` });
+  // Die Spezifikation empfiehlt den genauesten Begriff; die Oberkategorie ist
+  // zulässig, aber im Portal weniger auffindbar – deshalb ein Hinweis.
+  if (HVD_META[d.hvd].top === HVD_META[d.hvd].label)
+    issues.push({ sev: 'warn', msg: 'Nur die Oberkategorie gewählt – die Spezifikation empfiehlt den genauesten Begriff aus dem Vokabular (z. B. „Adressen" statt „Georaum").' });
   return issues;
 }
 
@@ -1609,7 +1758,7 @@ function renderHvdHinweise() {
        <ul class="qual-issues">
          ${offen.map(({ d, idx, cat }) => `<li class="qual-issue qual-issue--hint">
             <i class="fas fa-lightbulb"></i>
-            <span>Kategorie <strong>${esc(HVD_META[cat].label)}</strong>
+            <span>Oberkategorie <strong>${esc(HVD_META[cat].label)}</strong>
               <span class="qual-cross-jumps">
                 <button class="qual-cross-jump" data-fix="${idx}">${esc(d.title || '(ohne Titel)')}</button>
               </span>
@@ -2017,7 +2166,7 @@ const INV_CSV_FIELDS = [
   'keywords', 'theme', 'accrualPeriodicity', 'license', 'accessRights', 'landingPage',
   'issued', 'modified', 'temporalStart', 'temporalEnd',
   'spatial', 'geocodingKey', 'geocodingLevel', 'contributorID',
-  'hvd', 'hvdCategoryURI',
+  'hvd',
 ];
 
 function looksLikeInventoryCSV(rows) {
@@ -2058,6 +2207,7 @@ function importInventoryCSV(text) {
     }
   });
 
+  migrateInventory();   // Legacy-HVD-Schlüssel aus älteren Dateien überführen
   invSelection.clear();
   saveState();
   renderInventory();
@@ -2147,10 +2297,9 @@ function dcatToDataset(ds) {
     geocodingKey: stripNal(ds['dcatde:politicalGeocodingURI'], GEO_REGIONAL_NAL),
     geocodingLevel: stripNal(ds['dcatde:politicalGeocodingLevelURI'], GEO_LEVEL_NAL),
     contributorID: stripNal(ds['dcatde:contributorID'], CONTRIBUTOR_NAL),
-    // HVD: die Kategorie-URI wird übernommen, die Einstufung selbst nur dann,
-    // wenn sie sich eindeutig zuordnen lässt – raten wäre hier falsch.
+    // HVD: der Code aus der Kategorie-URI. Ein unbekannter Wert bleibt stehen,
+    // statt still verworfen zu werden – die Qualitätsprüfung meldet ihn dann.
     hvd: hvdFromURI(jsonldValue(ds['dcatap:hvdCategory'])),
-    hvdCategoryURI: jsonldValue(ds['dcatap:hvdCategory']) || '',
     _grafSchutzbedarf: '',
     _recipients: [],
     distributions: dists.length ? dists : [newDistribution()],
