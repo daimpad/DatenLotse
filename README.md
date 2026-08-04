@@ -66,6 +66,16 @@ Importiere eine DatenGraf-CSV über **Dateninventar → DatenGraf-CSV importiere
 
 ### Option B – lokal ausführen
 
+### Statische Wissensseiten neu erzeugen
+
+Die Inhalte des Wissens-Centers gibt es zusätzlich als eigenständige, crawlbare Seiten unter `/wissen/`. Sie werden aus denselben Daten erzeugt, die auch die App nutzt:
+
+```bash
+npm run wissen        # schreibt wissen/ und sitemap.xml neu
+```
+
+Nach jeder Änderung an Glossar, Rechtsgrundlagen, Lizenzregister oder Kompass-Punkten ausführen und die erzeugten Dateien mitcommitten – ein Test schlägt sonst fehl.
+
 ```bash
 git clone https://github.com/daimpad/datenlotse.git
 cd datenlotse
