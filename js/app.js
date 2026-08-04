@@ -131,6 +131,94 @@ const DCAT_THEMES = [
   ['TRAN', 'Verkehr']
 ];
 
+/* ── Hochwertige Datensätze (HVD) ─────────────────────────────────
+   Durchführungsverordnung (EU) 2023/138, anzuwenden seit 9. Juni 2024.
+   Sie ist der Sonderfall im ganzen Werkzeug: überall sonst gilt „offene
+   Daten sind gut", hier gilt „diese Daten MÜSSEN so veröffentlicht werden".
+   Fällt ein Datensatz unter eine der sechs Kategorien, sind kostenfreier
+   Zugang, maschinenlesbares Format, Bereitstellung über eine API und eine
+   Lizenz nicht restriktiver als CC BY 4.0 rechtlich vorgeschrieben – eine
+   CC-BY-SA- oder NC-Lizenz ist dann nicht mehr bloß unschön, sondern
+   unzulässig. Genau deshalb sind die Prüfungen unten Fehler, nicht
+   Warnungen.
+
+   Die EINSTUFUNG bleibt beim Menschen. `guessHvd()` schlägt nur vor; ob ein
+   Datensatz unter die Verordnung fällt, ist eine Rechtsfrage und keine, die
+   eine Stichwortliste entscheiden darf.
+   ────────────────────────────────────────────────────────────── */
+const HVD_ELI = 'http://data.europa.eu/eli/reg_impl/2023/138/oj';
+// Kontrolliertes Vokabular „High-value dataset categories" der EU-Publikationsstelle
+const HVD_SCHEME = 'http://data.europa.eu/bna/asd487ae75';
+
+/* `uri` bleibt leer, solange der Wert nicht gegen das amtliche Vokabular
+   geprüft ist: eine erfundene Kategorie-URI wäre in einem Rechtskontext das
+   Schlechteste, was das Werkzeug ausgeben kann (dieselbe Linie wie beim
+   `@base` im Turtle-Export). Bis dahin trägt der Datensatz die URI im Feld
+   `hvdCategoryURI` selbst – ein Feld, das die Karte verlinkt und erklärt. */
+const HVD_CATEGORIES = [
+  { id: 'georaum', label: 'Georaum', uri: '',
+    beispiele: 'Flurstücke, Gebäude, Adressen, Verwaltungseinheiten, geografische Bezeichnungen, Referenzsysteme' },
+  { id: 'erdbeobachtung', label: 'Erdbeobachtung und Umwelt', uri: '',
+    beispiele: 'Boden, Wasser, Luft, Lärm, Abfall, Emissionen, Klima, Naturschutz, Energieverbrauch' },
+  { id: 'meteorologie', label: 'Meteorologie', uri: '',
+    beispiele: 'Messwerte von Wetterstationen, Radardaten, Warnmeldungen, Vorhersagemodelle, Klimareihen' },
+  { id: 'statistik', label: 'Statistik', uri: '',
+    beispiele: 'Bevölkerung, Arbeitsmarkt, Preise, Außenhandel, Gesundheit, Bildung, Unternehmensstatistik' },
+  { id: 'unternehmen', label: 'Unternehmen und Eigentümerschaft von Unternehmen', uri: '',
+    beispiele: 'Basisdaten aus Handels- und Unternehmensregistern, Kennungen, Rechtsform, Sitz, Jahresabschlüsse' },
+  { id: 'mobilitaet', label: 'Mobilität', uri: '',
+    beispiele: 'Verkehrsnetze, Fahrpläne des ÖPNV, Verkehrszeichen, Baustellen, Parkraum, Binnenwasserstraßen' },
+];
+const HVD_META = {};
+HVD_CATEGORIES.forEach(c => { HVD_META[c.id] = c; });
+const HVD_OPTIONS = [['', 'nein / nicht geprüft'], ...HVD_CATEGORIES.map(c => [c.id, c.label])];
+
+/* CC0, CC BY 4.0 „oder eine gleichwertige oder weniger einschränkende offene
+   Lizenz". Share-Alike ist MEHR einschränkend und deshalb nicht dabei –
+   obwohl `licenseIsOpen()` es zu Recht als offen führt. */
+const HVD_LICENSES = ['cc-zero', 'cc-by-4.0', 'dl-de/zero-2-0', 'dl-de/by-2-0',
+                      'odc-pddl', 'official-work'];
+/* Maschinenlesbar im Sinne der Verordnung – PDF und Bildformate sind es nicht. */
+const HVD_MACHINE_RE = /\b(csv|json|geojson|xml|gml|rdf|ttl|turtle|jsonld|json-ld|xlsx|ods|parquet|netcdf|gtfs|datex|wfs|wms|api|zip)\b/i;
+
+/* Stichwort-Heuristik, bewusst konservativ – wie `guessTheme()`. Sie SETZT
+   nichts, sondern liefert einen Vorschlag, den die Qualitätsprüfung anzeigt. */
+const HVD_HINTS = [
+  // „adress" allein ist zu grob: es steht in jeder zweiten Anmerkung über
+  // personenbezogene Unterlagen („Bescheide mit Namen, Adressen …").
+  ['georaum',        /flurstück|katast|liegenschaft|gebäudedaten|adressdaten|adressregister|adressverzeichnis|hauskoordinat|verwaltungsgrenze|gemarkung|topograph|geobasis|alkis|atkis|orthophoto|geodät/i],
+  ['meteorologie',   /wetter|meteorolog|niederschlag|temperaturmess|windmess|klimareihe|unwetter|wettervorhersage/i],
+  ['erdbeobachtung', /umwelt|emission|immission|luftqualit|gewässer|grundwasser|boden|lärm|abfall|naturschutz|biotop|klimaschutz|energieverbrauch|fernerkund|satellit/i],
+  ['mobilitaet',     /verkehr|öpnv|fahrplan|haltestelle|gtfs|radweg|straßennetz|baustelle|parkraum|parkplatz|ladesäule|verkehrszeichen|wasserstraße/i],
+  ['unternehmen',    /handelsregister|unternehmensregister|gewerberegister|firmendaten|jahresabschluss|vereinsregister/i],
+  ['statistik',      /statistik|bevölkerungs|einwohnerzahl|zensus|arbeitsmarkt|erwerbstätig|preisindex|wahlergebnis|bildungsstatistik/i],
+];
+function guessHvd(d) {
+  /* Personenbezogene Bestände scheiden aus. Hochwertige Datensätze sind
+     ausdrücklich solche, die uneingeschränkt weiterverwendet werden dürfen –
+     ein DSGVO-relevanter oder nicht öffentlicher Datensatz fällt in dieser
+     Form nicht darunter, und ein Vorschlag dazu wäre nur Lärm. */
+  if (schutzKategorie(d._grafSchutzbedarf) === 'dsgvo') return '';
+  if (d.accessRights && d.accessRights !== 'PUBLIC') return '';
+  const text = [d.title, d.description, d.keywords, d.sourceSystem].filter(Boolean).join(' ');
+  const treffer = HVD_HINTS.find(([, re]) => re.test(text));
+  return treffer ? treffer[0] : '';
+}
+/* Die Kategorie-URI für den Export: erst das (künftig gepflegte) Register,
+   sonst der vom Menschen eingetragene Wert. */
+function hvdCategoryUri(d) {
+  const meta = HVD_META[d.hvd];
+  return (meta && meta.uri) || (d.hvdCategoryURI || '').trim();
+}
+/* Gegenrichtung beim Einlesen eines Katalogs. Solange die Register-URIs nicht
+   gepflegt sind, findet das nichts – der Wert bleibt dann in
+   `hvdCategoryURI` stehen, statt still verworfen zu werden. */
+function hvdFromURI(uri) {
+  if (!uri) return '';
+  const treffer = HVD_CATEGORIES.find(c => c.uri && c.uri === String(uri).trim());
+  return treffer ? treffer.id : '';
+}
+
 /* ── Globaler State ───────────────────────────────────────────── */
 let grafRows = [];      // importierte DatenGraf-Zeilen
 let inventory = [];     // abgeleitete DCAT-AP.de-Inventar-Einträge
@@ -184,7 +272,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v45';
+const APP_VERSION = 'v46';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -950,6 +1038,9 @@ function renderInventoryBody() {
         <label>Schlagwörter
           <input data-field="keywords" value="${esc(d.keywords || '')}" placeholder="komma, getrennt">
         </label>
+        <label>Hochwertiger Datensatz (HVD)
+          <select data-field="hvd" aria-describedby="hvd-hint-${idx}">${optionsHTML(HVD_OPTIONS, d.hvd || '')}</select>
+        </label>
         <label>Aktualisierungszyklus
           <select data-field="accrualPeriodicity">${optionsHTML(FREQ_OPTIONS, d.accrualPeriodicity)}</select>
         </label>
@@ -959,6 +1050,17 @@ function renderInventoryBody() {
         <label class="inv-field-wide">Info-/Zugriffs-URL
           <input data-field="landingPage" value="${esc(d.landingPage || '')}" placeholder="https://…">
         </label>
+        <div class="inv-hvd inv-field-wide${d.hvd ? '' : ' hidden'}" id="hvd-hint-${idx}">
+          <p><i class="fas fa-gavel"></i> <strong>Pflichten nach Durchführungsverordnung (EU) 2023/138:</strong>
+          kostenfrei, maschinenlesbar, über eine API bereitgestellt und unter CC BY 4.0, CC0 oder einer
+          gleichwertigen bzw. weniger einschränkenden Lizenz. Die Qualitätsprüfung meldet Verstöße als Fehler.</p>
+          <label>Kategorie-URI aus dem EU-Vokabular
+            <input data-field="hvdCategoryURI" value="${esc(d.hvdCategoryURI || '')}" placeholder="${esc(HVD_SCHEME)}/…">
+          </label>
+          <p class="inv-hvd-src">Die genaue Kategorie-URI steht im amtlichen Vokabular der EU-Publikationsstelle:
+            <a href="${esc(HVD_SCHEME)}" target="_blank" rel="noopener">High-value dataset categories <i class="fas fa-arrow-up-right-from-square"></i></a>.
+            DatenLotse trägt sie bewusst nicht selbst ein – eine geratene URI wäre hier schlechter als keine.</p>
+        </div>
       </div>
       <div class="inv-dists">
         <div class="inv-dists-head">
@@ -1070,6 +1172,10 @@ function renderInventoryBody() {
     card.querySelectorAll('[data-field]').forEach(el => {
       el.addEventListener('input', () => {
         inventory[idx][el.dataset.field] = el.value;
+        // Die HVD-Pflichten erscheinen erst, wenn eingestuft wurde – ein
+        // Neu-Rendern der Karte würde hier den Fokus aus dem Feld reißen.
+        if (el.dataset.field === 'hvd')
+          card.querySelector('.inv-hvd')?.classList.toggle('hidden', !el.value);
         const pct = completeness(inventory[idx]);
         const badge = card.querySelector('.inv-complete');
         badge.textContent = pct + '%';
@@ -1308,7 +1414,48 @@ function validateDataset(d) {
   // Regionalschlüssel und Gebietsebene gehören nach DCAT-AP.de zusammen
   if (!empty(d.geocodingKey) !== !empty(d.geocodingLevel))
     issues.push({ sev: 'warn', msg: 'Regionalschlüssel und Gebietsebene bitte gemeinsam angeben.' });
+
+  issues.push(...hvdIssues(d));
   return issues;
+}
+
+/* Hochwertige Datensätze: die Verordnung schreibt vor, sie empfiehlt nicht.
+   Deshalb sind die Verstöße hier Fehler und keine Warnungen – ein HVD unter
+   CC BY-SA ist nicht „nicht ideal", sondern nicht rechtskonform. Geprüft
+   wird nur, wenn der Mensch den Datensatz als HVD eingestuft hat. */
+function hvdIssues(d) {
+  const issues = [];
+  const empty = v => v == null || String(v).trim() === '';
+  if (empty(d.hvd)) return issues;
+  if (!HVD_META[d.hvd]) {
+    issues.push({ sev: 'warn', msg: 'HVD-Kategorie nicht aus dem Vokabular der Durchführungsverordnung (EU) 2023/138.' });
+    return issues;
+  }
+
+  const dists = d.distributions || [];
+  dists.forEach((x, i) => {
+    const wo = dists.length > 1 ? `Verteilung ${i + 1}: ` : '';
+    if (!empty(x.license) && !HVD_LICENSES.includes(x.license))
+      issues.push({ sev: 'error', msg: `${wo}Lizenz für einen hochwertigen Datensatz unzulässig – die Verordnung verlangt CC BY 4.0, CC0 oder eine gleichwertige bzw. weniger einschränkende Lizenz (Weitergabe unter gleichen Bedingungen zählt nicht dazu).` });
+  });
+  if (!empty(d.accessRights) && d.accessRights !== 'PUBLIC')
+    issues.push({ sev: 'error', msg: 'Hochwertige Datensätze sind ohne Zugangsbeschränkung bereitzustellen – Zugriffsrechte müssen „Öffentlich" (PUBLIC) sein.' });
+  if (dists.length && !dists.some(x => HVD_MACHINE_RE.test(String(x.format || ''))))
+    issues.push({ sev: 'error', msg: 'Keine Verteilung in maschinenlesbarem Format – die Verordnung verlangt ein maschinenlesbares Format (PDF und Bildformate genügen nicht).' });
+  if (dists.length && !dists.some(x => !empty(x.accessURL)))
+    issues.push({ sev: 'warn', msg: 'Keine Zugriffs-URL hinterlegt – hochwertige Datensätze sind über eine API und, wo einschlägig, als Massen-Download bereitzustellen.' });
+  if (!hvdCategoryUri(d))
+    issues.push({ sev: 'warn', msg: `Kategorie-URI aus dem amtlichen EU-Vokabular fehlt (${HVD_SCHEME}) – ohne sie fehlt dem Export das Merkmal dcatap:hvdCategory.` });
+  return issues;
+}
+
+/* Datensätze, die nach der Stichwortliste unter die Verordnung fallen könnten,
+   aber noch nicht eingestuft sind. Bewusst getrennt von `validateDataset()`:
+   ein Vorschlag ist kein Befund, und eine Vermutung darf keine Ampel färben. */
+function hvdVorschlaege() {
+  return inventory
+    .map((d, idx) => ({ d, idx, cat: d.hvd ? '' : guessHvd(d) }))
+    .filter(x => x.cat);
 }
 
 function qualityStatus(issues) {
@@ -1434,8 +1581,49 @@ function renderInventoryIssues() {
     btn.addEventListener('click', () => jumpToInventoryCard(+btn.dataset.fix)));
 }
 
+/* Vorschläge zur HVD-Einstufung. Bewusst als eigener, andersfarbiger Block
+   über den Befunden – und nicht als Warnung an der Karte: eine Vermutung aus
+   einer Stichwortliste darf keine Ampel färben und keinen Datensatz rot
+   machen. Die Einstufung nach der Verordnung bleibt eine Rechtsentscheidung. */
+function renderHvdHinweise() {
+  const box = document.getElementById('quality-hvd');
+  if (!box) return;
+  const eingestuft = inventory.filter(d => d.hvd && HVD_META[d.hvd]).length;
+  const offen = hvdVorschlaege();
+  if (!inventory.length || (!eingestuft && !offen.length)) { box.innerHTML = ''; return; }
+
+  const kopf = eingestuft
+    ? `${eingestuft} Datensatz${eingestuft === 1 ? '' : 'e'} als hochwertig eingestuft`
+    : 'Noch kein Datensatz als hochwertig eingestuft';
+  box.innerHTML =
+    `<div class="qual-hvd">
+       <h3 class="qual-cross-title"><i class="fas fa-gavel"></i> Hochwertige Datensätze (HVD)</h3>
+       <p class="qual-cross-lead">${esc(kopf)}. Für sie gelten nach Durchführungsverordnung (EU) 2023/138
+         verbindliche Vorgaben: kostenfrei, maschinenlesbar, über eine API und unter CC BY 4.0, CC0 oder
+         einer gleichwertigen bzw. weniger einschränkenden Lizenz.</p>
+       ${offen.length ? `
+       <p class="qual-cross-lead"><strong>${offen.length} Datensatz${offen.length === 1 ? ' könnte' : 'e könnten'}
+         unter die Verordnung fallen</strong> – Vorschlag aus Titel, Beschreibung und Schlagwörtern,
+         bewusst eher großzügig: ein übersehener hochwertiger Datensatz wiegt schwerer als ein Vorschlag
+         zu viel. Ob die Verordnung greift, entscheidet ihr, nicht das Werkzeug.</p>
+       <ul class="qual-issues">
+         ${offen.map(({ d, idx, cat }) => `<li class="qual-issue qual-issue--hint">
+            <i class="fas fa-lightbulb"></i>
+            <span>Kategorie <strong>${esc(HVD_META[cat].label)}</strong>
+              <span class="qual-cross-jumps">
+                <button class="qual-cross-jump" data-fix="${idx}">${esc(d.title || '(ohne Titel)')}</button>
+              </span>
+            </span>
+         </li>`).join('')}
+       </ul>` : ''}
+     </div>`;
+  box.querySelectorAll('.qual-cross-jump').forEach(btn =>
+    btn.addEventListener('click', () => jumpToInventoryCard(+btn.dataset.fix)));
+}
+
 function renderQuality() {
   renderInventoryIssues();
+  renderHvdHinweise();
   const body = document.getElementById('quality-body');
   const sum = document.getElementById('quality-summary');
   if (!body) return;
@@ -1539,6 +1727,17 @@ function dcatDataset(d) {
   if (d.contributorID) ds['dcatde:contributorID'] =
     /^https?:\/\//i.test(d.contributorID) ? d.contributorID : CONTRIBUTOR_NAL + d.contributorID;
 
+  /* Hochwertiger Datensatz: `applicableLegislation` und `hvdCategory` gehören
+     nach DCAT-AP HVD zusammen – ein Datensatz, der sich als HVD ausweist,
+     aber keine Kategorie nennt, fällt beim Harvesting durch die Validierung.
+     Deshalb wird beides nur GEMEINSAM geschrieben; fehlt die Kategorie-URI,
+     bleibt der Export stumm und die Qualitätsprüfung sagt, was fehlt. */
+  const hvdUri = d.hvd && HVD_META[d.hvd] ? hvdCategoryUri(d) : '';
+  if (hvdUri) {
+    ds['dcatap:applicableLegislation'] = HVD_ELI;
+    ds['dcatap:hvdCategory'] = hvdUri;
+  }
+
   ds['dcat:distribution'] = (d.distributions || []).map(x => {
     const dist = { '@type': 'dcat:Distribution' };
     if (x.title) dist['dct:title'] = x.title;
@@ -1581,6 +1780,7 @@ const TTL_PREFIXES = [
   ['vcard',  'http://www.w3.org/2006/vcard/ns#'],
   ['skos',   'http://www.w3.org/2004/02/skos/core#'],
   ['xsd',    'http://www.w3.org/2001/XMLSchema#'],
+  ['dcatap', 'http://data.europa.eu/r5r/'],
 ];
 
 /* Turtle-Literal. Zeilenumbrüche, Anführungszeichen und Backslashes MÜSSEN
@@ -1631,6 +1831,12 @@ function turtleDataset(d) {
   if (d.geocodingLevel) p.push(['dcatde:politicalGeocodingLevelURI', ttlIri(GEO_LEVEL_NAL + d.geocodingLevel)]);
   if (d.contributorID) p.push(['dcatde:contributorID',
     ttlIri(/^https?:\/\//i.test(d.contributorID) ? d.contributorID : CONTRIBUTOR_NAL + d.contributorID)]);
+  // Nur gemeinsam – siehe Begründung in dcatDataset()
+  const hvdUri = d.hvd && HVD_META[d.hvd] ? hvdCategoryUri(d) : '';
+  if (hvdUri) {
+    p.push(['dcatap:applicableLegislation', ttlIri(HVD_ELI)]);
+    p.push(['dcatap:hvdCategory', ttlIri(hvdUri)]);
+  }
 
   (d.distributions || []).forEach(x => {
     const dist = ['a dcat:Distribution'];
@@ -1677,11 +1883,10 @@ function buildDcatTurtle() {
 /* ── Export: flaches CSV (Inventarliste) ──────────────────────── */
 function buildInventoryCSV() {
   ensureAllClearing();   // Ampel auch ohne Besuch des Clearing-Tabs befüllen
-  const cols = ['id', 'title', 'description', 'publisher', 'contactPoint',
-                'sourceSystem', 'format', 'keywords', 'theme', 'accrualPeriodicity',
-                'license', 'accessRights', 'landingPage',
-                'issued', 'modified', 'temporalStart', 'temporalEnd',
-                'spatial', 'geocodingKey', 'geocodingLevel', 'contributorID'];
+  /* Dieselbe Liste, die der Rückimport liest – vorher stand sie hier ein
+     zweites Mal wörtlich und lief beim Ergänzen eines Feldes auseinander:
+     die Spalte fehlte im Export, der Import fand sie folglich nie. */
+  const cols = ['id', ...INV_CSV_FIELDS];
   // Ohne den Schutzbedarf ginge beim Rückimport die Clearing-Vorbelegung verloren
   const extra = ['schutzbedarf', 'verteilungen'];
   const head = [...cols, ...extra, 'clearingAmpel', 'clearingEmpfehlung'].join(',');
@@ -1812,6 +2017,7 @@ const INV_CSV_FIELDS = [
   'keywords', 'theme', 'accrualPeriodicity', 'license', 'accessRights', 'landingPage',
   'issued', 'modified', 'temporalStart', 'temporalEnd',
   'spatial', 'geocodingKey', 'geocodingLevel', 'contributorID',
+  'hvd', 'hvdCategoryURI',
 ];
 
 function looksLikeInventoryCSV(rows) {
@@ -1941,6 +2147,10 @@ function dcatToDataset(ds) {
     geocodingKey: stripNal(ds['dcatde:politicalGeocodingURI'], GEO_REGIONAL_NAL),
     geocodingLevel: stripNal(ds['dcatde:politicalGeocodingLevelURI'], GEO_LEVEL_NAL),
     contributorID: stripNal(ds['dcatde:contributorID'], CONTRIBUTOR_NAL),
+    // HVD: die Kategorie-URI wird übernommen, die Einstufung selbst nur dann,
+    // wenn sie sich eindeutig zuordnen lässt – raten wäre hier falsch.
+    hvd: hvdFromURI(jsonldValue(ds['dcatap:hvdCategory'])),
+    hvdCategoryURI: jsonldValue(ds['dcatap:hvdCategory']) || '',
     _grafSchutzbedarf: '',
     _recipients: [],
     distributions: dists.length ? dists : [newDistribution()],
@@ -2485,6 +2695,7 @@ const LEGAL_BASIS = [
   { name: 'E-Government-Gesetz (EGovG)', summary: 'Rechtsrahmen für die elektronische Verwaltung des Bundes – enthält u. a. die Open-Data-Pflicht (§ 12a).', url: 'https://www.gesetze-im-internet.de/egovg/' },
   { name: 'Datennutzungsgesetz (DNG)', summary: 'Setzt die EU-Open-Data-Richtlinie um und regelt die Weiterverwendung von Verwaltungsdaten; löste das IWG ab.', url: 'https://www.gesetze-im-internet.de/dng/' },
   { name: 'EU Open Data Directive (2019/1024)', summary: 'EU-Richtlinie zur offenen Bereitstellung und Weiterverwendung von Daten des öffentlichen Sektors (vormals PSI-Richtlinie).', url: 'https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32019L1024' },
+  { name: 'Hochwertige Datensätze – DVO (EU) 2023/138', summary: 'Legt fest, welche Datensätze als hochwertig gelten (Georaum, Erdbeobachtung und Umwelt, Meteorologie, Statistik, Unternehmen, Mobilität) und wie sie zu veröffentlichen sind: kostenfrei, maschinenlesbar, über eine API und unter CC BY 4.0 oder einer weniger einschränkenden Lizenz. Anzuwenden seit 9. Juni 2024.', url: 'https://eur-lex.europa.eu/eli/reg_impl/2023/138/oj?locale=de' },
   { name: 'Informationsfreiheitsgesetz (IFG)', summary: 'Gibt jeder Person einen Anspruch auf Zugang zu amtlichen Informationen des Bundes.', url: 'https://www.gesetze-im-internet.de/ifg/' },
   { name: 'DSGVO (VO (EU) 2016/679)', summary: 'EU-Datenschutz-Grundverordnung – Grundlage für den rechtmäßigen Umgang mit personenbezogenen Daten.', url: 'https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32016R0679' },
   { name: 'Bundesdatenschutzgesetz (BDSG)', summary: 'Ergänzt die DSGVO national und konkretisiert sie für Deutschland (u. a. Behörden, Beschäftigtendatenschutz).', url: 'https://www.gesetze-im-internet.de/bdsg_2018/' },
