@@ -1,6 +1,6 @@
 {
   "name": "DatenLotse",
-  "short_name": "DatenLose",
+  "short_name": "DatenLotse",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -17,5 +17,9 @@
   ],
   "theme_color": "#ffffff",
   "background_color": "#ffffff",
-  "display": "standalone"
+  "display": "standalone",
+  "description": "Von der Datenökosystem-Map zur Open-Data-Umsetzung: Dateninventar nach DCAT-AP.de, Risiko-Clearing und Pseudonymisierung – lokal im Browser.",
+  "lang": "de",
+  "start_url": "/",
+  "scope": "/"
 }

@@ -336,6 +336,34 @@ Eigene View `#kompass-view` und **Haupt-CTA** (Hero-Button + Topbar-„Loslegen"
 
 ---
 
+## Suchmaschinen & statische Wissensseiten
+
+Die App ist eine SPA mit genau einer URL – die Wissensinhalte (Glossar, Rechtsgrundlagen, Lizenzregister, Kompass-Prüfpunkte) leben in `js/app.js` und werden erst zur Laufzeit in ausgeblendete Views gerendert. Für Suchmaschinen war das rund die Hälfte der Substanz hinter einer einzigen, thematisch überladenen Adresse.
+
+**`tools/generate-wissen.js`** erzeugt daraus acht statische Seiten unter `wissen/` – crawlbar, ohne JavaScript lesbar, je Seite ein Thema:
+
+```
+/wissen/                          Übersicht
+/wissen/glossar/                  GLOSSARY
+/wissen/rechtsgrundlagen/         LEGAL_BASIS
+/wissen/rechtsgrundlagen-laender/ LEGAL_BASIS_LAENDER
+/wissen/kommunale-satzungen/      KOMMUNAL_SATZUNGEN
+/wissen/lizenzen/                 LICENSE_CATALOG
+/wissen/reifegrad-modelle/        METHOD_MODELS + KOMPASS_DIMENSIONS
+/wissen/pruefwerkzeuge/           PRUEF_WERKZEUGE
+```
+
+- **Keine zweite Quelle:** Der Generator lädt die App im Browser und liest die Arrays heraus. Was auf den Seiten steht, ist exakt das, was die App kennt.
+- **Gegen Verrotten abgesichert:** `node tools/generate-wissen.js --check` vergleicht, ohne zu schreiben; `tests/seo.spec.js` ruft das auf. Wer die Daten ändert und nicht regeneriert, bekommt einen roten Test. Ein Mutationstest (ein Glossarbegriff geändert) machte ihn rot.
+- **Dev-Werkzeug**, wie Playwright. Die ausgelieferte App bleibt abhängigkeitsfrei; die generierten Seiten laden nur die vorhandenen Stylesheets und kein JavaScript.
+- Der Generator schreibt die **`sitemap.xml`** gleich mit – sonst findet die Seiten niemand.
+
+**Nach jeder Änderung an den Wissens-Daten:** `npm run wissen` ausführen und die generierten Dateien mitcommitten.
+
+Weitere SEO-Festlegungen: `og:image`/`twitter:image` zeigen auf **`social-preview.png`** (SVG wird von Facebook, LinkedIn und WhatsApp nicht gerendert); die FAQ trägt `FAQPage`-Markup, das **exakt** den sechs angezeigten Fragen entspricht (ein Test hält das fest – erfundenes Markup verstößt gegen Googles Richtlinien).
+
+---
+
 ## Wichtige Konventionen
 
 ### XSS-Schutz
@@ -450,6 +478,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v16 | Daten-Kompass (Herzstück) – eigene View + Hero-Haupt-CTA (Topbar-„Loslegen" zeigt ebenfalls darauf): ausführliche Open-Data-Reifegrad-Checkliste nach ODRA / EU Open Data Maturity / 5-Sterne / DCAT-AP.de / DSGVO·FAIR (7 Dimensionen, Quellenangaben), Status je Item mit Score & Ampel, Vorbelegung aus dem App-Stand, adaptive Sprünge in die passenden Bausteine, Persistenz (`datenlotse_kompass`) und PDF-Export; leeres „Loslegen"-Platzhalter-Modal entfernt |
 | v17 | Weiterer Ausbau (1/4) – Inventar Suche, Filter & Sortierung: `renderInventory()` in `renderInventory()` + `renderInventoryBody()` aufgeteilt; `.inv-controls` (Volltextsuche + Schutzbedarf-/Clearing-Ampel-Filter + Sortierung Titel/Vollständigkeit) über `invFilter`-State und `filteredInventory()`; der echte `idx` wird durch den Filter mitgeführt, sodass Editieren über gefilterten Teilmengen weiterhin den richtigen Datensatz trifft; Live-Meta „X von Y" + Empty-State |
 | v18 | Weiterer Ausbau (2/4) – Pseudonymisierung erweitert: drei neue Muster (Sozialversicherungsnummer, Steuer-ID *kontextgetriggert*, Kfz-Kennzeichen), Aktenzeichen um Geschäftszeichen/„Gz." und buchstabenhaltige Kerne erweitert, zusätzliche Geburtsdatum-Trigger („Geburtsdatum"/„Geburtstag"); Mapping-Export als CSV (`buildPseudoMappingCSV` + Button im Mapping-Kopf); Demo-Text und Grenzen-Liste aktualisiert; verifiziert auf Determinismus, Platzhalter-Konsistenz und Null-Falschtreffer auf neutralem Verwaltungstext |
+| v44 | **SEO: statische Wissensseiten, Vorschaubild, FAQ-Markup.** Die Wissensinhalte lagen in `app.js` und wurden nur zur Laufzeit in ausgeblendete Views gerendert – rund die Hälfte der Substanz hinter genau einer URL. `tools/generate-wissen.js` erzeugt daraus acht statische Seiten unter `/wissen/`, crawlbar und ohne JavaScript lesbar. **Keine zweite Quelle**: der Generator liest die Arrays aus der laufenden App; `--check` vergleicht, und ein Test macht rot, wer die Daten ändert ohne zu regenerieren. Dazu vier konkrete Defekte behoben: `short_name` im Manifest hieß „DatenLose", `og:image` war ein **SVG** (Facebook, LinkedIn und WhatsApp rendern das nicht) und ist jetzt ein PNG mit Alt-Text, die Sitemap war auf 2026-06-28 eingefroren und listet nun alle Seiten, und die bereits vorhandene FAQ trägt `FAQPage`-Markup – exakt die sechs angezeigten Fragen, per Test abgesichert. |
 | v43 | **Sortierung nach Publikationsreife.** Der Filter aus v42 hatte kein Gegenstück beim Sortieren – jetzt lässt sich das Inventar nach „Fehler zuerst" bzw. „bereit zuerst" ordnen. Verwendet dieselbe Auswertung wie der Qualitäts-Tab, es gibt also keine zweite Wahrheit. Bei gleichem Status entscheidet die **Zahl der Befunde**: sonst stünden zwölf gelbe Datensätze in beliebiger Reihenfolge, obwohl einer neun Warnungen hat und ein anderer eine. |
 | v42 | **Notiz zur Clearing-Entscheidung, Filter nach Publikationsreife, Bestandsprüfung im Bericht.** Die automatische Begründung sagt, *warum* die Ampel so steht – für die Akte braucht es oft eine eigene Notiz (Abstimmung mit dem Datenschutz, vereinbarte Auflage). `d._clearingNote` ergänzt sie, geht bewusst **nicht** in den Entscheidungsbaum ein und erscheint in Bericht und Freigabeformular. Der Inventar-Filter kennt jetzt die **Publikationsreife** (grün/gelb/rot aus der Qualitätsprüfung) – die Ampel gab es, filtern konnte man nicht danach. Und die **Bestandsprüfung wandert in den PDF-Bericht**, damit die übergreifenden Befunde in die Abstimmung mit den Fachbereichen gehen und nicht nur auf dem Bildschirm stehen. |
 | v41 | **Konsistenzprüfung über den Bestand.** Die Qualitätsprüfung sah bisher jeden Datensatz für sich; die teuren Fehler sind aber die übergreifenden – doppelte Identifier (Fehler, kollidiert beim Harvesting), doppelte Titel, dieselbe Zugriffs-URL an mehreren Datensätzen und Schreibvarianten bei Publisher bzw. Ansprechpartner. Kein DCAT-Validator fängt das ab, weil jeder Eintrag einzeln korrekt ist. Bei den Schreibvarianten werden **nur die Abweichler von der häufigsten Schreibweise** gemeldet – alle Träger aufzulisten wäre bei elf gleich geschriebenen Einträgen nur Lärm. Jeder Befund springt per Klick zur betroffenen Karte. Dazu: die Massenbearbeitung kann jetzt auch das **Format der ersten Verteilung** setzen (bei mehreren Verteilungen wäre alles andere geraten). |

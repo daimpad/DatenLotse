@@ -24,7 +24,9 @@
   <meta property="og:description" content="Dateninventar nach DCAT-AP.de, Risiko-Clearing und datenschutzkonforme Pseudonymisierung – lokal im Browser, ohne Server.">
   <meta property="og:type"        content="website">
   <meta property="og:url"         content="https://datenlotse.nozilla.net/">
-  <meta property="og:image"       content="https://datenlotse.nozilla.net/social-preview.svg">
+  <meta property="og:image"       content="https://datenlotse.nozilla.net/social-preview.png">
+  <meta property="og:image:type"  content="image/png">
+  <meta property="og:image:alt"   content="DatenLotse – Von der Map zur Open-Data-Umsetzung">
   <meta property="og:image:width"  content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:locale"      content="de_DE">
@@ -34,7 +36,8 @@
   <meta name="twitter:card"        content="summary_large_image">
   <meta name="twitter:title"       content="DatenLotse – Von der Map zur Open-Data-Umsetzung">
   <meta name="twitter:description" content="Dateninventar nach DCAT-AP.de, Risiko-Clearing und datenschutzkonforme Pseudonymisierung – lokal im Browser, ohne Server.">
-  <meta name="twitter:image"       content="https://datenlotse.nozilla.net/social-preview.svg">
+  <meta name="twitter:image"       content="https://datenlotse.nozilla.net/social-preview.png">
+  <meta name="twitter:image:alt"   content="DatenLotse – Von der Map zur Open-Data-Umsetzung">
 
   <!-- Structured Data -->
   <script type="application/ld+json">
@@ -57,7 +60,64 @@
       "url": "https://nozilla.de/"
     },
     "inLanguage": "de",
-    "screenshot": "https://datenlotse.nozilla.net/social-preview.svg"
+    "screenshot": "https://datenlotse.nozilla.net/social-preview.png"
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Was ist DatenLotse – und wie hängt es mit DatenGraf zusammen?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DatenGraf beantwortet „Wie sehen meine Datenflüsse aus?\", DatenLotse beantwortet „Was tue ich jetzt konkret?\". Du exportierst in DatenGraf eine CSV und importierst sie hier — daraus entsteht ein Dateninventar nach DCAT-AP.de."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Verlassen meine Daten den Browser?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Nein. DatenLotse läuft vollständig client-seitig — kein Server, kein Account, kein Datentransfer. Importierte CSVs und eingegebene Werte bleiben ausschließlich in deinem Browser."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Welche CSV kann ich importieren?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Exakt das Format, das DatenGraf exportiert (Spalten Quelle, Ziel, Datentyp, Häufigkeit, Schutzbedarf …). Jede eindeutige Kombination aus Quelle und Datentyp wird ein Dataset-Kandidat."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Was ist DCAT-AP.de und wofür der Export?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DCAT-AP.de ist das deutsche Metadaten-Profil für offene Daten. Der Export erzeugt DCAT-konformes JSON-LD und eine CSV-Liste, die durch GovData und CKAN-Portale geharvestet werden können."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Was bedeutet die Vollständigkeits-Ampel im Inventar?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Die Prozentanzeige zeigt, wie viele DCAT-AP.de-Pflichtfelder eines Datensatzes gefüllt sind: ab 80 % grün, ab 50 % gelb, darunter rot. Sie aktualisiert sich live beim Ausfüllen."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Was kommt als Nächstes?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Clearing-Ampel, Pseudonymisierung und das Governance-/RACI-Modul sind fertig und direkt nutzbar – ebenso Daten-Kompass, Qualitätsprüfung, Wissens-Center und die Vorlagen. Offen sind bewusst die Phasen 4 & 5 (ETL-Pipeline, Container-Betrieb, CKAN-Anbindung, Feedback-Schleifen): Sie hängen an eurer IT-Landschaft und werden als Beratung begleitet statt als generische Software ausgeliefert."
+        }
+      }
+    ]
   }
   </script>
 
@@ -65,8 +125,8 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <link rel="stylesheet" href="assets/fonts/fa/all.min.css">
 
-  <link rel="stylesheet" href="css/tokens.css?v=43">
-  <link rel="stylesheet" href="css/styles.css?v=43">
+  <link rel="stylesheet" href="css/tokens.css?v=44">
+  <link rel="stylesheet" href="css/styles.css?v=44">
 </head>
 <body>
 
@@ -601,6 +661,15 @@
       </select>
     </div>
 
+    <p class="know-static-hint"><i class="fas fa-link"></i> Zum Nachschlagen und Verlinken gibt es diese Inhalte auch als
+      eigenst&auml;ndige Seiten: <a href="/wissen/glossar/">Glossar</a>,
+      <a href="/wissen/rechtsgrundlagen/">Rechtsgrundlagen (Bund/EU)</a>,
+      <a href="/wissen/rechtsgrundlagen-laender/">Bundesl&auml;nder</a>,
+      <a href="/wissen/kommunale-satzungen/">kommunale Satzungen</a>,
+      <a href="/wissen/lizenzen/">Lizenzen</a>,
+      <a href="/wissen/reifegrad-modelle/">Reifegradmodelle</a> und
+      <a href="/wissen/pruefwerkzeuge/">Pr&uuml;fwerkzeuge</a>.</p>
+
     <div id="wissen-noresult" class="know-empty hidden">Nichts passt zur Suche. Begriff anders formulieren?</div>
 
     <section id="wissen-sec-glossary" class="know-section">
@@ -776,6 +845,8 @@
   <footer class="site-footer">
     <a class="footer-brand" href="https://nozilla.de/" target="_blank" rel="noopener">nozilla | bits &amp; bytes mit ❤</a>
     <nav class="footer-links">
+      <a href="/wissen/">Wissen &amp; Methodik</a>
+      <span class="footer-sep">·</span>
       <a href="https://nozilla.de/impressum/"   target="_blank" rel="noopener">Impressum</a>
       <span class="footer-sep">·</span>
       <a href="https://nozilla.de/datenschutz/" target="_blank" rel="noopener">Datenschutz</a>
@@ -784,7 +855,7 @@
       <span class="footer-sep">·</span>
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository"><i class="fab fa-github"></i></a>
     </nav>
-    <span class="footer-version">v43</span>
+    <span class="footer-version">v44</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -980,6 +1051,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=43"></script>
+  <script src="js/app.js?v=44"></script>
 </body>
 </html>

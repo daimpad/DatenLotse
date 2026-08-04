@@ -875,6 +875,104 @@ a { color: var(--c-accent); }
 }
 .clear-note textarea:focus { outline: none; border-color: var(--c-accent); }
 
+.know-static-hint {
+  max-width: 1180px;
+  margin: 0 auto 18px;
+  padding: 11px 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--c-muted);
+  background: var(--glass-bg);
+  border: 1px solid var(--c-border-s);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.know-static-hint i { color: var(--c-accent); margin-right: 5px; }
+.know-static-hint a { color: var(--c-accent); font-weight: 600; }
+
+/* ── Statische Wissensseiten (SEO-Fassung, /wissen/…) ─────────────
+   Eigene URLs für die Wissensinhalte: crawlbar, ohne JavaScript lesbar
+   und je Seite auf ein Thema fokussiert. Nutzen dieselben Tokens und
+   Komponenten wie die App, damit es dasselbe Werkzeug bleibt. */
+.static-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+  min-width: 0;
+}
+.static-crumbs { font-size: 12.5px; color: var(--c-muted); margin-bottom: 14px; }
+.static-crumbs a { color: var(--c-accent); text-decoration: none; font-weight: 600; }
+.static-crumbs a:hover { text-decoration: underline; }
+.static-title { font-size: clamp(26px, 4vw, 36px); color: var(--c-accent); margin: 0 0 10px; line-height: 1.2; }
+.static-lead { font-size: 15.5px; line-height: 1.65; color: var(--c-text); margin: 0 0 26px; }
+.static-section { margin-top: 32px; }
+.static-section h2 { font-size: 19px; color: var(--c-accent); margin: 0 0 12px; }
+.static-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+.static-card {
+  padding: 16px 18px;
+  background: var(--glass-bg);
+  border: 1px solid var(--c-border-s);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+.static-card h2, .static-card h3 { font-size: 15.5px; color: var(--c-accent); margin: 0 0 6px; line-height: 1.35; }
+.static-card h2 a, .static-card h3 a { color: inherit; text-decoration: none; }
+.static-card h2 a:hover, .static-card h3 a:hover { text-decoration: underline; }
+.static-card h2 i, .static-card h3 i { font-size: 11px; }
+.static-card p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--c-text); }
+.static-card ul { margin: 8px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.55; color: var(--c-text); }
+.static-card-meta {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--c-muted);
+  margin: 0 0 6px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.static-glossary { margin: 0; display: grid; gap: 12px; }
+.static-glossary div {
+  padding: 14px 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--c-border-s);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.static-glossary dt { font-weight: 700; color: var(--c-accent); font-size: 14.5px; }
+.static-glossary dd { margin: 4px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--c-text); }
+.static-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.static-table th, .static-table td {
+  border: 1px solid var(--c-border-s);
+  padding: 7px 10px;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.static-table th { background: rgba(66, 0, 147, 0.06); color: var(--c-accent); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+.static-table code { font-size: 11.5px; color: var(--c-muted); }
+.static-cta {
+  margin-top: 40px;
+  padding: 22px 24px;
+  background: #fff;
+  border: 1px solid var(--c-border-s);
+  border-left: 4px solid var(--c-accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.static-cta h2 { margin: 0 0 8px; font-size: 18px; color: var(--c-accent); }
+.static-cta p { margin: 0 0 14px; font-size: 14px; line-height: 1.6; color: var(--c-text); }
+.static-note { margin-top: 22px; font-size: 12.5px; line-height: 1.6; color: var(--c-muted); }
+.static-page .topbar { position: static; }
+@media (max-width: 600px) {
+  .static-main { padding: 20px 14px 44px; }
+  .static-table { font-size: 12px; }
+}
+
 /* ── Bestandsprüfung (übergreifend) ───────────────────────────── */
 .quality-inventory { min-width: 0; }
 .qual-cross {
