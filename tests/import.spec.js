@@ -107,4 +107,17 @@ test.describe('CSV-Import & Inventar-Ableitung', () => {
     expect(map.intern).toBe('RESTRICTED');
     expect(map.leer).toBe('');
   });
+
+  test('Export- und Importspalten können nicht auseinanderlaufen', async ({ page }) => {
+    await openApp(page);
+    // Regression v46: der Export trug seine Spaltenliste ein zweites Mal
+    // wörtlich. Ein neu ergänztes Feld stand danach in INV_CSV_FIELDS, aber
+    // nicht in der Datei – der Rückimport fand es folglich nie.
+    const r = await page.evaluate(() => {
+      inventory = [{ id: 'x', title: 'A', distributions: [newDistribution()] }];
+      return { kopf: buildInventoryCSV().split('\n')[0].split(','), felder: INV_CSV_FIELDS };
+    });
+    const fehlend = r.felder.filter(f => !r.kopf.includes(f));
+    expect(fehlend, 'Felder aus INV_CSV_FIELDS fehlen im CSV-Kopf').toEqual([]);
+  });
 });
