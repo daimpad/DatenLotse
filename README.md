@@ -66,16 +66,6 @@ Importiere eine DatenGraf-CSV über **Dateninventar → DatenGraf-CSV importiere
 
 ### Option B – lokal ausführen
 
-### Statische Wissensseiten neu erzeugen
-
-Die Inhalte des Wissens-Centers gibt es zusätzlich als eigenständige, crawlbare Seiten unter `/wissen/`. Sie werden aus denselben Daten erzeugt, die auch die App nutzt:
-
-```bash
-npm run wissen        # schreibt wissen/ und sitemap.xml neu
-```
-
-Nach jeder Änderung an Glossar, Rechtsgrundlagen, Lizenzregister oder Kompass-Punkten ausführen und die erzeugten Dateien mitcommitten – ein Test schlägt sonst fehl.
-
 ```bash
 git clone https://github.com/daimpad/datenlotse.git
 cd datenlotse
@@ -84,6 +74,19 @@ python3 -m http.server 8080
 ```
 
 > **Hinweis:** `index.html` muss über HTTP(S) geöffnet werden, damit `FileReader`/`fetch()` und die Beispieldaten funktionieren. Ein direktes Öffnen als `file://` startet die App nicht korrekt.
+
+### Erzeugte Dateien neu bauen
+
+Zwei Teile des Auslieferungsstands werden aus den Daten der App erzeugt und liegen mit im Repo. Beide haben einen Test, der rot wird, wenn jemand die Quelle ändert und nicht neu baut.
+
+```bash
+npm run wissen        # statische Wissensseiten unter /wissen/ + sitemap.xml
+npm run icons         # Font Awesome auf die verwendeten Icons zuschneiden
+```
+
+**Wissensseiten:** die Inhalte des Wissens-Centers gibt es zusätzlich als eigenständige, crawlbare Seiten unter `/wissen/` – aus denselben Daten erzeugt, die auch die App rendert. Nach jeder Änderung an Glossar, Rechtsgrundlagen, Lizenzregister oder Kompass-Punkten neu bauen.
+
+**Icons:** Font Awesome bringt rund 1.900 Icons und 300 KB Schrift mit; DatenLotse benutzt knapp 80 davon. Ausgeliefert wird deshalb nur die Teilmenge (`assets/fonts/fa/icons.min.css`, `fa-*.subset.woff2`). Nach jedem neuen Icon im Markup neu bauen, sonst erscheint an seiner Stelle ein leeres Kästchen. Das Zuschneiden braucht einmalig `pip install fonttools brotli` – die App und die Tests nicht.
 
 ### Option C – eigene DatenGraf-CSV verwenden
 
@@ -103,7 +106,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 100 Tests, ~30 s
+npm test                         # 236 Tests, ~90 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -293,7 +296,7 @@ datenlotse/
 │   ├── sample-landkreis.csv    # Beispiel: fiktive Kreisverwaltung (12 Datensätze)
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (100 Tests)
+├── tests/                      # Playwright-End-to-End-Tests (236 Tests)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection
@@ -303,12 +306,19 @@ datenlotse/
 │   ├── quality.spec.js         # DCAT-AP.de-Publish-Ready-Check
 │   ├── governance.spec.js      # Modul 1, Kompass, Wissen, Vorlagen
 │   ├── export.spec.js          # DCAT-URIs, Downloads, Persistenz
-│   └── a11y.spec.js            # Fokus, ARIA, Kontrast, Responsive
+│   ├── a11y.spec.js            # Fokus, ARIA, Kontrast, Responsive
+│   ├── seo.spec.js             # statische Wissensseiten, Metadaten, Sitemap
+│   └── assets.spec.js          # Icon-Zuschnitt, Ladegewicht der Startseite
 ├── playwright.config.js        # Testkonfiguration (startet den Webserver selbst)
+├── tools/
+│   ├── generate-wissen.js      # erzeugt /wissen/ + sitemap.xml aus den App-Daten
+│   └── build-icons.py          # schneidet Font Awesome auf die verwendeten Icons zu
+├── wissen/                     # statische, crawlbare Wissensseiten (erzeugt)
 ├── assets/
 │   └── fonts/
-│       ├── fa/all.min.css      # Font Awesome 6.7.2 CSS
-│       ├── webfonts/           # Font Awesome woff2-Dateien (solid/regular/brands)
+│       ├── fa/all.min.css      # Font Awesome 6.7.2 – Quelle für den Zuschnitt
+│       ├── fa/icons.min.css    # ausgeliefert: nur die verwendeten Icons (erzeugt)
+│       ├── webfonts/           # Font Awesome woff2 – Original + *.subset.woff2 (erzeugt)
 │       └── inter/              # Inter-Schriftdateien (woff2) + inter.css
 ├── .github/
 │   ├── workflows/
@@ -318,7 +328,7 @@ datenlotse/
 ├── logo.svg                    # Marken-Logo (Topbar + Hero)
 ├── favicon.svg / .ico / *.png  # Favicon-Set
 ├── site.webmanifest            # PWA-Manifest
-├── social-preview.svg          # Open-Graph-/Twitter-Vorschaubild
+├── social-preview.svg/.png     # Open-Graph-/Twitter-Vorschaubild (PNG wird ausgeliefert)
 ├── robots.txt / sitemap.xml    # SEO
 ├── CNAME                       # datenlotse.nozilla.net
 ├── CLAUDE.md                   # AI-Entwicklungs-Kontext & Architektur
