@@ -110,6 +110,27 @@ test.describe('SEO-Grundlagen der App', () => {
     expect(xml).not.toContain('2026-06-28');       // veraltetes lastmod
   });
 
+  test('Google-Bestätigungsdatei wird unverändert ausgeliefert', async ({ request }) => {
+    // Die Search Console prüft die Datei regelmäßig nach. Verschwindet sie
+    // oder ändert sich ihr Inhalt, verliert die Property ihre Bestätigung –
+    // und der Verlust fällt erst auf, wenn die Berichte leer sind.
+    const dateien = fs.readdirSync(ROOT).filter(f => /^google[0-9a-f]+\.html$/.test(f));
+    expect(dateien.length, 'genau eine Google-Bestätigungsdatei erwartet').toBe(1);
+
+    const name = dateien[0];
+    expect(fs.readFileSync(path.join(ROOT, name), 'utf8').trim())
+      .toBe(`google-site-verification: ${name}`);
+
+    const res = await request.get('/' + name);
+    expect(res.status()).toBe(200);
+    expect((await res.text()).trim()).toBe(`google-site-verification: ${name}`);
+
+    // Sie ist kein Inhalt und gehört deshalb nicht in die Sitemap
+    expect(fs.readFileSync(path.join(ROOT, 'sitemap.xml'), 'utf8')).not.toContain(name);
+    // robots.txt darf sie nicht aussperren, sonst kann Google nicht prüfen
+    expect(fs.readFileSync(path.join(ROOT, 'robots.txt'), 'utf8')).not.toContain('Disallow');
+  });
+
   test('Startseite: Vorschaubild ist ein PNG und existiert', async ({ page, request }) => {
     await openApp(page);
     const bilder = await page.evaluate(() => ({

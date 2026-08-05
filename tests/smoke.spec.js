@@ -9,17 +9,37 @@ test.describe('Grundgerüst & Navigation', () => {
     expect(errors).toEqual([]);
   });
 
-  test('null externe Laufzeit-Aufrufe (kein CDN)', async ({ page }) => {
+  /* Genau ein externer Aufruf ist erlaubt: die anonyme Seitenzählung.
+     Alles andere – Schriften, Icons, Bibliotheken, Karten – wird lokal
+     ausgeliefert, und genau das prüft dieser Test weiterhin. Die Liste ist
+     bewusst eine Aufzählung konkreter Hosts und kein Muster: ein zweiter
+     Dienst soll auffallen, nicht durchrutschen. */
+  const ERLAUBTE_HOSTS = require('./helpers').ZAEHLUNG_HOSTS;
+
+  test('nur der Zähl-Aufruf geht nach außen (kein CDN, keine Bibliothek)', async ({ page }) => {
     const external = [];
     page.on('request', r => {
       const url = r.url();
-      if (!url.startsWith('http://127.0.0.1:8081') && !url.startsWith('data:') && !url.startsWith('blob:')) {
-        external.push(url);
-      }
+      if (url.startsWith('http://127.0.0.1:8081') || url.startsWith('data:') || url.startsWith('blob:')) return;
+      if (ERLAUBTE_HOSTS.includes(new URL(url).hostname)) return;
+      external.push(url);
     });
     await openApp(page);
     await loadSample(page);
     expect(external).toEqual([]);
+  });
+
+  test('die Seitenzählung kann keine Inhalte mitnehmen', async ({ page }) => {
+    // Sie sieht nur die Adresse. Schriebe die App jemals Zustand in die URL –
+    // Hash, Query, pushState –, gingen importierte Daten mit hinaus. Sie tut
+    // es nicht, und dieser Test hält das fest.
+    await openApp(page);
+    await loadSample(page);
+    const vorher = page.url();
+    await page.evaluate(() => { navTo('inventory'); showInventoryTab('quality'); navTo('kompass'); });
+    expect(page.url()).toBe(vorher);
+    expect(new URL(page.url()).hash).toBe('');
+    expect(new URL(page.url()).search).toBe('');
   });
 
   test('alle sieben Views sind über navTo erreichbar', async ({ page }) => {
