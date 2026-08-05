@@ -125,10 +125,10 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <!-- Zugeschnitten auf die verwendeten Icons (tools/build-icons.py) – das
        vollstaendige all.min.css bleibt als Quelle im Repo, wird aber nicht geladen. -->
-  <link rel="stylesheet" href="assets/fonts/fa/icons.min.css?v=48">
+  <link rel="stylesheet" href="assets/fonts/fa/icons.min.css?v=49">
 
-  <link rel="stylesheet" href="css/tokens.css?v=48">
-  <link rel="stylesheet" href="css/styles.css?v=48">
+  <link rel="stylesheet" href="css/tokens.css?v=49">
+  <link rel="stylesheet" href="css/styles.css?v=49">
 </head>
 <body>
 
@@ -182,6 +182,7 @@
 
   <!-- ── Hero ──────────────────────────────────────────────────── -->
   <section class="hero" id="hero">
+    <div class="hero-panel">
     <img src="logo.svg" alt="DatenLotse" class="hero-logo">
     <h1 class="hero-headline">DatenLotse: Datenmanagement verstehen, aufbauen, vertiefen</h1>
     <p class="hero-sub">Der <strong>DatenLotse</strong> begleitet deine Organisation dabei, ein umfassendes <strong>Datenmanagement zu verstehen</strong> und <strong>aufzubauen</strong> – und den <strong>Ist-Zustand</strong> deiner Datenlandschaft vertiefend einzusehen.</p>
@@ -212,6 +213,7 @@
       <i class="fas fa-file-csv"></i>
       Schon kartiert? <a href="#modul-inventar">DatenGraf-CSV importieren</a> und direkt mit dem Inventar starten.
     </p>
+    </div>
   </section>
 
   <!-- ── Akkordeon: Über den DatenLotsen ───────────────────────── -->
@@ -315,22 +317,24 @@
 
   <!-- ── Inventar-View (Modul 2, erscheint nach Import) ────────── -->
   <section class="inventory-view hidden" id="inventory-view">
-    <div class="inventory-header">
-      <div>
-        <div class="phase-row">
-          <span class="phase-badge">Phase 2 · Asset Management</span>
-          <button class="phase-back" data-go="governance"><i class="fas fa-arrow-left"></i> Phase 1: Governance</button>
+    <div class="view-hero">
+      <div class="inventory-header">
+        <div>
+          <div class="phase-row">
+            <span class="phase-badge">Phase 2 · Asset Management</span>
+            <button class="phase-back" data-go="governance"><i class="fas fa-arrow-left"></i> Phase 1: Governance</button>
+          </div>
+          <h1 class="inventory-title"><i class="fas fa-boxes-stacked"></i> Dateninventar nach DCAT-AP.de</h1>
+          <span class="inventory-meta" id="inventory-meta"></span>
         </div>
-        <h1 class="inventory-title"><i class="fas fa-boxes-stacked"></i> Dateninventar nach DCAT-AP.de</h1>
-        <span class="inventory-meta" id="inventory-meta"></span>
-      </div>
-      <div class="inventory-actions">
-        <button class="btn btn-secondary" id="btn-import-again"><i class="fas fa-rotate"></i> Datei einlesen</button>
-        <button class="btn btn-secondary" id="btn-license-wizard"><i class="fas fa-id-card"></i> Lizenz-Wegweiser</button>
-        <button class="btn btn-secondary" id="btn-print-inventory"><i class="fas fa-print"></i> PDF</button>
-        <button class="btn btn-secondary" id="btn-export-csv"><i class="fas fa-file-csv"></i> CSV</button>
-        <button class="btn btn-secondary" id="btn-export-ttl"><i class="fas fa-share-nodes"></i> RDF/Turtle</button>
-        <button class="btn btn-primary" id="btn-export-json"><i class="fas fa-file-export"></i> DCAT-AP.de JSON</button>
+        <div class="inventory-actions">
+          <button class="btn btn-secondary" id="btn-import-again"><i class="fas fa-rotate"></i> Datei einlesen</button>
+          <button class="btn btn-secondary" id="btn-license-wizard"><i class="fas fa-id-card"></i> Lizenz-Wegweiser</button>
+          <button class="btn btn-secondary" id="btn-print-inventory"><i class="fas fa-print"></i> PDF</button>
+          <button class="btn btn-secondary" id="btn-export-csv"><i class="fas fa-file-csv"></i> CSV</button>
+          <button class="btn btn-secondary" id="btn-export-ttl"><i class="fas fa-share-nodes"></i> RDF/Turtle</button>
+          <button class="btn btn-primary" id="btn-export-json"><i class="fas fa-file-export"></i> DCAT-AP.de JSON</button>
+        </div>
       </div>
     </div>
     <div class="inv-tabs" role="tablist">
@@ -422,18 +426,20 @@
 
   <!-- ── Governance & Rollen (Modul 1) ─────────────────────────── -->
   <section class="governance-view hidden" id="governance-view">
-    <div class="inventory-header">
-      <div>
-        <div class="phase-row">
-          <span class="phase-badge">Phase 1 · Fundament</span>
-          <button class="phase-back" data-go="kompass"><i class="fas fa-arrow-left"></i> Daten-Kompass</button>
+    <div class="view-hero">
+      <div class="inventory-header">
+        <div>
+          <div class="phase-row">
+            <span class="phase-badge">Phase 1 · Fundament</span>
+            <button class="phase-back" data-go="kompass"><i class="fas fa-arrow-left"></i> Daten-Kompass</button>
+          </div>
+          <h1 class="inventory-title"><i class="fas fa-users-gear"></i> Governance &amp; Rollen</h1>
+          <span class="inventory-meta">RACI-Matrix &amp; Reifegrad – aus deinem Dateninventar abgeleitet, lokal im Browser.</span>
         </div>
-        <h1 class="inventory-title"><i class="fas fa-users-gear"></i> Governance &amp; Rollen</h1>
-        <span class="inventory-meta">RACI-Matrix &amp; Reifegrad – aus deinem Dateninventar abgeleitet, lokal im Browser.</span>
-      </div>
-      <div class="inventory-actions">
-        <button class="btn btn-secondary" id="gov-export-csv"><i class="fas fa-file-csv"></i> RACI-CSV</button>
-        <button class="btn btn-secondary" id="gov-print"><i class="fas fa-print"></i> PDF / Drucken</button>
+        <div class="inventory-actions">
+          <button class="btn btn-secondary" id="gov-export-csv"><i class="fas fa-file-csv"></i> RACI-CSV</button>
+          <button class="btn btn-secondary" id="gov-print"><i class="fas fa-print"></i> PDF / Drucken</button>
+        </div>
       </div>
     </div>
 
@@ -486,19 +492,21 @@
 
   <!-- ── Textbereinigung (Modul 3b) ────────────────────────────── -->
   <section class="pseudo-view hidden" id="pseudo-view">
-    <div class="inventory-header">
-      <div>
-        <div class="phase-row">
-          <span class="phase-badge">Phase 3 · Pseudonymisierung</span>
-          <button class="phase-back" data-go="inventory"><i class="fas fa-arrow-left"></i> Phase 2: Dateninventar</button>
+    <div class="view-hero">
+      <div class="inventory-header">
+        <div>
+          <div class="phase-row">
+            <span class="phase-badge">Phase 3 · Pseudonymisierung</span>
+            <button class="phase-back" data-go="inventory"><i class="fas fa-arrow-left"></i> Phase 2: Dateninventar</button>
+          </div>
+          <h1 class="inventory-title"><i class="fas fa-user-shield"></i> Risiko &amp; Pseudonymisierung</h1>
+          <span class="inventory-meta">Pseudonymisierung deutscher Verwaltungstexte – strukturerhaltend, rein per Regex, lokal im Browser. Nichts wird übertragen.</span>
         </div>
-        <h1 class="inventory-title"><i class="fas fa-user-shield"></i> Risiko &amp; Pseudonymisierung</h1>
-        <span class="inventory-meta">Pseudonymisierung deutscher Verwaltungstexte – strukturerhaltend, rein per Regex, lokal im Browser. Nichts wird übertragen.</span>
-      </div>
-      <div class="inventory-actions">
-        <button class="btn btn-secondary" id="pseudo-file-btn"><i class="fas fa-file-arrow-up"></i> .txt/.csv laden</button>
-        <button class="btn btn-secondary" id="pseudo-demo-btn"><i class="fas fa-flask"></i> Beispiel</button>
-        <button class="btn btn-primary" id="pseudo-clean-btn"><i class="fas fa-wand-magic-sparkles"></i> Bereinigen</button>
+        <div class="inventory-actions">
+          <button class="btn btn-secondary" id="pseudo-file-btn"><i class="fas fa-file-arrow-up"></i> .txt/.csv laden</button>
+          <button class="btn btn-secondary" id="pseudo-demo-btn"><i class="fas fa-flask"></i> Beispiel</button>
+          <button class="btn btn-primary" id="pseudo-clean-btn"><i class="fas fa-wand-magic-sparkles"></i> Bereinigen</button>
+        </div>
       </div>
     </div>
 
@@ -570,21 +578,23 @@
 
   <!-- ── Daten-Kompass (Open-Data-Reifegrad-Checkliste) ────────── -->
   <section class="kompass-view hidden" id="kompass-view">
-    <div class="inventory-header">
-      <div>
-        <div class="phase-row">
-          <span class="phase-badge">Überblick · Reifegrad</span>
-          <button class="phase-back" data-go="home"><i class="fas fa-arrow-left"></i> Startseite</button>
+    <div class="view-hero">
+      <div class="inventory-header">
+        <div>
+          <div class="phase-row">
+            <span class="phase-badge">Überblick · Reifegrad</span>
+            <button class="phase-back" data-go="home"><i class="fas fa-arrow-left"></i> Startseite</button>
+          </div>
+          <h1 class="inventory-title"><i class="fas fa-compass"></i> Daten-Kompass</h1>
+          <span class="inventory-meta">Wo steht deine Organisation im Open-Data-Öffnungsprozess? Hake ab, was zutrifft – der Kompass empfiehlt die nächsten Schritte.</span>
         </div>
-        <h1 class="inventory-title"><i class="fas fa-compass"></i> Daten-Kompass</h1>
-        <span class="inventory-meta">Wo steht deine Organisation im Open-Data-Öffnungsprozess? Hake ab, was zutrifft – der Kompass empfiehlt die nächsten Schritte.</span>
+        <div class="inventory-actions">
+          <button class="btn btn-secondary" id="kompass-print"><i class="fas fa-print"></i> PDF / Drucken</button>
+        </div>
       </div>
-      <div class="inventory-actions">
-        <button class="btn btn-secondary" id="kompass-print"><i class="fas fa-print"></i> PDF / Drucken</button>
-      </div>
-    </div>
 
-    <p class="inventory-hint">Die Checkliste folgt anerkannten Reifegradmodellen für offene Daten (World-Bank&nbsp;ODRA, EU&nbsp;Open&nbsp;Data&nbsp;Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR). Status je Punkt: <em>Offen · Teilweise · Erfüllt · Nicht relevant</em>. Manche Punkte sind aus deinem aktuellen Stand vorbelegt. Alles bleibt lokal im Browser.</p>
+      <p class="inventory-hint">Die Checkliste folgt anerkannten Reifegradmodellen für offene Daten (World-Bank&nbsp;ODRA, EU&nbsp;Open&nbsp;Data&nbsp;Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR). Status je Punkt: <em>Offen · Teilweise · Erfüllt · Nicht relevant</em>. Manche Punkte sind aus deinem aktuellen Stand vorbelegt. Alles bleibt lokal im Browser.</p>
+    </div>
 
     <div class="kompass-score" id="kompass-score"></div>
     <div class="kompass-history" id="kompass-history"></div>
@@ -628,18 +638,20 @@
 
   <!-- ── Wissens- & Methodik-Center ────────────────────────────── -->
   <section class="wissen-view hidden" id="wissen-view">
-    <div class="inventory-header">
-      <div>
-        <div class="phase-row">
-          <span class="phase-badge">Überblick · Wissen</span>
-          <button class="phase-back" data-go="home"><i class="fas fa-arrow-left"></i> Startseite</button>
+    <div class="view-hero">
+      <div class="inventory-header">
+        <div>
+          <div class="phase-row">
+            <span class="phase-badge">Überblick · Wissen</span>
+            <button class="phase-back" data-go="home"><i class="fas fa-arrow-left"></i> Startseite</button>
+          </div>
+          <h1 class="inventory-title"><i class="fas fa-book-open-reader"></i> Wissen &amp; Methodik</h1>
+          <span class="inventory-meta">Begriffe, Rechtsgrundlagen und Reifegrad-Modelle rund um offene Verwaltungsdaten – kompakt erklärt, mit amtlichen Quellen.</span>
         </div>
-        <h1 class="inventory-title"><i class="fas fa-book-open-reader"></i> Wissen &amp; Methodik</h1>
-        <span class="inventory-meta">Begriffe, Rechtsgrundlagen und Reifegrad-Modelle rund um offene Verwaltungsdaten – kompakt erklärt, mit amtlichen Quellen.</span>
       </div>
-    </div>
 
-    <p class="inventory-hint">Dieses Nachschlagewerk erklärt die zentralen Begriffe und den rechtlichen Rahmen der Open-Data-Umsetzung. Es dient der Orientierung und ist <strong>keine Rechtsberatung</strong> – neben dem Bund haben viele Länder eigene Open-Data- bzw. Transparenzgesetze.</p>
+      <p class="inventory-hint">Dieses Nachschlagewerk erklärt die zentralen Begriffe und den rechtlichen Rahmen der Open-Data-Umsetzung. Es dient der Orientierung und ist <strong>keine Rechtsberatung</strong> – neben dem Bund haben viele Länder eigene Open-Data- bzw. Transparenzgesetze.</p>
+    </div>
 
     <div class="inv-controls">
       <input type="search" id="wissen-search" class="inv-search" placeholder="Wissen durchsuchen (Begriff, Gesetz …)…" aria-label="Wissen durchsuchen">
@@ -736,18 +748,20 @@
 
   <!-- ── Vorlagen & Musterdokumente ────────────────────────────── -->
   <section class="vorlagen-view hidden" id="vorlagen-view">
-    <div class="inventory-header">
-      <div>
-        <div class="phase-row">
-          <span class="phase-badge">Service · Vorlagen</span>
-          <button class="phase-back" data-go="home"><i class="fas fa-arrow-left"></i> Startseite</button>
+    <div class="view-hero">
+      <div class="inventory-header">
+        <div>
+          <div class="phase-row">
+            <span class="phase-badge">Service · Vorlagen</span>
+            <button class="phase-back" data-go="home"><i class="fas fa-arrow-left"></i> Startseite</button>
+          </div>
+          <h1 class="inventory-title"><i class="fas fa-file-lines"></i> Vorlagen &amp; Musterdokumente</h1>
+          <span class="inventory-meta">Fertige Dokumente für die Open-Data-Umsetzung – teils aus deinem Inventar generiert, als PDF druckbar oder als Datei ladbar. Alles lokal.</span>
         </div>
-        <h1 class="inventory-title"><i class="fas fa-file-lines"></i> Vorlagen &amp; Musterdokumente</h1>
-        <span class="inventory-meta">Fertige Dokumente für die Open-Data-Umsetzung – teils aus deinem Inventar generiert, als PDF druckbar oder als Datei ladbar. Alles lokal.</span>
       </div>
-    </div>
 
-    <p class="inventory-hint">Diese Vorlagen sind <strong>Muster ohne Gewähr</strong> und ersetzen keine Rechtsberatung – bitte an die Gegebenheiten deiner Organisation und die geltenden (Landes-)Gesetze anpassen. Die datengetriebenen Dokumente (Freigabe, VVT) werden aus deinem aktuellen Inventar &amp; Clearing erzeugt.</p>
+      <p class="inventory-hint">Diese Vorlagen sind <strong>Muster ohne Gewähr</strong> und ersetzen keine Rechtsberatung – bitte an die Gegebenheiten deiner Organisation und die geltenden (Landes-)Gesetze anpassen. Die datengetriebenen Dokumente (Freigabe, VVT) werden aus deinem aktuellen Inventar &amp; Clearing erzeugt.</p>
+    </div>
 
     <div class="vorlagen-grid">
       <article class="vorlage-card">
@@ -852,7 +866,7 @@
       <span class="footer-sep">·</span>
       <a href="https://nozilla.de/impressum/"   target="_blank" rel="noopener">Impressum</a>
       <span class="footer-sep">·</span>
-      <a href="https://nozilla.de/datenschutz/" target="_blank" rel="noopener">Datenschutz</a>
+      <a href="/datenschutz/">Datenschutz</a>
       <span class="footer-sep">·</span>
       <a href="https://nozilla.de/kontakt/"     target="_blank" rel="noopener">Kontakt</a>
       <span class="footer-sep">·</span>
@@ -860,7 +874,7 @@
            Brands-Familie und h&auml;tte daf&uuml;r 116 KB Schrift nachgeladen. -->
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository" aria-label="DatenLotse auf GitHub"><svg class="footer-github" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
     </nav>
-    <span class="footer-version">v48</span>
+    <span class="footer-version">v49</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -1056,7 +1070,7 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=48"></script>
+  <script src="js/app.js?v=49"></script>
 
   <!-- Anonyme Seitenzählung (GoatCounter). Der EINZIGE externe Aufruf der
        Seite: keine Cookies, kein LocalStorage, keine Kennung, kein

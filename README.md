@@ -109,7 +109,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 264 Tests, ~95 s
+npm test                         # 268 Tests, ~95 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -299,7 +299,7 @@ datenlotse/
 │   ├── sample-landkreis.csv    # Beispiel: fiktive Kreisverwaltung (12 Datensätze)
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (264 Tests)
+├── tests/                      # Playwright-End-to-End-Tests (268 Tests)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection
@@ -318,6 +318,7 @@ datenlotse/
 │   ├── generate-wissen.js      # erzeugt /wissen/ + sitemap.xml aus den App-Daten
 │   └── build-icons.py          # schneidet Font Awesome auf die verwendeten Icons zu
 ├── wissen/                     # statische, crawlbare Wissensseiten (erzeugt)
+├── datenschutz/                # eigene Datenschutzerklärung (erzeugt)
 ├── assets/
 │   └── fonts/
 │       ├── fa/all.min.css      # Font Awesome 6.7.2 – Quelle für den Zuschnitt

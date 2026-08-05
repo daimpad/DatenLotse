@@ -48,13 +48,18 @@ const esc = v => String(v == null ? '' : v)
 
 /* Gemeinsames Seitengerüst. Nutzt dieselben Stylesheets wie die App – die
    Seiten sehen damit aus wie das Werkzeug und brauchen kein eigenes CSS. */
-function seite({ slug, title, description, lead, bodyHTML, jsonld }) {
-  const url = `${BASE}/wissen/${slug ? slug + '/' : ''}`;
-  const brot = [
-    { '@type': 'ListItem', position: 1, name: 'DatenLotse', item: BASE + '/' },
-    { '@type': 'ListItem', position: 2, name: 'Wissen & Methodik', item: `${BASE}/wissen/` },
-  ];
-  if (slug) brot.push({ '@type': 'ListItem', position: 3, name: title, item: url });
+function seite({ slug, title, description, lead, bodyHTML, jsonld, pfad, eigenstaendig }) {
+  // `eigenstaendig` markiert Seiten außerhalb des Wissens-Centers (z. B. die
+  // Datenschutzerklärung): eigener Pfad, kein Wissens-Brotkrumen, kein
+  // „keine Rechtsberatung"-Hinweis und kein Wissens-CTA.
+  const url = `${BASE}/${pfad || `wissen/${slug ? slug + '/' : ''}`}`;
+  const brot = [{ '@type': 'ListItem', position: 1, name: 'DatenLotse', item: BASE + '/' }];
+  if (eigenstaendig) {
+    brot.push({ '@type': 'ListItem', position: 2, name: title, item: url });
+  } else {
+    brot.push({ '@type': 'ListItem', position: 2, name: 'Wissen & Methodik', item: `${BASE}/wissen/` });
+    if (slug) brot.push({ '@type': 'ListItem', position: 3, name: title, item: url });
+  }
 
   const daten = [
     { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: brot },
@@ -86,7 +91,7 @@ function seite({ slug, title, description, lead, bodyHTML, jsonld }) {
   <meta name="twitter:image" content="${BASE}/social-preview.png">
 ${daten.map(d => `  <script type="application/ld+json">\n  ${JSON.stringify(d, null, 2).replace(/\n/g, '\n  ')}\n  </script>`).join('\n')}
   <link rel="stylesheet" href="/assets/fonts/inter/inter.css">
-  <link rel="stylesheet" href="/assets/fonts/fa/icons.min.css?v=48">
+  <link rel="stylesheet" href="/assets/fonts/fa/icons.min.css?v=49">
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
@@ -103,20 +108,20 @@ ${daten.map(d => `  <script type="application/ld+json">\n  ${JSON.stringify(d, n
   <main id="inhalt" class="static-main" tabindex="-1">
     <nav class="static-crumbs" aria-label="Brotkrumen">
       <a href="/">Start</a> <span aria-hidden="true">›</span>
-      ${slug ? '<a href="/wissen/">Wissen &amp; Methodik</a> <span aria-hidden="true">›</span> ' : ''}
+      ${!eigenstaendig && slug ? '<a href="/wissen/">Wissen &amp; Methodik</a> <span aria-hidden="true">›</span> ' : ''}
       <span>${esc(title)}</span>
     </nav>
     <h1 class="static-title">${esc(title)}</h1>
     <p class="static-lead">${lead}</p>
     ${bodyHTML}
-    <aside class="static-cta">
+${eigenstaendig ? '' : `    <aside class="static-cta">
       <h2>Im Werkzeug anwenden</h2>
       <p>DatenLotse führt von der Datenkartierung zur Veröffentlichung: Dateninventar nach DCAT-AP.de,
          Risiko-Clearing und Pseudonymisierung – vollständig im Browser, ohne Server und ohne Account.</p>
       <a class="btn btn-primary" href="/"><i class="fas fa-arrow-right"></i> DatenLotse öffnen</a>
     </aside>
     <p class="static-note">Diese Seite ist eine statische Fassung des Wissens-Centers und ausdrücklich
-       <strong>keine Rechtsberatung</strong>. Maßgeblich ist immer der verlinkte amtliche Text.</p>
+       <strong>keine Rechtsberatung</strong>. Maßgeblich ist immer der verlinkte amtliche Text.</p>`}
   </main>
 
   <footer class="footer">
@@ -124,7 +129,7 @@ ${daten.map(d => `  <script type="application/ld+json">\n  ${JSON.stringify(d, n
       <a href="/">Werkzeug</a>
       <a href="/wissen/">Wissen &amp; Methodik</a>
       <a href="https://nozilla.de/impressum/" target="_blank" rel="noopener">Impressum</a>
-      <a href="https://nozilla.de/datenschutz/" target="_blank" rel="noopener">Datenschutz</a>
+      <a href="/datenschutz/">Datenschutz</a>
     </nav>
   </footer>
 </body>
@@ -277,14 +282,138 @@ async function daten() {
   }
 }
 
+/* Seiten außerhalb des Wissens-Centers. Sie stehen hier und nicht als lose
+   HTML-Datei, damit sie dieselbe Hülle, dieselbe Sitemap und dieselbe
+   Veralterungsprüfung erben wie alles andere Erzeugte. */
+function eigenstaendigeSeiten() {
+  const abschnitt = (titel, inhalt) =>
+    `<section class="static-section"><h2>${esc(titel)}</h2>${inhalt}</section>`;
+
+  return [{
+    pfad: 'datenschutz/',
+    eigenstaendig: true,
+    title: 'Datenschutzerklärung',
+    description: 'Welche Daten DatenLotse verarbeitet: keine Inhalte, keine Konten, keine Cookies – nur Server-Logs des Hosters und eine anonyme Seitenzählung. Alles Eingegebene bleibt im Browser.',
+    lead: 'DatenLotse verarbeitet keine der Daten, die Sie in das Werkzeug eingeben. Diese Seite beschreibt, was trotzdem anfällt – und warum.',
+    bodyHTML: [
+      `<div class="static-hinweis"><p><strong>Das Wichtigste zuerst:</strong> Importierte Dateien,
+         Inventar-Einträge, Clearing-Antworten und die Texte in der Pseudonymisierung werden
+         <strong>ausschließlich in Ihrem Browser</strong> verarbeitet und gespeichert. Sie werden zu keinem
+         Zeitpunkt an einen Server übertragen – auch nicht an uns. Das Werkzeug hat keine Anmeldung,
+         keine Benutzerkonten und keine Datenbank.</p></div>`,
+
+      abschnitt('Verantwortlicher', `
+        <p>Verantwortlich für die Datenverarbeitung auf dieser Website ist der Anbieter, der im
+           <a href="https://nozilla.de/impressum/" target="_blank" rel="noopener">Impressum</a> genannt ist.
+           Dort finden Sie auch die Kontaktdaten für alle Anliegen zum Datenschutz.</p>`),
+
+      abschnitt('Was im Browser bleibt', `
+        <p>DatenLotse ist eine reine Browser-Anwendung. Alles, was Sie eingeben oder importieren, bleibt
+           auf Ihrem Gerät:</p>
+        <ul>
+          <li><strong>Dateien</strong> (DatenGraf-CSV, Inventar-CSV, DCAT-Kataloge, Projektdateien) werden
+              lokal gelesen und nicht hochgeladen.</li>
+          <li><strong>Arbeitsstand</strong> (Dateninventar, Risiko-Clearing, Governance-Antworten,
+              Daten-Kompass, Kompass-Verlauf, Status des Rundgangs) wird im
+              <em>Local&nbsp;Storage</em> Ihres Browsers abgelegt – unter Schlüsseln mit dem Präfix
+              <code>datenlotse_</code>.</li>
+          <li><strong>Texte in der Pseudonymisierung</strong> werden ausschließlich im Browser
+              verarbeitet; die Mustererkennung läuft lokal, ohne Server und ohne KI-Dienst.</li>
+        </ul>
+        <p>Der Local Storage ist kein Cookie und wird nicht mitgesendet. Sie können den gespeicherten
+           Stand jederzeit selbst löschen: in der Seitenleiste über <em>„Gespeicherte Daten löschen"</em>
+           oder über die Einstellungen Ihres Browsers.</p>`),
+
+      abschnitt('Hosting und Server-Protokolle', `
+        <p>Diese Website wird über <strong>GitHub&nbsp;Pages</strong> ausgeliefert (GitHub&nbsp;Inc.,
+           88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA). Beim Abruf jeder Seite fallen –
+           wie bei jedem Webserver – technisch notwendige Protokolldaten an, insbesondere Ihre
+           IP-Adresse, Zeitpunkt des Abrufs, aufgerufene Adresse, übertragene Datenmenge, Referrer sowie
+           Browser- und Betriebssystemkennung.</p>
+        <p>Rechtsgrundlage ist Art.&nbsp;6&nbsp;Abs.&nbsp;1&nbsp;lit.&nbsp;f DSGVO; das berechtigte Interesse
+           liegt in der technisch fehlerfreien Bereitstellung der Website. Auf Umfang, Speicherdauer und
+           Löschung dieser Protokolle haben wir keinen Einfluss – Näheres regelt die
+           <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">Datenschutzerklärung von GitHub</a>.
+           Die Übermittlung in die USA stützt sich auf die Standardvertragsklauseln, die GitHub in seinem
+           <a href="https://docs.github.com/de/site-policy/privacy-policies/github-data-protection-agreement" target="_blank" rel="noopener">Datenschutz-Zusatz</a> vereinbart.</p>`),
+
+      abschnitt('Anonyme Seitenzählung (GoatCounter)', `
+        <p>Um zu sehen, wie oft das Werkzeug aufgerufen wird, nutzen wir <strong>GoatCounter</strong> – eine
+           Reichweitenmessung ohne Cookies und ohne Wiedererkennung. Es ist der
+           <strong>einzige externe Baustein</strong>, den diese Seite lädt.</p>
+        <p><strong>Erhoben werden:</strong> die aufgerufene Adresse, die verweisende Seite (Referrer),
+           Bildschirmgröße, Browser- und Betriebssystemkennung sowie das aus der IP-Adresse abgeleitete
+           Land.</p>
+        <p><strong>Nicht erhoben werden:</strong> Cookies, Kennungen im Local Storage, eine dauerhafte
+           Besucher-ID und die IP-Adresse selbst – sie wird von GoatCounter nur flüchtig zur
+           Länderbestimmung und zur Dublettenerkennung verwendet und nicht gespeichert. Eine Wiedererkennung
+           über mehrere Tage oder über verschiedene Websites hinweg findet nicht statt.</p>
+        <p><strong>Ihre Inhalte können dabei nicht abfließen.</strong> Das ist keine Zusicherung des
+           Dienstes, sondern eine Eigenschaft der Anwendung: DatenLotse schreibt niemals Daten in die
+           Adresszeile – es gibt genau eine Adresse, und mehr als diese sieht die Zählung nicht.</p>
+        <p>Rechtsgrundlage ist Art.&nbsp;6&nbsp;Abs.&nbsp;1&nbsp;lit.&nbsp;f DSGVO (berechtigtes Interesse an
+           einer datensparsamen Reichweitenmessung). Da weder Informationen auf Ihrem Endgerät gespeichert
+           noch von dort ausgelesen werden, ist keine Einwilligung nach §&nbsp;25 TDDDG erforderlich.
+           Näheres in der
+           <a href="https://www.goatcounter.com/help/privacy" target="_blank" rel="noopener">Datenschutzerklärung von GoatCounter</a>.</p>
+        <p>Sie können die Zählung unterbinden, indem Sie in Ihrem Browser die Domain
+           <code>gc.zgo.at</code> blockieren – etwa über einen Inhaltsblocker. Die Funktion des Werkzeugs
+           bleibt davon unberührt.</p>`),
+
+      abschnitt('Was wir bewusst nicht einsetzen', `
+        <ul>
+          <li><strong>Keine Cookies</strong> – weder eigene noch fremde.</li>
+          <li><strong>Keine Schriftarten- oder Icon-Dienste.</strong> Inter und Font&nbsp;Awesome werden
+              von dieser Website selbst ausgeliefert; es gibt keine Verbindung zu Google&nbsp;Fonts oder
+              einem CDN.</li>
+          <li><strong>Keine Karten, Videos, Werbung, Social-Media-Bausteine oder Chat-Fenster.</strong></li>
+          <li><strong>Keine externe Bibliothek zur Laufzeit</strong> und insbesondere <strong>kein
+              KI-Dienst</strong>: die Pseudonymisierung arbeitet mit festen Mustern im Browser, nicht mit
+              einem Modell auf einem fremden Server.</li>
+          <li><strong>Kein Nutzerkonto, kein Newsletter, kein Kontaktformular.</strong></li>
+        </ul>`),
+
+      abschnitt('Externe Verweise', `
+        <p>Das Wissens-Center verlinkt Gesetzestexte, amtliche Register und Prüfwerkzeuge. Diese Links
+           öffnen erst nach einem Klick und werden nicht vorab geladen. Für die verlinkten Seiten gelten
+           deren eigene Datenschutzerklärungen.</p>`),
+
+      abschnitt('Ihre Rechte', `
+        <p>Sie haben gegenüber dem Verantwortlichen das Recht auf Auskunft
+           (Art.&nbsp;15&nbsp;DSGVO), Berichtigung (Art.&nbsp;16), Löschung (Art.&nbsp;17), Einschränkung
+           der Verarbeitung (Art.&nbsp;18), Datenübertragbarkeit (Art.&nbsp;20) sowie das Recht,
+           der Verarbeitung auf Grundlage berechtigter Interessen zu widersprechen
+           (Art.&nbsp;21&nbsp;DSGVO).</p>
+        <p>Unabhängig davon steht Ihnen ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde zu
+           (Art.&nbsp;77&nbsp;DSGVO). Zuständig ist die Behörde Ihres gewöhnlichen Aufenthaltsorts,
+           Ihres Arbeitsplatzes oder des Orts des vermuteten Verstoßes; eine Übersicht führt die
+           <a href="https://www.bfdi.bund.de/DE/Service/Anschriften/Laender/Laender-node.html" target="_blank" rel="noopener">Bundesbeauftragte für den Datenschutz und die Informationsfreiheit</a>.</p>
+        <p>Da wir selbst keine Nutzerdaten speichern, können wir Sie nicht identifizieren; ein
+           Auskunftsersuchen zu Ihrer Person führt daher in der Regel zu der Feststellung, dass keine
+           Daten vorliegen (Art.&nbsp;11&nbsp;DSGVO).</p>`),
+
+      abschnitt('Quelloffen nachprüfbar', `
+        <p>Sie müssen dieser Erklärung nicht glauben. DatenLotse ist quelloffen: der vollständige
+           Quelltext liegt auf
+           <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener">GitHub</a>,
+           und die Netzwerkanfragen dieser Seite lassen sich in den Entwicklerwerkzeugen jedes Browsers
+           mitlesen. Ein automatischer Test der Anwendung stellt sicher, dass außer der Seitenzählung
+           kein weiterer externer Aufruf hinzukommt.</p>`),
+    ].join('\n'),
+  }];
+}
+
 async function main() {
   const nurPruefen = process.argv.includes('--check');
   const alle = seiten(await daten());
-  const dateien = alle.map(s => ({
-    pfad: path.join(OUT, s.slug, 'index.html'),
-    inhalt: seite(s),
-    url: `${BASE}/wissen/${s.slug ? s.slug + '/' : ''}`,
-  }));
+  const dateien = [...alle, ...eigenstaendigeSeiten()].map(s => {
+    const rel = s.pfad || `wissen/${s.slug ? s.slug + '/' : ''}`;
+    return {
+      pfad: path.join(ROOT, rel, 'index.html'),
+      inhalt: seite(s),
+      url: `${BASE}/${rel}`,
+    };
+  });
 
   if (nurPruefen) {
     const veraltet = dateien.filter(f =>
@@ -307,7 +436,11 @@ async function main() {
   // Sitemap mitziehen – sonst findet sie niemand
   const heute = new Date().toISOString().slice(0, 10);
   const urls = [{ loc: `${BASE}/`, prio: '1.0' },
-                ...dateien.map(f => ({ loc: f.url, prio: f.url.endsWith('/wissen/') ? '0.8' : '0.7' }))];
+                ...dateien.map(f => ({
+                  loc: f.url,
+                  prio: f.url.endsWith('/wissen/') ? '0.8'
+                      : f.url.includes('/wissen/') ? '0.7' : '0.5',
+                }))];
   fs.writeFileSync(path.join(ROOT, 'sitemap.xml'),
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
     urls.map(u => `  <url>\n    <loc>${u.loc}</loc>\n    <lastmod>${heute}</lastmod>\n` +
