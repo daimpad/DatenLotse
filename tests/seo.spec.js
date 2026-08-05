@@ -42,6 +42,11 @@ test.describe('Statische Wissensseiten', () => {
       expect(meta.lang).toBe('de');
       expect(meta.ogImage).toMatch(/\.png$/);  // SVG wird von Plattformen nicht gerendert
       expect(meta.jsonld).toContain('BreadcrumbList');
+      // Regression v50: Brotkrumen, Titel und Lead stehen im selben weißen
+      // Container wie die Köpfe der App-Ansichten – sonst sehen die verlinkten
+      // Seiten aus wie ein angehängtes Dokument statt wie dasselbe Produkt.
+      await expect(page.locator('.static-hero h1')).toHaveCount(1);
+      await expect(page.locator('.static-hero .static-crumbs')).toBeVisible();
       expect(fehler).toEqual([]);
     });
   }
