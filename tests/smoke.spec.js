@@ -99,6 +99,41 @@ test.describe('Grundgerüst & Navigation', () => {
     await expect(page.locator('#kompass-view')).toBeVisible();
   });
 
+  /* Die Anrede ist einheitlich „Sie". Geprüft wird der SICHTBARE Text, nicht
+     der Quelltext: im Quelltext steckt „euer" harmlos in Regex-Quellen wie
+     `St(?:euer)?-Nr`, und ein Treffer dort wäre nur Lärm. */
+  const DU_FORM = /\b(du|dich|dir|dein|deine[mnrs]?|euch|euer|eure[mnrs]?)\b/i;
+
+  test('die Anrede bleibt überall beim Sie', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const funde = [];
+    const pruefe = async (wo) => {
+      const text = await page.evaluate(() => document.body.innerText);
+      for (const zeile of text.split('\n')) {
+        if (DU_FORM.test(zeile)) funde.push(`${wo}: ${zeile.trim().slice(0, 90)}`);
+      }
+    };
+    for (const v of ['home', 'kompass', 'inventory', 'governance', 'pseudo', 'wissen', 'vorlagen']) {
+      await page.evaluate(x => navTo(x), v);
+      await pruefe(v);
+    }
+    for (const id of ['faq-backdrop', 'inventory-backdrop', 'phase3-backdrop',
+                      'phase45-backdrop', 'license-backdrop']) {
+      await page.evaluate(x => showModal(x, true), id);
+      await pruefe(id);
+      await page.evaluate(x => showModal(x, false), id);
+    }
+    expect(funde).toEqual([]);
+  });
+
+  test('auch der Rundgang siezt', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const texte = await page.evaluate(() => TOUR_STEPS.map(s => `${s.title} ${s.text}`));
+    expect(texte.filter(t => DU_FORM.test(t))).toEqual([]);
+  });
+
   test('Buttons enthalten keine Block-Elemente (HTML-Validität)', async ({ page }) => {
     await openApp(page);
     await loadSample(page);
