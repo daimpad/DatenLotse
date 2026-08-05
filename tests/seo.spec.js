@@ -97,7 +97,9 @@ test.describe('SEO-Grundlagen der App', () => {
   test('Sitemap führt alle Seiten und nichts Totes', async ({ request }) => {
     const xml = fs.readFileSync(path.join(ROOT, 'sitemap.xml'), 'utf8');
     const locs = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1]);
-    expect(locs.length).toBe(SEITEN.length + 1);   // Startseite + Wissensseiten
+    // Startseite + Wissensseiten + Datenschutzerklärung
+    expect(locs.length).toBe(SEITEN.length + 2);
+    expect(locs).toContain('https://datenlotse.nozilla.net/datenschutz/');
     for (const slug of SEITEN) {
       expect(locs).toContain(`https://datenlotse.nozilla.net/wissen/${slug ? slug + '/' : ''}`);
     }
@@ -181,5 +183,50 @@ test.describe('SEO-Grundlagen der App', () => {
     expect(r.lang).toBe('de');
     expect(r.h1).toBeGreaterThanOrEqual(1);
     expect(r.robots).toContain('index');
+  });
+});
+
+/* Die Datenschutzerklärung ist eine erzeugte Seite wie die Wissensseiten, aber
+   kein Nachschlagewerk: sie muss vollständig ohne JavaScript lesbar sein, den
+   einen externen Baustein beim Namen nennen und aus der App heraus erreichbar
+   sein. Verschwindet einer dieser Punkte, fällt es sonst niemandem auf. */
+test.describe('Datenschutzerklärung', () => {
+  test('ist ohne JavaScript vollständig lesbar', async ({ browser }) => {
+    const ctx = await browser.newContext({ javaScriptEnabled: false });
+    const page = await ctx.newPage();
+    await page.goto('/datenschutz/');
+    await expect(page.locator('h1')).toHaveCount(1);
+    await expect(page.locator('h1')).toHaveText('Datenschutzerklärung');
+    for (const thema of ['GoatCounter', 'Local Storage', 'GitHub Pages',
+                         'Verantwortlicher', 'Ihre Rechte', 'Cookies']) {
+      await expect(page.locator('main'), thema).toContainText(thema);
+    }
+    await ctx.close();
+  });
+
+  test('lädt selbst keine externen Ressourcen', async ({ page }) => {
+    const extern = [];
+    page.on('request', r => {
+      const u = r.url();
+      if (!u.startsWith('http://127.0.0.1:8081') && !u.startsWith('data:')) extern.push(u);
+    });
+    await page.goto('/datenschutz/');
+    // Die Erklärung selbst zählt nicht mit – wer sie liest, hat oft genau
+    // deshalb einen Blocker aktiv.
+    expect(extern).toEqual([]);
+  });
+
+  test('ist aus der App und aus den Wissensseiten verlinkt', async ({ page }) => {
+    await openApp(page);
+    await expect(page.locator('.footer-links a[href="/datenschutz/"]')).toHaveCount(1);
+    await page.goto('/wissen/glossar/');
+    await expect(page.locator('.footer-links a[href="/datenschutz/"]')).toHaveCount(1);
+  });
+
+  test('nennt die Zählung mit denselben Hosts, die die App wirklich lädt', async ({ page }) => {
+    // Sonst beschreibt die Erklärung einen Dienst, und geladen wird ein anderer.
+    await page.goto('/datenschutz/');
+    const text = await page.locator('main').innerText();
+    expect(text).toContain('gc.zgo.at');
   });
 });

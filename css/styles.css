@@ -97,16 +97,27 @@ a { color: var(--c-accent); }
 
 /* ── Hero ────────────────────────────────────────────────────── */
 .hero {
-  max-width: 880px;
+  max-width: 940px;
   margin: 0 auto;
-  padding: 48px 24px 8px;
+  padding: 56px 24px 8px;
   text-align: center;
+}
+/* Der Einstieg stand als lose Folge von Elementen direkt auf dem Verlauf –
+   Logo, Headline, Absatz, Chips, Badge, Button, Import-Zeile dicht gestaffelt.
+   Ein eigener weißer Container fasst sie zu einem Block zusammen und gibt
+   ihnen innen Luft, statt sie nebeneinander atmen zu lassen. */
+.hero-panel {
+  background: #fff;
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
+  padding: 44px 40px 40px;
 }
 .hero-logo {
   display: block;
   width: 172px;
   height: auto;
-  margin: 0 auto 22px;
+  margin: 0 auto 26px;
   border-radius: 220px;
   border: 2px solid rgba(66, 0, 147, 0.15);
   box-shadow: var(--shadow-md);
@@ -116,7 +127,7 @@ a { color: var(--c-accent); }
   font-weight: 800;
   letter-spacing: -1px;
   line-height: 1.15;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   color: var(--c-accent);
 }
 .hero-sub {
@@ -134,7 +145,7 @@ a { color: var(--c-accent); }
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
-  margin: 22px auto 0;
+  margin: 30px auto 0;
   max-width: 760px;
 }
 .hero-step {
@@ -172,7 +183,7 @@ a { color: var(--c-accent); }
      die Textbreite. Mit inline-flex stünde das Badge neben dem CTA-Button. */
   display: flex;
   width: fit-content;
-  margin: 16px auto 0;
+  margin: 22px auto 0;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--c-accent);
@@ -183,7 +194,7 @@ a { color: var(--c-accent); }
   border-radius: 999px;
 }
 .hero-from-graf {
-  margin-top: 18px;
+  margin-top: 22px;
   font-size: 13px;
   color: var(--c-muted);
 }
@@ -315,6 +326,45 @@ a { color: var(--c-accent); }
 /* ── Inventar-View (Modul 2) ─────────────────────────────────── */
 .inventory-view { max-width: 1040px; margin: 28px auto 0; padding: 0 24px 48px; }
 .inventory-view.hidden { display: none; }
+/* ── Hero der Unterseiten ─────────────────────────────────────────
+   Vorher folgten Badge, Titel, Untertitel, Aktionsbutton und Einleitungstext
+   ohne Atempause direkt auf die Topbar – fünf Bausteine in fünf verschiedenen
+   Formaten. Der Container fasst sie zu EINEM ruhigen Block und lässt oben und
+   unten Platz, um sich in die Seite einzulesen. Der Seitentitel steht darin
+   unverändert als einziges <h1>. */
+.view-hero {
+  background: #fff;
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
+  padding: 38px 36px 34px;
+  margin: 40px 0 34px;
+}
+/* Der Einleitungstext ist innerhalb des Heros kein eigener Kasten mehr –
+   sonst stünde ein weißes Feld in einem weißen Feld. */
+.view-hero .inventory-hint {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--glass-border);
+  box-shadow: none;
+  border-radius: 0;
+  padding: 18px 0 0;
+  margin: 22px 0 0;
+}
+.view-hero .inventory-title { font-size: 38px; margin-bottom: 2px; }
+.view-hero .inventory-meta { font-size: 15px; line-height: 1.6; margin-top: 8px; max-width: 68ch; }
+/* Aktionsbuttons bekommen im Hero eine eigene Zeile. Nebeneinander hingen sie
+   je nach Länge des Untertitels auf halber Höhe – jede Unterseite sah anders
+   aus. Untereinander ist der Rhythmus auf allen Seiten derselbe:
+   Badge → Titel → Untertitel → Aktionen → Einleitung. */
+.view-hero .inventory-header {
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 0;
+  gap: 0;
+}
+.view-hero .inventory-actions { margin-top: 20px; }
+
 .inventory-header {
   display: flex;
   align-items: flex-end;
@@ -948,6 +998,30 @@ a { color: var(--c-accent); }
 .static-lead { font-size: 15.5px; line-height: 1.65; color: var(--c-text); margin: 0 0 26px; }
 .static-section { margin-top: 32px; }
 .static-section h2 { font-size: 19px; color: var(--c-accent); margin: 0 0 12px; }
+/* Fließtext auf statischen Seiten (Datenschutzerklärung). Die übrigen Seiten
+   bestehen aus Karten und Tabellen und brauchten das bisher nicht. */
+.static-section p { font-size: 14.5px; line-height: 1.75; color: var(--c-text); margin: 0 0 12px; }
+.static-section p:last-child { margin-bottom: 0; }
+.static-section ul { margin: 0 0 12px; padding-left: 22px; }
+.static-section li { font-size: 14.5px; line-height: 1.75; color: var(--c-text); margin: 5px 0; }
+.static-section code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px; background: var(--glass-bg);
+  border: 1px solid var(--glass-border); border-radius: 5px; padding: 1px 5px;
+}
+/* Die Kernaussage steht vor allen Abschnitten und wird abgesetzt – wer nur
+   eine Sache liest, soll diese lesen. */
+.static-hinweis {
+  background: #fff;
+  border: 1px solid var(--glass-border);
+  border-left: 4px solid var(--c-accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 22px;
+  margin: 0 0 8px;
+}
+.static-hinweis p { font-size: 15px; line-height: 1.7; color: var(--c-text); margin: 0; }
+.static-hinweis strong { color: var(--c-accent); }
 .static-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
@@ -2204,7 +2278,7 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
 .gov-note i { color: var(--c-accent); margin-right: 4px; }
 
 /* ── Daten-Kompass ───────────────────────────────────────────── */
-.hero-cta { font-size: 15px; padding: 13px 26px; margin: 20px 0 0; }
+.hero-cta { font-size: 15px; padding: 14px 28px; margin: 28px 0 0; }
 .kompass-view { max-width: 1040px; margin: 28px auto 0; padding: 0 24px 48px; }
 .kompass-view.hidden { display: none; }
 .kompass-score {
@@ -2303,6 +2377,12 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
   .gov-score { position: static; }
   .kompass-view { padding: 0 16px 48px; }
   .kompass-dims { grid-template-columns: 1fr; }
+  /* Auf schmalen Geräten wird die Luft im Container zur Platzverschwendung */
+  .hero { padding: 26px 16px 4px; }
+  .hero-panel { padding: 26px 18px 24px; border-radius: 14px; }
+  .view-hero { padding: 22px 18px 20px; margin: 22px 0 22px; border-radius: 14px; }
+  .view-hero .inventory-title { font-size: 27px; }
+  .view-hero .inventory-hint { padding-top: 14px; margin-top: 16px; }
 }
 
 /* ── A11y: reduzierte Bewegung respektieren ──────────────────── */
