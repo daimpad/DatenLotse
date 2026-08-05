@@ -407,7 +407,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v50';
+const APP_VERSION = 'v51';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -424,7 +424,7 @@ function exportProject() {
     Object.keys(governanceAnswers).length || Object.keys(kompassState).length ||
     kompassHistory.length;
   if (!hasData) {
-    alert('Es gibt noch keinen Stand zum Speichern. Importiere zuerst eine DatenGraf-CSV oder lade das Beispiel.');
+    alert('Es gibt noch keinen Stand zum Speichern. Importieren Sie zuerst eine DatenGraf-CSV oder laden Sie das Beispiel.');
     return;
   }
   const stamp = new Date().toISOString().slice(0, 10);
@@ -781,27 +781,27 @@ function completeness(d) {
 const LS_TOUR = 'datenlotse_tour';
 const TOUR_STEPS = [
   { view: 'home', title: 'Willkommen beim DatenLotsen',
-    text: 'Dieser Rundgang zeigt in wenigen Schritten, wofür die Bausteine da sind und in welcher Reihenfolge sie sinnvoll sind. Alles läuft lokal in deinem Browser – es gibt keinen Server, keinen Account und keine Übertragung.' },
+    text: 'Dieser Rundgang zeigt in wenigen Schritten, wofür die Bausteine da sind und in welcher Reihenfolge sie sinnvoll sind. Alles läuft lokal in Ihrem Browser – es gibt keinen Server, keinen Account und keine Übertragung.' },
   { view: 'kompass', target: '#kompass-score', title: 'Überblick: Daten-Kompass',
-    text: 'Der Einstieg. Eine Reifegrad-Checkliste nach anerkannten Modellen (ODRA, EU Open Data Maturity, 5-Sterne, DCAT-AP.de, DSGVO/FAIR) sagt dir, wo ihr steht – und empfiehlt den nächsten sinnvollen Schritt.' },
+    text: 'Der Einstieg. Eine Reifegrad-Checkliste nach anerkannten Modellen (ODRA, EU Open Data Maturity, 5-Sterne, DCAT-AP.de, DSGVO/FAIR) sagt Ihnen, wo Sie stehen – und empfiehlt den nächsten sinnvollen Schritt.' },
   { view: 'governance', target: '#gov-questions', title: 'Phase 1: Governance & Rollen',
     text: 'Acht gewichtete Fragen ergeben einen Reifegrad. Die RACI-Matrix leitet sich später aus dem Inventar ab und markiert Rollen, die noch nicht besetzt sind. Der Fragebogen funktioniert auch ohne importierte Daten.' },
   { view: 'inventory', target: '.inv-card', needsData: true, title: 'Phase 2: Dateninventar',
-    text: 'Aus jedem kartierten Datenfluss wird ein DCAT-AP.de-Datensatz. Die Felder ergänzt ihr direkt in der Karte; die Prozentzahl zeigt live, wie vollständig der Datensatz für eine Veröffentlichung ist.' },
+    text: 'Aus jedem kartierten Datenfluss wird ein DCAT-AP.de-Datensatz. Die Felder ergänzen Sie direkt in der Karte; die Prozentzahl zeigt live, wie vollständig der Datensatz für eine Veröffentlichung ist.' },
   { view: 'inventory', target: '#tab-quality', needsData: true, title: 'Publikationsreife prüfen',
-    text: 'Die Qualitätsprüfung trennt echte Fehler (fehlende Pflichtfelder, ungültige Werte) von Warnungen – damit ihr vor dem Harvesting wisst, was ein Portal ablehnen würde.' },
+    text: 'Die Qualitätsprüfung trennt echte Fehler (fehlende Pflichtfelder, ungültige Werte) von Warnungen – damit Sie vor dem Harvesting wissen, was ein Portal ablehnen würde.' },
   { view: 'inventory', target: '#tab-clearing', needsData: true, title: 'Phase 3: Risiko-Clearing',
-    text: 'Ein transparenter Entscheidungsbaum je Datensatz: Grün ist unstrittig, Rot gesperrt, und eure Prüfkapazität konzentriert sich auf das Gelb. Kein maschinelles Lernen – jedes Ergebnis ist begründet und nachvollziehbar.' },
+    text: 'Ein transparenter Entscheidungsbaum je Datensatz: Grün ist unstrittig, Rot gesperrt, und Ihre Prüfkapazität konzentriert sich auf das Gelb. Kein maschinelles Lernen – jedes Ergebnis ist begründet und nachvollziehbar.' },
   { view: 'pseudo', target: '.pseudo-tabs', title: 'Phase 3: Textbereinigung',
     text: 'Freitexte und CSV-Spalten von personenbezogenen Angaben befreien – strukturerhaltend, mit konsistenten Platzhaltern und einer Zuordnungstabelle für die Dokumentation. Die manuelle Nachkontrolle bleibt Pflicht.' },
   { view: 'wissen', target: '#wissen-search', title: 'Nachschlagen statt raten',
-    text: 'Glossar, Rechtsgrundlagen des Bundes und aller 16 Länder sowie die Modelle hinter dem Kompass – durchsuchbar an der Stelle, an der ihr arbeitet. Ausdrücklich keine Rechtsberatung.' },
+    text: 'Glossar, Rechtsgrundlagen des Bundes und aller 16 Länder sowie die Modelle hinter dem Kompass – durchsuchbar an der Stelle, an der Sie arbeiten. Ausdrücklich keine Rechtsberatung.' },
   { view: 'vorlagen', target: '.vorlage-card', title: 'Fertige Dokumente',
-    text: 'Richtlinie, DSFA-Checkliste, Freigabeformulare und VVT-Auszug entstehen aus dem Stand, den ihr ohnehin erfasst habt – als PDF, Markdown oder CSV.' },
+    text: 'Richtlinie, DSFA-Checkliste, Freigabeformulare und VVT-Auszug entstehen aus dem Stand, den Sie ohnehin erfasst haben – als PDF, Markdown oder CSV.' },
   { view: 'home', target: '#project-save-btn', openSidebar: true, title: 'Arbeitsstand sichern',
     text: 'Alles bleibt im Browser. Damit nichts verloren geht, sichert „Projekt speichern" den kompletten Stand als eine Datei – für Backup, Gerätewechsel oder zum Teilen im Team.' },
   { view: 'home', title: 'Los geht es',
-    text: 'Am besten startet ihr mit dem Daten-Kompass: Er sagt euch in zehn Minuten, wo ihr steht und was als Nächstes dran ist. Diesen Rundgang findet ihr jederzeit in der Seitenleiste.' },
+    text: 'Am besten starten Sie mit dem Daten-Kompass: Er sagt Ihnen in zehn Minuten, wo Sie stehen und was als Nächstes dran ist. Diesen Rundgang finden Sie jederzeit in der Seitenleiste.' },
 ];
 const tour = { i: 0, active: false };
 
@@ -858,7 +858,7 @@ function renderTour() {
      </div>
      <h2 class="tour-title" id="tour-title">${esc(step.title)}</h2>
      <p class="tour-text">${esc(step.text)}</p>
-     ${fehlt ? `<p class="tour-note"><i class="fas fa-circle-info"></i> Dieser Baustein braucht Daten. Lade den Beispieldatensatz, um ihn im Einsatz zu sehen.</p>
+     ${fehlt ? `<p class="tour-note"><i class="fas fa-circle-info"></i> Dieser Baustein braucht Daten. Laden Sie den Beispieldatensatz, um ihn im Einsatz zu sehen.</p>
        <button class="btn btn-secondary tour-sample" id="tour-sample"><i class="fas fa-flask"></i> Beispiel laden</button>` : ''}
      <div class="tour-actions">
        <button class="btn btn-secondary" id="tour-prev"${tour.i === 0 ? ' disabled' : ''}><i class="fas fa-arrow-left"></i> Zurück</button>
@@ -1379,7 +1379,7 @@ function renderClearing() {
   const body = document.getElementById('clearing-body');
   if (!body) return;
   if (!inventory.length) {
-    body.innerHTML = '<p class="inv-empty">Noch kein Inventar vorhanden – importiere zuerst eine DatenGraf-CSV oder lade den Beispieldatensatz.</p>';
+    body.innerHTML = '<p class="inv-empty">Noch kein Inventar vorhanden – importieren Sie zuerst eine DatenGraf-CSV oder laden Sie den Beispieldatensatz.</p>';
     updateClearingSummary();
     return;
   }
@@ -1754,7 +1754,7 @@ function renderHvdHinweise() {
        <p class="qual-cross-lead"><strong>${offen.length} Datensatz${offen.length === 1 ? ' könnte' : 'e könnten'}
          unter die Verordnung fallen</strong> – Vorschlag aus Titel, Beschreibung und Schlagwörtern,
          bewusst eher großzügig: ein übersehener hochwertiger Datensatz wiegt schwerer als ein Vorschlag
-         zu viel. Ob die Verordnung greift, entscheidet ihr, nicht das Werkzeug.</p>
+         zu viel. Ob die Verordnung greift, entscheiden Sie, nicht das Werkzeug.</p>
        <ul class="qual-issues">
          ${offen.map(({ d, idx, cat }) => `<li class="qual-issue qual-issue--hint">
             <i class="fas fa-lightbulb"></i>
@@ -2521,7 +2521,7 @@ function phase3BodyHTML() {
   const noInv = !phase3Checks.inventory;
   const needsPseudo = phase3Checks.freitexte;
   return `
-    <p>Du hast <strong>${done} von ${P3_CHECKS.length}</strong> Punkten bestätigt. Empfohlene nächste Schritte:</p>
+    <p>Sie haben <strong>${done} von ${P3_CHECKS.length}</strong> Punkten bestätigt. Empfohlene nächste Schritte:</p>
     ${noInv ? `<p class="modal-privacy"><i class="fas fa-circle-info"></i> Zuerst ein <strong>Dateninventar</strong> aufbauen – darauf setzt das Clearing auf.</p>` : ''}
     <div class="p3-tools">
       ${noInv ? `<button class="btn btn-primary" id="p3-open-inventory"><i class="fas fa-boxes-stacked"></i> Dateninventar starten</button>` : `<button class="btn btn-primary" id="p3-open-clearing"><i class="fas fa-traffic-light"></i> Risiko-Clearing öffnen</button>`}
@@ -2614,7 +2614,7 @@ function renderLicenseWizard() {
   if (actions) {
     actions.innerHTML = inventory.length
       ? `<button class="btn btn-primary" id="lic-apply"${emptyCount ? '' : ' disabled'}><i class="fas fa-wand-magic-sparkles"></i> Für ${emptyCount} Datensätze ohne Lizenz übernehmen</button>`
-      : `<span class="lic-note"><i class="fas fa-circle-info"></i> Importiere zuerst ein Inventar, um die Lizenz direkt zu übernehmen.</span>`;
+      : `<span class="lic-note"><i class="fas fa-circle-info"></i> Importieren Sie zuerst ein Inventar, um die Lizenz direkt zu übernehmen.</span>`;
     actions.querySelector('#lic-apply')?.addEventListener('click', () => {
       const k = recommendLicense();
       let n = 0;
