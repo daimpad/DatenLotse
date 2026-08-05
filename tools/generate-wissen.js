@@ -91,7 +91,7 @@ function seite({ slug, title, description, lead, bodyHTML, jsonld, pfad, eigenst
   <meta name="twitter:image" content="${BASE}/social-preview.png">
 ${daten.map(d => `  <script type="application/ld+json">\n  ${JSON.stringify(d, null, 2).replace(/\n/g, '\n  ')}\n  </script>`).join('\n')}
   <link rel="stylesheet" href="/assets/fonts/inter/inter.css">
-  <link rel="stylesheet" href="/assets/fonts/fa/icons.min.css?v=49">
+  <link rel="stylesheet" href="/assets/fonts/fa/icons.min.css?v=50">
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
@@ -106,13 +106,15 @@ ${daten.map(d => `  <script type="application/ld+json">\n  ${JSON.stringify(d, n
   </header>
 
   <main id="inhalt" class="static-main" tabindex="-1">
-    <nav class="static-crumbs" aria-label="Brotkrumen">
-      <a href="/">Start</a> <span aria-hidden="true">›</span>
-      ${!eigenstaendig && slug ? '<a href="/wissen/">Wissen &amp; Methodik</a> <span aria-hidden="true">›</span> ' : ''}
-      <span>${esc(title)}</span>
-    </nav>
-    <h1 class="static-title">${esc(title)}</h1>
-    <p class="static-lead">${lead}</p>
+    <div class="static-hero">
+      <nav class="static-crumbs" aria-label="Brotkrumen">
+        <a href="/">Start</a> <span aria-hidden="true">›</span>
+        ${!eigenstaendig && slug ? '<a href="/wissen/">Wissen &amp; Methodik</a> <span aria-hidden="true">›</span> ' : ''}
+        <span>${esc(title)}</span>
+      </nav>
+      <h1 class="static-title">${esc(title)}</h1>
+      <p class="static-lead">${lead}</p>
+    </div>
     ${bodyHTML}
 ${eigenstaendig ? '' : `    <aside class="static-cta">
       <h2>Im Werkzeug anwenden</h2>
