@@ -29,6 +29,22 @@ python3 -m http.server 8080
 <script src="js/app.js?v=2"></script>
 ```
 
+### Externe Aufrufe
+
+Die Seite lädt **genau einen** externen Baustein: die anonyme Seitenzählung `gc.zgo.at/count.js` (GoatCounter, Endpunkt `datenlotse.goatcounter.com/count`). Keine Cookies, kein LocalStorage, keine Kennung, kein geräteübergreifendes Verfolgen; übertragen werden Adresse, Referrer, Bildschirmgröße und das aus der IP abgeleitete Land.
+
+Dass daraus **keine Inhalte** abfließen können, ist kein Zufall, sondern eine Eigenschaft der App: sie schreibt **nie** Zustand in die URL – kein Hash, kein `pushState`, keine Query-Parameter, es gibt genau eine Adresse. `tests/smoke.spec.js` hält beides fest: die Liste der erlaubten Hosts (eine Aufzählung, kein Muster – ein zweiter Dienst soll auffallen) und die URL-Freiheit.
+
+> ⚠️ **Die Zusagen im Markup müssen dazu passen.** Hero-Badge, Feature-Karte „Local-First" und die FAQ-Antwort „Verlassen meine Daten den Browser?" sprechen deshalb von *Inhalten*, die im Browser bleiben, und benennen die Zählung ausdrücklich. Die FAQ-Antwort steht **zweimal** in `index.html` – sichtbar und im `FAQPage`-Markup – und muss wörtlich übereinstimmen (ein Test prüft das).
+
+**Im Test abgeklemmt:** `openApp()` beantwortet die Zähl-Hosts mit einem leeren Skript (`route.fulfill`, nicht `abort` – ein abgebrochener Aufruf schriebe „Failed to load resource" in die Konsole). Sonst schriebe jeder Lauf hunderte Aufrufe in die echte Statistik.
+
+**Die statischen Wissensseiten bleiben ohne JavaScript** und damit ohne Zählung – ihre Reichweite steht in der Search Console. `tests/seo.spec.js` prüft weiterhin *null* externe Ressourcen für diese Seiten.
+
+**Google Search Console:** `google2ea79d8f6f2f6a37.html` im Wurzelverzeichnis, Inhalt wörtlich `google-site-verification: <Dateiname>`. Nicht in die Sitemap aufnehmen, nicht per `robots.txt` aussperren – ein Test prüft Vorhandensein, Inhalt, Auslieferung und beides.
+
+---
+
 **Fonts/Icons:** Lokal unter `assets/fonts/` — **kein CDN**. Inter (woff2, 400/500/600/700) + Font Awesome 6.7.2. Ziel sind **null externe Laufzeit-Aufrufe**.
 
 Font Awesome wird **zugeschnitten ausgeliefert** (`tools/build-icons.py`, `npm run icons`): das vollständige Paket bringt 1.895 Icon-Regeln und ~300 KB Schrift mit, benutzt werden rund 80 Zeichen. Geladen werden `assets/fonts/fa/icons.min.css` und `assets/fonts/webfonts/fa-*.subset.woff2`; die vollständigen Dateien bleiben als **Quelle für die Neuerzeugung** im Repo und werden zur Laufzeit nicht mehr angefasst.
@@ -46,7 +62,7 @@ Die App hat keinen Build-Schritt – getestet wird **die ausgelieferte App**, al
 ```bash
 npm install                      # nur Dev: @playwright/test (exakt gepinnt)
 npx playwright install chromium  # einmalig
-npm test                         # 262 Tests, ~95 s
+npm test                         # 264 Tests, ~95 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -483,7 +499,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 - **Cache-Busting:** Nach `app.js`-Änderung unbedingt `?v=N` + Footer erhöhen, sonst liefert GitHub Pages den alten Stand.
 - **Squash-Merge-Konflikte:** Jeder PR-Merge erzeugt Squash-Commits; beim nächsten Branch-Merge entstehen scheinbare Konflikte. Auflösung analog DatenGraf: `git fetch origin main && git merge origin/main` → Konflikte → `git checkout --ours index.html js/app.js css/styles.css` → `git add` → `git commit` → `git push`.
 - **Kein `tokens.css` in DatenGraf:** Sync-Abgleich erfolgt gegen DatenGrafs `:root` in `css/styles.css`, nicht gegen eine (nicht existierende) `tokens.css`.
-- **Keine externe Runtime-Library:** Anders als DatenGraf (Cytoscape/LZ-String per CDN) hat DatenLotse **null** externe Laufzeit-Abhängigkeiten. Insbesondere **keine** ML-/NER-/WASM-Bibliothek für die Pseudonymisierung – reines Regex-Pack.
+- **Keine externe Runtime-Library:** Anders als DatenGraf (Cytoscape/LZ-String per CDN) hat DatenLotse **keine** externen Laufzeit-Abhängigkeiten – der einzige externe Aufruf ist die anonyme Seitenzählung (siehe „Externe Aufrufe"). Insbesondere **keine** ML-/NER-/WASM-Bibliothek für die Pseudonymisierung – reines Regex-Pack.
 
 ---
 

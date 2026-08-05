@@ -25,8 +25,26 @@ function collectErrors(page) {
  * standardmäßig mit `true`, `window.open` liefert ein Dummy-Fenster, damit die
  * Druck-Exporte keinen echten Tab öffnen.
  */
+/* Hosts der anonymen Seitenzählung. Im Test werden sie abgeklemmt: sonst
+   schriebe jeder Lauf – lokal wie in der CI – hunderte Aufrufe in die echte
+   Statistik. `page.on('request')` feuert trotzdem, der Smoke-Test kann also
+   weiterhin prüfen, was nach außen ginge. */
+const ZAEHLUNG_HOSTS = ['gc.zgo.at', 'datenlotse.goatcounter.com'];
+
+async function blockZaehlung(page) {
+  await page.route('**/*', route => {
+    const host = new URL(route.request().url()).hostname;
+    if (!ZAEHLUNG_HOSTS.includes(host)) return route.continue();
+    // Leeres Skript statt `abort()`: ein abgebrochener Aufruf schreibt
+    // „Failed to load resource" in die Konsole und ließe jeden Test
+    // scheitern, der auf Konsolenfehler prüft.
+    return route.fulfill({ status: 200, contentType: 'application/javascript', body: '' });
+  });
+}
+
 async function openApp(page, { confirmResult = true } = {}) {
   const errors = collectErrors(page);
+  await blockZaehlung(page);
   await page.addInitScript(({ confirmResult }) => {
     window.__dialogs = { alert: [], confirm: [], print: 0 };
     window.alert = msg => { window.__dialogs.alert.push(String(msg)); };
@@ -67,4 +85,5 @@ async function grabDownload(page, trigger) {
   return { name: download.suggestedFilename(), text: Buffer.concat(chunks).toString('utf-8') };
 }
 
-module.exports = { openApp, loadSample, collectErrors, lastAlert, grabDownload };
+module.exports = { openApp, loadSample, collectErrors, lastAlert, grabDownload,
+                   blockZaehlung, ZAEHLUNG_HOSTS };

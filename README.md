@@ -2,7 +2,7 @@
 
 # DatenLotse – von der Datenkartierung zur Open-Data-Umsetzung
 
-**DatenLotse** ist ein browserbasiertes, datenbankfreies Werkzeug, das Organisationen – insbesondere die öffentliche Verwaltung – vom kartierten Datenökosystem in die konkrete Open-Data-Umsetzung führt. Es ist das Schwester-Tool zu [DatenGraf](https://datengraf.nozilla.net/): Wo DatenGraf zeigt, *wie* die Datenflüsse aussehen, beantwortet DatenLotse die Frage *„Was tue ich jetzt konkret?"* – Dateninventar nach DCAT-AP.de aufbauen, Risiken klären, Texte datenschutzkonform pseudonymisieren. Alles läuft lokal im Browser: kein Server, kein Account, kein Datentransfer.
+**DatenLotse** ist ein browserbasiertes, datenbankfreies Werkzeug, das Organisationen – insbesondere die öffentliche Verwaltung – vom kartierten Datenökosystem in die konkrete Open-Data-Umsetzung führt. Es ist das Schwester-Tool zu [DatenGraf](https://datengraf.nozilla.net/): Wo DatenGraf zeigt, *wie* die Datenflüsse aussehen, beantwortet DatenLotse die Frage *„Was tue ich jetzt konkret?"* – Dateninventar nach DCAT-AP.de aufbauen, Risiken klären, Texte datenschutzkonform pseudonymisieren. Alles läuft lokal im Browser: kein Server, kein Account, keine Verarbeitung deiner Daten.
 
 <br>
 
@@ -19,6 +19,8 @@
 [**→ Jetzt starten**](https://datenlotse.nozilla.net) · [Sicherheit](SECURITY.md) · [Mitmachen](.github/CONTRIBUTING.md)
 
 ---
+
+> **Externe Aufrufe:** genau einer – eine anonyme Seitenzählung (GoatCounter), ohne Cookies, ohne Kennung, ohne geräteübergreifendes Verfolgen. Sie sieht Adresse, Referrer, Bildschirmgröße und Land. **Inhalte können nicht abfließen**, weil die App nie Zustand in die URL schreibt: es gibt genau eine Adresse. Ein Test hält beides fest – die Liste der erlaubten Hosts und die URL-Freiheit. Die statischen Wissensseiten laden gar kein JavaScript.
 
 ## Features
 
@@ -107,7 +109,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 262 Tests, ~95 s
+npm test                         # 264 Tests, ~95 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -227,7 +229,7 @@ Die Ausgabe erfolgt als JSON-LD mit `@context` auf das DCAT-AP.de-Profil, als **
 | **Blob API** | — | DCAT-JSON-, CSV- und Text-Downloads |
 | **Playwright** | 1.62 (nur Dev) | End-to-End-Tests gegen die ausgelieferte App |
 
-> Keine Build-Tools, keine Runtime-Library nötig – nur HTML, CSS und JS. Inter und Font Awesome werden lokal aus `assets/fonts/` ausgeliefert, nicht per CDN.
+> Keine Build-Tools, keine Runtime-Library nötig – nur HTML, CSS und JS. Inter und Font Awesome werden lokal aus `assets/fonts/` ausgeliefert, nicht per CDN. Der einzige externe Aufruf ist eine anonyme Seitenzählung (GoatCounter, ohne Cookies und ohne Kennung); deine Daten werden nicht übertragen – die App schreibt nie Zustand in die URL.
 
 ---
 
@@ -297,7 +299,7 @@ datenlotse/
 │   ├── sample-landkreis.csv    # Beispiel: fiktive Kreisverwaltung (12 Datensätze)
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (262 Tests)
+├── tests/                      # Playwright-End-to-End-Tests (264 Tests)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection

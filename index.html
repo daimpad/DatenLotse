@@ -82,7 +82,7 @@
         "name": "Verlassen meine Daten den Browser?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Nein. DatenLotse läuft vollständig client-seitig — kein Server, kein Account, kein Datentransfer. Importierte CSVs und eingegebene Werte bleiben ausschließlich in deinem Browser."
+          "text": "Nein. DatenLotse läuft vollständig client-seitig — kein Server, kein Account, keine Verarbeitung deiner Daten. Importierte CSVs und eingegebene Werte bleiben ausschließlich in deinem Browser. Die Seite lädt einen einzigen externen Baustein: eine anonyme Seitenzählung (GoatCounter) ohne Cookies und ohne Kennung, die nur die aufgerufene Adresse, Referrer, Bildschirmgröße und das Land sieht — niemals Inhalte."
         }
       },
       {
@@ -125,10 +125,10 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <!-- Zugeschnitten auf die verwendeten Icons (tools/build-icons.py) – das
        vollstaendige all.min.css bleibt als Quelle im Repo, wird aber nicht geladen. -->
-  <link rel="stylesheet" href="assets/fonts/fa/icons.min.css?v=47">
+  <link rel="stylesheet" href="assets/fonts/fa/icons.min.css?v=48">
 
-  <link rel="stylesheet" href="css/tokens.css?v=47">
-  <link rel="stylesheet" href="css/styles.css?v=47">
+  <link rel="stylesheet" href="css/tokens.css?v=48">
+  <link rel="stylesheet" href="css/styles.css?v=48">
 </head>
 <body>
 
@@ -205,7 +205,7 @@
       </button></li>
     </ol>
 
-    <p class="hero-trust"><i class="fas fa-lock"></i> Alles lokal im Browser · kein Server · keine Datenübertragung</p>
+    <p class="hero-trust"><i class="fas fa-lock"></i> Deine Daten bleiben im Browser · kein Konto · keine Übertragung von Inhalten</p>
 
     <button class="btn btn-primary hero-cta" id="hero-kompass-btn"><i class="fas fa-compass"></i> Daten-Kompass starten</button>
     <p class="hero-from-graf">
@@ -260,7 +260,7 @@
           <article class="feature-card">
             <div class="feature-ic"><i class="fas fa-lock"></i></div>
             <h3>Local-First</h3>
-            <p>Kein Server, kein Account, kein Datentransfer. Alles läuft lokal im Browser.</p>
+            <p>Kein Server, kein Account, keine Übertragung deiner Daten. Alles läuft lokal im Browser.</p>
           </article>
         </div>
       </div>
@@ -860,7 +860,7 @@
            Brands-Familie und h&auml;tte daf&uuml;r 116 KB Schrift nachgeladen. -->
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository" aria-label="DatenLotse auf GitHub"><svg class="footer-github" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
     </nav>
-    <span class="footer-version">v47</span>
+    <span class="footer-version">v48</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -884,7 +884,7 @@
         <details class="faq-item">
           <summary class="faq-q">Verlassen meine Daten den Browser?</summary>
           <div class="faq-a">
-            <p>Nein. DatenLotse läuft <strong>vollständig client-seitig</strong> — kein Server, kein Account, kein Datentransfer. Importierte CSVs und eingegebene Werte bleiben ausschließlich in deinem Browser.</p>
+            <p>Nein. DatenLotse läuft <strong>vollständig client-seitig</strong> — kein Server, kein Account, keine Verarbeitung deiner Daten. Importierte CSVs und eingegebene Werte bleiben ausschließlich in deinem Browser. Die Seite lädt einen einzigen externen Baustein: eine anonyme Seitenzählung (GoatCounter) ohne Cookies und ohne Kennung, die nur die aufgerufene Adresse, Referrer, Bildschirmgröße und das Land sieht — niemals Inhalte.</p>
           </div>
         </details>
         <details class="faq-item">
@@ -1056,6 +1056,16 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=47"></script>
+  <script src="js/app.js?v=48"></script>
+
+  <!-- Anonyme Seitenzählung (GoatCounter). Der EINZIGE externe Aufruf der
+       Seite: keine Cookies, kein LocalStorage, keine Kennung, kein
+       geräteübergreifendes Verfolgen. Übertragen werden Adresse der Seite,
+       Referrer, Bildschirmgröße und das aus der IP abgeleitete Land.
+       Die App schreibt nichts in die URL – es gibt genau eine Adresse, über
+       die keine importierten Daten abfließen können. `defer` statt `async`:
+       die Zählung ist unwichtiger als der Aufbau der Seite. -->
+  <script data-goatcounter="https://datenlotse.goatcounter.com/count"
+          defer src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
