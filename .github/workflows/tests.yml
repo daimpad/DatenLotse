@@ -29,6 +29,17 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # Der Browser-Download ist der langsamste Schritt und die einzige
+      # Stelle, an der ein Lauf haengen bleiben kann (einmal zehn Minuten
+      # statt einer). Der Cache nimmt ihn aus dem kritischen Pfad; der
+      # install-Aufruf bleibt trotzdem stehen, weil er die apt-Abhaengigkeiten
+      # setzt und bei vorhandenem Browser in Sekunden durchlaeuft.
+      - name: Cache Playwright-Browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package.json') }}
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
