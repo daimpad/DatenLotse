@@ -2353,6 +2353,33 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
 .kompass-dim-score--gelb  { color: var(--ampel-gelb);  background: rgba(212,130,10,0.12); }
 .kompass-dim-score--rot   { color: var(--ampel-rot);   background: rgba(192,57,43,0.12); }
 .kompass-dim-score--na    { color: var(--c-muted);     background: rgba(122,117,145,0.12); }
+/* Angabe zur Rechtspflicht – steht unter dem Score, weil sie optional ist
+   und niemanden aufhalten soll, der einfach loslegen will. */
+.kompass-profil {
+  margin: 12px 0 0;
+  padding: 14px 18px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+.kompass-profil-label {
+  font-size: 13.5px; font-weight: 600; color: var(--c-text);
+  display: flex; align-items: center; gap: 8px;
+}
+.kompass-profil-label i { color: var(--c-accent); }
+.kompass-profil-sel {
+  font-family: inherit; font-size: 13px; color: var(--c-text);
+  padding: 8px 10px; border: 1px solid var(--c-border-s); border-radius: 8px;
+  background: #fff; max-width: 420px;
+}
+.kompass-profil-sel:focus { outline: none; border-color: var(--c-accent); }
+.kompass-profil-hint { font-size: 12.5px; line-height: 1.6; color: var(--c-muted); margin: 0; }
+.kompass-profil-hint em { font-style: normal; font-weight: 600; color: var(--c-accent); }
+
 .kompass-items { display: flex; flex-direction: column; gap: 8px; }
 .kompass-item {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
