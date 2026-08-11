@@ -427,7 +427,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v55';
+const APP_VERSION = 'v56';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -1547,6 +1547,13 @@ function validateDataset(d) {
       issues.push({ sev: 'warn', msg: `${wo}Lizenz ist im DCAT-AP.de-Register unbekannt – bitte aus der Liste wählen.` });
     else if (!empty(x.license) && !licenseIsOpen(x.license))
       issues.push({ sev: 'warn', msg: `${wo}Lizenz ist nicht offen (NC/ND bzw. geschlossen) – für Open Data ungeeignet (siehe Lizenz-Wegweiser).` });
+    /* „Amtliches Werk" ist der einzige Eintrag im Register, den nicht jede
+       Organisation waehlen darf: § 5 UrhG haengt an der amtlichen Herkunft,
+       nicht an einer Entscheidung des Herausgebers. Gemeldet wird das nur,
+       wenn die Rechtspflicht-Frage schon mit „nein" beantwortet ist – ohne
+       Angabe bleibt es wie bisher (dieselbe Zurueckhaltung wie in v55). */
+    if (x.license === 'official-work' && kompassProfil.rechtspflicht === 'nein')
+      issues.push({ sev: 'error', msg: `${wo}„Amtliches Werk – lizenzfrei nach § 5 UrhG" setzt eine amtliche Herkunft voraus. Nach Ihrer Angabe im Daten-Kompass unterliegt Ihre Organisation keiner Rechtspflicht – bitte eine echte offene Lizenz wählen (z. B. CC BY 4.0).` });
     if (!empty(x.accessURL) && !URL_RE.test(x.accessURL))
       issues.push({ sev: 'warn', msg: `${wo}Zugriffs-URL ist keine gültige http(s)-Adresse.` });
   });
@@ -2752,8 +2759,12 @@ function renderDashboard() {
     { go: 'kompass', icon: 'fa-compass', phase: 'Überblick', title: 'Daten-Kompass',
       metric: `${kScore}%`, amp: kAmp.cls, sub: kAmp.label },
     { go: 'governance', icon: 'fa-users-gear', phase: 'Phase 1', title: 'Governance & Rollen',
-      metric: gAnswered ? `${g.score}%` : '–', amp: gAnswered ? gAmp.cls : '',
-      sub: gAnswered ? `Reifegrad: ${gAmp.label}` : 'Reifegrad-Check noch offen' },
+      // `gAnswered` zaehlt auch als „nicht relevant" abgewaehlte Fragen mit –
+      // erst `g.moeglich` sagt, ob ueberhaupt etwas bewertet wurde.
+      metric: gAnswered && g.moeglich ? `${g.score}%` : '–', amp: gAnswered && g.moeglich ? gAmp.cls : '',
+      sub: !gAnswered ? 'Reifegrad-Check noch offen'
+         : !g.moeglich ? 'Alle Fragen als nicht relevant markiert'
+         : `Reifegrad: ${gAmp.label}` },
     { go: 'inventory', icon: 'fa-boxes-stacked', phase: 'Phase 2', title: 'Dateninventar',
       metric: n ? `${n}` : '–', unit: n ? 'Datensätze' : '',
       sub: n ? `Ø ${avg}% DCAT-AP.de-vollständig` : 'Noch kein Inventar' },
@@ -3300,7 +3311,10 @@ function vvtCSV() {
    ────────────────────────────────────────────────────────────── */
 function statusKennzahlen() {
   const kScore = kompassOverall();
-  const gScore = reifegrad().score;
+  // `gMoeglich` muss mit: sind alle Fragen als nicht relevant abgewaehlt,
+  // ist `gBeantwortet` zwar 8, aber bewertet wurde nichts – die Kachel
+  // duerfte dann keine 0 behaupten (siehe reifegrad()).
+  const { score: gScore, moeglich: gMoeglich } = reifegrad();
   const gBeantwortet = Object.keys(governanceAnswers).length;
   const n = inventory.length;
   const avg = n ? Math.round(inventory.reduce((s, d) => s + completeness(d), 0) / n) : 0;
@@ -3309,7 +3323,7 @@ function statusKennzahlen() {
   const qual = { gruen: 0, gelb: 0, rot: 0 };
   inventory.forEach(d => qual[qualityStatus(validateDataset(d))]++);
   return { kScore, kAmp: kompassAmpel(kScore), gScore, gAmp: reifeAmpel(gScore),
-           gBeantwortet, n, avg, ampel, qual };
+           gBeantwortet, gMoeglich, n, avg, ampel, qual };
 }
 
 /* Nächste Schritte aus dem Stand ableiten – geordnet nach dem, was den
@@ -3341,7 +3355,11 @@ function statusBodyHTML() {
     <h2>Kennzahlen</h2>
     <table class="kpis"><tr>
       ${kachel('Daten-Kompass', `${k.kScore} / 100`, k.kAmp.label)}
-      ${kachel('Governance-Reifegrad', `${k.gScore} / 100`, k.gBeantwortet ? k.gAmp.label : 'noch nicht beantwortet')}
+      ${kachel('Governance-Reifegrad',
+               k.gMoeglich ? `${k.gScore} / 100` : '–',
+               !k.gBeantwortet ? 'noch nicht beantwortet'
+               : !k.gMoeglich ? 'keine bewertbare Frage'
+               : k.gAmp.label)}
       ${kachel('Datensätze im Inventar', String(k.n), `Ø ${k.avg} % DCAT-AP.de-vollständig`)}
       ${kachel('Publikationsbereit', String(k.qual.gruen), `${k.qual.gelb} mit Warnungen · ${k.qual.rot} mit Fehlern`)}
     </tr></table>
@@ -3789,7 +3807,13 @@ const GOV_QUESTIONS = [
   { id: 'review',  label: 'Werden Zuständigkeiten regelmäßig überprüft und aktualisiert?',                   weight: 8 },
 ];
 const GOV_FACTOR = { ja: 1, teilweise: 0.5, nein: 0 };
-const GOV_OPTS = [['', '— wählen —'], ['ja', 'Ja'], ['teilweise', 'Teilweise'], ['nein', 'Nein']];
+/* `na` wie im Kompass (KOMPASS_STATUS) – gleiche Bedeutung, gleiches Wort.
+   Ohne diese Option kostete jede Rolle, die es aus gutem Grund nicht gibt,
+   volle Punkte: die DSB-Frage wiegt 12, und nach § 38 BDSG muss unter
+   20 Personen mit staendiger automatisierter Verarbeitung niemand bestellt
+   werden. Der Fragebogen wies dann eine Luecke aus, die keine war. */
+const GOV_OPTS = [['', '— wählen —'], ['ja', 'Ja'], ['teilweise', 'Teilweise'],
+                  ['nein', 'Nein'], ['na', 'Nicht relevant']];
 
 const RACI_ROLES = [
   { key: 'owner',   label: 'Data Owner' },
@@ -3831,17 +3855,29 @@ function roleGap(roleKey, domain) {
   const q = ROLE_GAP_Q[roleKey];
   if (!q) return false;
   if (roleKey === 'dsb' && !domain.dsgvo) return false;
+  // „Nicht relevant" ist eine Entscheidung, keine Luecke – sonst warnte die
+  // Matrix weiter vor einer Rolle, die es bewusst nicht gibt.
+  if (governanceAnswers[q] === 'na') return false;
   return governanceAnswers[q] !== 'ja';
 }
 
+/* Der Nenner ist die Summe der BEWERTBAREN Gewichte, nicht fest 100 –
+   sonst zoege eine als nicht relevant abgewaehlte Frage den Wert herunter,
+   statt aus der Wertung zu fallen. Ohne `na` ist `moeglich` genau 100 und
+   das Ergebnis identisch zu vorher; `factor: null` markiert die
+   abgewaehlten Fragen fuer die Anzeige. */
 function reifegrad() {
-  let score = 0;
+  let erreicht = 0, moeglich = 0;
   const breakdown = GOV_QUESTIONS.map(q => {
-    const f = GOV_FACTOR[governanceAnswers[q.id]] ?? 0;
-    score += q.weight * f;
+    const a = governanceAnswers[q.id];
+    if (a === 'na') return { id: q.id, label: q.label, weight: q.weight, factor: null };
+    const f = GOV_FACTOR[a] ?? 0;
+    erreicht += q.weight * f;
+    moeglich += q.weight;
     return { id: q.id, label: q.label, weight: q.weight, factor: f };
   });
-  return { score: Math.round(score), breakdown };
+  // Alle acht abgewaehlt: es gibt keinen Nenner und damit keine Aussage.
+  return { score: moeglich ? Math.round(erreicht / moeglich * 100) : 0, breakdown, moeglich };
 }
 
 function reifeAmpel(score) {
@@ -3885,11 +3921,27 @@ function renderGovScore() {
   const badge = document.getElementById('gov-score-badge');
   const bars = document.getElementById('gov-score-bars');
   if (!badge) return;
-  const { score, breakdown } = reifegrad();
+  const { score, breakdown, moeglich } = reifegrad();
   const amp = reifeAmpel(score);
-  badge.className = `gov-score-badge gov-score-badge--${amp.cls}`;
-  badge.innerHTML = `<span class="gov-score-num">${score}</span><span class="gov-score-unit">/ 100</span><span class="gov-score-lbl">${amp.label}</span>`;
+  if (moeglich) {
+    badge.className = `gov-score-badge gov-score-badge--${amp.cls}`;
+    badge.innerHTML = `<span class="gov-score-num">${score}</span><span class="gov-score-unit">/ 100</span><span class="gov-score-lbl">${amp.label}</span>`;
+  } else {
+    // Alle Fragen abgewaehlt – „Lueckenhaft" waere hier genau die falsche
+    // Aussage, denn bewertet wurde nichts.
+    badge.className = 'gov-score-badge gov-score-badge--neutral';
+    badge.innerHTML = `<span class="gov-score-num">–</span><span class="gov-score-lbl">Keine bewertbare Frage</span>`;
+  }
   bars.innerHTML = breakdown.map(b => {
+    // Die Spalte ist 70 px breit – „Nicht relevant" passt dort nicht. Der
+    // gewaehlte Wert steht ohnehin im Dropdown darueber; hier genuegt der
+    // Hinweis, dass die Frage aus der Wertung faellt.
+    if (b.factor === null) {
+      return `<div class="gov-bar-row" title="${esc(b.label)}">
+        <span class="gov-bar-lbl">${esc(b.label)}</span>
+        <span class="gov-bar-na">entfällt</span>
+      </div>`;
+    }
     const pct = Math.round(b.factor * 100);
     const cls = b.factor === 1 ? 'gruen' : b.factor === 0.5 ? 'gelb' : 'rot';
     return `<div class="gov-bar-row" title="${esc(b.label)}">
@@ -3918,26 +3970,31 @@ function renderRaciMatrix() {
 
 function buildRaciCSV() {
   const domains = deriveDomains();
-  const { score } = reifegrad();
+  const { score, moeglich } = reifegrad();
   const head = ['Domaene', 'DSGVO-relevant', 'Anzahl_Datensaetze', ...RACI_ROLES.map(r => r.label)].join(',');
   const rows = domains.map(dom => {
     const raci = raciFor(dom);
     return [csvCell(dom.name), dom.dsgvo ? 'ja' : 'nein', dom.count, ...RACI_ROLES.map(r => raci[r.key])].join(',');
   });
-  return [head, ...rows].join('\n') + `\n\nReifegrad,${score}/100`;
+  // Ohne bewertbare Frage waere „0/100" nicht von acht Mal „Nein" zu
+  // unterscheiden – die CSV geht in die Abstimmung mit den Fachbereichen.
+  return [head, ...rows].join('\n') +
+    (moeglich ? `\n\nReifegrad,${score}/100` : `\n\nReifegrad,keine bewertbare Frage`);
 }
 
 function buildGovReportHTML() {
   const domains = deriveDomains();
-  const { score, breakdown } = reifegrad();
+  const { score, breakdown, moeglich } = reifegrad();
   const amp = reifeAmpel(score);
-  const ampColor = { gruen: '#2e9e60', gelb: '#d4820a', rot: '#c0392b' }[amp.cls];
+  const ampColor = moeglich ? { gruen: '#2e9e60', gelb: '#d4820a', rot: '#c0392b' }[amp.cls] : '#6f6a87';
+  const scoreText = moeglich ? `${score} / 100 · ${amp.label}` : 'Keine bewertbare Frage';
   const matrixRows = domains.map(dom => {
     const raci = raciFor(dom);
     return `<tr><td>${esc(dom.name)}${dom.dsgvo ? ' <b>(DSGVO)</b>' : ''}</td>${RACI_ROLES.map(r => `<td style="text-align:center">${raci[r.key]}${roleGap(r.key, dom) ? ' ⚠' : ''}</td>`).join('')}</tr>`;
   }).join('');
-  const breakdownRows = breakdown.map(b =>
-    `<tr><td>${esc(b.label)}</td><td style="text-align:right">${b.weight}</td><td style="text-align:right">${Math.round(b.factor * b.weight)}</td></tr>`).join('');
+  const breakdownRows = breakdown.map(b => b.factor === null
+    ? `<tr><td>${esc(b.label)}</td><td style="text-align:right" class="muted">–</td><td style="text-align:right" class="muted">nicht relevant</td></tr>`
+    : `<tr><td>${esc(b.label)}</td><td style="text-align:right">${b.weight}</td><td style="text-align:right">${Math.round(b.factor * b.weight)}</td></tr>`).join('');
   return `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>DatenLotse – Governance-Bericht</title>
     <style>
       body{font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#1e1b2e;margin:32px;font-size:13px}
@@ -3949,7 +4006,7 @@ function buildGovReportHTML() {
     <h1>DatenLotse – Governance &amp; Rollen</h1>
     <p class="muted">RACI-Matrix &amp; Reifegrad, abgeleitet aus dem Dateninventar. Lokal erzeugt – keine Datenübertragung.</p>
     <h2>Reifegrad</h2>
-    <p><span class="score">${score} / 100 · ${amp.label}</span></p>
+    <p><span class="score">${scoreText}</span></p>
     <table><thead><tr><th>Kategorie</th><th>Gewicht</th><th>Punkte</th></tr></thead><tbody>${breakdownRows}</tbody></table>
     <h2>RACI-Matrix</h2>
     <table><thead><tr><th>Datendomäne</th>${RACI_ROLES.map(r => `<th>${esc(r.label)}</th>`).join('')}</tr></thead><tbody>${matrixRows}</tbody></table>
@@ -4045,7 +4102,11 @@ const KOMPASS_DIMENSIONS = [
     id: 'veroeffentlichung', title: 'Veröffentlichung & Portal', icon: 'fa-globe',
     source: 'EU Open Data Maturity (Portal/Quality)',
     items: [
-      { id: 'portal',  label: 'Ein Zielportal ist gewählt (GovData, kommunales Portal, CKAN).' },
+      /* GovData harvestet Bund, Laender und Kommunen; ein kommunales Portal
+         steht ebenfalls nicht jedem offen. Der Punkt nannte damit drei Ziele,
+         von denen zwei fuer einen Teil der Nutzenden verschlossen sind – und
+         fuehrte ins Leere, statt zu helfen. */
+      { id: 'portal',  label: 'Ein Zielportal ist gewählt (öffentliche Stellen: GovData oder kommunales Portal; sonst eigenes CKAN oder offenes Repositorium).' },
       { id: 'harvest', label: 'Die Datasets sind harvestbar bereitgestellt.' },
       { id: 'zyklus',  label: 'Aktualisierungszyklen sind definiert und werden eingehalten.' },
       { id: 'qs',      label: 'Eine Qualitätssicherung (Vollständigkeit, Aktualität) ist etabliert.' },

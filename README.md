@@ -51,7 +51,7 @@
 | 🚦 | **Clearing-Ampel (Rot-Gelb-Grün)** | Transparenter, deterministischer Entscheidungsbaum je Datensatz (Schutzbedarf-Vorbelegung, Art.-9-/Rechtsgrundlage-/Anonymisierbarkeit-Prüfung) mit nachvollziehbarer Begründung, Gesamtübersicht und Ampel-Spalte im CSV-Export |
 | 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende, deterministische Bereinigung deutscher Verwaltungstexte über **11 Muster**: Name (anrede-getriggert, akademische Titel werden übersprungen), Adresse, PLZ+Ort, Aktenzeichen/Geschäftszeichen, IBAN, E-Mail, Telefon, Geburtsdatum, Steuer-ID und Kfz-Kennzeichen (beide kontextgetriggert), Sozialversicherungsnummer. Konsistente Platzhalter, Mapping-Tabelle samt **CSV-Export** – rein per Regex, nichts verlässt den Browser |
 | 🧮 | **Spaltenweise CSV-Bereinigung** | Zweiter Modus für strukturierte Daten: CSV laden, je Spalte entscheiden – unverändert lassen, Muster erkennen oder **ganze Spalte ersetzen** (für Spalten wie „Name", die ohne Anrede kein Muster auslösen). Gleiche Werte erhalten zeilenübergreifend denselben Platzhalter; die CSV-Struktur bleibt erhalten und das Ergebnis ist wieder importierbar |
-| 👥 | **Governance & RACI** | 8-Fragen-Reifegrad-Check (gewichtet, 0–100, **auch ohne Inventar nutzbar**) + automatisch aus dem Inventar abgeleitete RACI-Matrix (Domänen × Rollen) mit Lücken-Markierung; Export als CSV und PDF/Druck-Bericht |
+| 👥 | **Governance & RACI** | 8-Fragen-Reifegrad-Check (gewichtet, 0–100, **auch ohne Inventar nutzbar**) + automatisch aus dem Inventar abgeleitete RACI-Matrix (Domänen × Rollen) mit Lücken-Markierung; Export als CSV und PDF/Druck-Bericht. Jede Frage lässt sich als **„nicht relevant"** abwählen und fällt dann aus der Wertung, statt mit 0 zu zählen – wer nach § 38 BDSG rechtmäßig keine Datenschutzbeauftragte hat, bekommt dafür keinen Abzug |
 | 💾 | **Projekt speichern & laden (.json)** | Kompletter Arbeitsstand (Inventar inkl. Clearing, Governance, Kompass und importierte DatenGraf-Zeilen) als eine versionierte JSON-Datei exportier- und wieder importierbar – für Backup, Gerätewechsel oder zum Teilen; Import prüft Herkunft und fragt vor dem Überschreiben |
 | 🔒 | **Local-First / No-Database** | Alle Daten bleiben im Browser – kein Backend, kein Account, keine externen Laufzeit-Aufrufe |
 | 📱 | **Mobile-First** | Responsives Layout ab 360 px überlauffrei; Grids brechen auf eine Spalte |
@@ -113,7 +113,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 277 Tests, ~95 s
+npm test                         # 293 Tests, ~120 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -303,7 +303,7 @@ datenlotse/
 │   ├── sample-landkreis.csv    # Beispiel: fiktive Kreisverwaltung (12 Datensätze)
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (277 Tests)
+├── tests/                      # Playwright-End-to-End-Tests (293 Tests)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection

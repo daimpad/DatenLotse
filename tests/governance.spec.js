@@ -658,3 +658,235 @@ test.describe('Kompass – Rechtspflicht der Organisation', () => {
     expect(r).toBe('');
   });
 });
+
+/* Befund v56 A1: der Kompass kennt „nicht relevant" seit jeher, der
+   Governance-Fragebogen kannte es nicht. Die DSB-Frage wiegt 12 Punkte,
+   nach § 38 BDSG muss unter 20 Personen aber niemand bestellt werden –
+   der Reifegrad wies damit eine Lücke aus, die keine war. */
+test.describe('Governance – „nicht relevant" (v56)', () => {
+  const alleAusser = (page, id, wert) => page.evaluate(([id, wert]) => {
+    governanceAnswers = {};
+    GOV_QUESTIONS.forEach(q => { governanceAnswers[q.id] = q.id === id ? wert : 'ja'; });
+    return reifegrad();
+  }, [id, wert]);
+
+  test('„Nicht relevant" steht zur Wahl und fällt aus der Wertung', async ({ page }) => {
+    await openApp(page);
+    const opts = await page.evaluate(() => GOV_OPTS.map(o => o[0]));
+    expect(opts).toContain('na');
+
+    // Alle „Ja" bis auf die DSB-Frage: „nein" kostet ihr Gewicht, „na" nicht.
+    const nein = await alleAusser(page, 'dsb', 'nein');
+    const na   = await alleAusser(page, 'dsb', 'na');
+    expect(nein.score).toBe(88);          // 100 − 12, die alte Deckelung
+    expect(na.score).toBe(100);           // vorher ebenfalls 88 → Test rot
+    expect(na.moeglich).toBe(88);         // Nenner ohne die abgewählte Frage
+  });
+
+  test('ohne „na" rechnet der Reifegrad exakt wie vorher', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      const setze = w => { governanceAnswers = {}; GOV_QUESTIONS.forEach(q => { governanceAnswers[q.id] = w; }); return reifegrad(); };
+      return { ja: setze('ja'), halb: setze('teilweise'), nein: setze('nein') };
+    });
+    expect(r.ja.score).toBe(100);
+    expect(r.halb.score).toBe(50);
+    expect(r.nein.score).toBe(0);
+    expect(r.ja.moeglich).toBe(100);      // Summe der Gewichte unverändert
+  });
+
+  test('eine abgewählte Rolle ist keine Lücke in der RACI-Matrix', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      const dsgvoDom = deriveDomains().find(d => d.dsgvo);
+      governanceAnswers = { dsb: 'nein' };
+      const beiNein = roleGap('dsb', dsgvoDom);
+      governanceAnswers = { dsb: 'na' };
+      const beiNa = roleGap('dsb', dsgvoDom);
+      governanceAnswers = { dsb: 'ja' };
+      return { beiNein, beiNa, beiJa: roleGap('dsb', dsgvoDom) };
+    });
+    expect(r.beiNein).toBe(true);
+    expect(r.beiNa).toBe(false);          // vorher true → Test rot
+    expect(r.beiJa).toBe(false);
+  });
+
+  test('alle Fragen abgewählt: kein Score statt „Lückenhaft"', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => {
+      governanceAnswers = {};
+      GOV_QUESTIONS.forEach(q => { governanceAnswers[q.id] = 'na'; });
+      renderGovernance();
+    });
+    const badge = page.locator('#gov-score-badge');
+    await expect(badge).toContainText('Keine bewertbare Frage');
+    await expect(badge).not.toContainText('Lückenhaft');
+    // Keine Division durch null
+    expect(await page.evaluate(() => reifegrad().score)).toBe(0);
+    expect(await page.evaluate(() => reifegrad().moeglich)).toBe(0);
+  });
+
+  test('der Balken einer abgewählten Frage behauptet keine 0 %', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => {
+      governanceAnswers = {}; GOV_QUESTIONS.forEach(q => { governanceAnswers[q.id] = 'ja'; });
+      governanceAnswers.dsb = 'na';
+      renderGovernance();
+    });
+    const bars = page.locator('#gov-score-bars');
+    await expect(bars.locator('.gov-bar-na')).toHaveCount(1);
+    // Ein roter Füllbalken wäre die falsche Aussage: es fehlt nichts.
+    await expect(bars.locator('.gov-bar-fill--rot')).toHaveCount(0);
+  });
+
+  test('der PDF-Bericht schreibt „nicht relevant" statt 0 Punkte', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const html = await page.evaluate(() => {
+      governanceAnswers = {}; GOV_QUESTIONS.forEach(q => { governanceAnswers[q.id] = 'ja'; });
+      governanceAnswers.dsb = 'na';
+      return buildGovReportHTML();
+    });
+    expect(html).toContain('nicht relevant');
+    expect(html).toContain('100 / 100');
+  });
+});
+
+/* Befund v56 A2: § 5 UrhG hängt an der amtlichen Herkunft, nicht an einer
+   Entscheidung des Herausgebers – „Amtliches Werk" ist der einzige Eintrag
+   im Register, den nicht jede Organisation wählen darf. */
+test.describe('Lizenz „Amtliches Werk" (v56)', () => {
+  const mitLizenz = (page, lizenz, pflicht) => page.evaluate(([lizenz, pflicht]) => {
+    kompassProfil = { rechtspflicht: pflicht };
+    const d = inventory[0];
+    d.distributions[0].license = lizenz;
+    return validateDataset(d).filter(i => /§ 5 UrhG/.test(i.msg));
+  }, [lizenz, pflicht]);
+
+  test('ohne Angabe zur Rechtspflicht bleibt alles wie bisher', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    expect(await mitLizenz(page, 'official-work', '')).toHaveLength(0);
+  });
+
+  test('bei „nein" ist die Angabe ein Fehler, nicht nur ein Hinweis', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const issues = await mitLizenz(page, 'official-work', 'nein');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].sev).toBe('error');
+  });
+
+  test('bei „ja" und „unklar" wird nichts gemeldet', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    expect(await mitLizenz(page, 'official-work', 'ja')).toHaveLength(0);
+    expect(await mitLizenz(page, 'official-work', 'unklar')).toHaveLength(0);
+  });
+
+  test('andere offene Lizenzen bleiben unbeanstandet', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    expect(await mitLizenz(page, 'cc-by-4.0', 'nein')).toHaveLength(0);
+    // und die Lizenz gilt weiterhin als offen – die Meldung ersetzt sie nicht
+    expect(await page.evaluate(() => licenseIsOpen('official-work'))).toBe(true);
+  });
+});
+
+/* Befund v56 A3 + Sprache: der Prüfpunkt nannte drei Zielportale, von denen
+   zwei nur öffentlichen Stellen offenstehen, und der Lizenz-Wegweiser ließ
+   zwischen „Deutschland / Verwaltung" und „International" wählen. */
+test.describe('Zielportal und Lizenz-Wegweiser (v56)', () => {
+  test('der Prüfpunkt nennt auch einen Weg ohne Portalanbindung', async ({ page }) => {
+    await openApp(page);
+    const label = await page.evaluate(() =>
+      KOMPASS_DIMENSIONS.find(d => d.id === 'veroeffentlichung').items.find(i => i.id === 'portal').label);
+    expect(label).toMatch(/Repositorium|eigenes CKAN/);
+    expect(label).toMatch(/öffentliche Stellen/);
+  });
+
+  test('die Frage nach dem Schwerpunkt meint den Geltungsraum, nicht den Sektor', async ({ page }) => {
+    await openApp(page);
+    const txt = await page.locator('[data-lic="scope"][data-val="de"]').textContent();
+    expect(txt.trim()).toBe('Deutschland');
+    // Die Empfehlung selbst bleibt unverändert
+    const r = await page.evaluate(() => {
+      licenseWiz.attribution = 'ja'; licenseWiz.scope = 'de';
+      const a = recommendLicense();
+      licenseWiz.scope = 'intl';
+      return { a, b: recommendLicense() };
+    });
+    expect(r.a).toBe('dl-de/by-2-0');
+    expect(r.b).toBe('cc-by-4.0');
+  });
+});
+
+/* Befunde aus dem Review zu v56: der Vertrag von reifegrad() hat sich
+   geändert (`moeglich`), aber nicht alle Konsumenten zogen mit – und der
+   neue Badge-Zweig setzte keinen Hintergrund. */
+test.describe('„Keine bewertbare Frage" – alle Ausgabewege (v56)', () => {
+  const allesNa = page => page.evaluate(() => {
+    governanceAnswers = {};
+    GOV_QUESTIONS.forEach(q => { governanceAnswers[q.id] = 'na'; });
+  });
+
+  test('das Badge ist sichtbar und nicht weiß auf weiß', async ({ page }) => {
+    await openApp(page);
+    await allesNa(page);
+    await page.evaluate(() => renderGovernance());
+    // Ein reiner Text-Assert bliebe hier grün, obwohl niemand etwas sieht:
+    // die Basisregel setzt color:#fff, den Hintergrund liefert erst der
+    // Modifier. Deshalb wird die Farbe wirklich gemessen.
+    const f = await page.locator('#gov-score-badge').evaluate(el => {
+      const s = getComputedStyle(el);
+      const zahl = t => t.match(/[\d.]+/g).slice(0, 3).map(Number);
+      const lum = ([r, g, b]) => {
+        const c = [r, g, b].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+      };
+      const a = lum(zahl(s.color)), b = lum(zahl(s.backgroundColor));
+      return { alpha: s.backgroundColor, kontrast: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) };
+    });
+    expect(f.alpha).not.toBe('rgba(0, 0, 0, 0)');   // vorher transparent
+    expect(f.kontrast).toBeGreaterThanOrEqual(4.5); // WCAG AA
+  });
+
+  test('der Status-Einseiter behauptet keine 0', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await allesNa(page);
+    const r = await page.evaluate(() => ({ k: statusKennzahlen(), html: statusBodyHTML() }));
+    expect(r.k.gMoeglich).toBe(0);
+    expect(r.html).toContain('keine bewertbare Frage');
+    expect(r.html).not.toContain('0 / 100');        // vorher genau das
+  });
+
+  test('die RACI-CSV behauptet keine 0', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await allesNa(page);
+    const csv = await page.evaluate(() => buildRaciCSV());
+    expect(csv).toContain('Reifegrad,keine bewertbare Frage');
+    expect(csv).not.toContain('Reifegrad,0/100');   // vorher genau das
+  });
+
+  test('mit mindestens einer bewertbaren Frage bleibt überall die Zahl stehen', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      governanceAnswers = {};
+      GOV_QUESTIONS.forEach(q => { governanceAnswers[q.id] = 'na'; });
+      governanceAnswers.domains = 'ja';            // eine Frage zählt wieder
+      renderGovernance();
+      return {
+        badge: document.getElementById('gov-score-badge').className,
+        status: statusBodyHTML(), csv: buildRaciCSV(), score: reifegrad().score,
+      };
+    });
+    expect(r.score).toBe(100);
+    expect(r.badge).toContain('gov-score-badge--gruen');
+    expect(r.status).toContain('100 / 100');
+    expect(r.csv).toContain('Reifegrad,100/100');
+  });
+});
