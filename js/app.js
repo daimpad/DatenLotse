@@ -515,7 +515,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v64';
+const APP_VERSION = 'v65';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -3257,6 +3257,17 @@ const PRUEF_WERKZEUGE = [
   { name: 'OParl 1.1',
     summary: 'Einheitliche Schnittstelle für kommunale Ratsinformationssysteme (REST/JSON-LD, Objekttypen wie Body, Meeting, Paper, File). Getragen von der Open Knowledge Foundation Deutschland, lizenziert unter CC BY 3.0 DE. Relevant, wenn Rats- und Gremiendaten nachgenutzt oder als Open Data beschrieben werden sollen.',
     url: 'https://oparl.org/' },
+  /* ⚠️ Schwächste Quellenlage im ganzen Werkzeug: die Angaben stammen aus
+     Suchergebnissen, nicht aus dem Volltext – die Netzwerkrichtlinie sperrt
+     beide Seiten. Der Text nennt deshalb ausdrücklich nur einen Ausschnitt
+     der zehn Punkte und verweist für den Wortlaut auf die Quelle. Wer das
+     später ergänzt, muss es am Original tun, nicht aus dem Gedächtnis. */
+  { name: 'Initiative Transparente Zivilgesellschaft',
+    summary: 'Freiwillige Selbstverpflichtung für gemeinnützige Organisationen, getragen von Transparency International Deutschland (seit 2010): zehn festgelegte Angaben, die Unterzeichnende auf ihrer Website veröffentlichen – darunter die Satzung, die Namen der wesentlichen Entscheidungsträger sowie Angaben zu Mittelherkunft, Mittelverwendung und Personalstruktur. Strukturell dasselbe wie ein Transparenzgesetz, nur freiwillig: ein fester Katalog, den man abarbeitet. Den vollständigen Wortlaut der zehn Punkte finden Sie auf der verlinkten Seite.',
+    url: 'https://www.transparente-zivilgesellschaft.de/' },
+  { name: 'Offene Daten der Zivilgesellschaft – Leitfaden',
+    summary: 'Praxisleitfaden von Bernhard Krabina, herausgegeben von der Bertelsmann Stiftung: Grundlagen und die einzelnen Schritte zur Veröffentlichung offener Daten – ausdrücklich für zivilgesellschaftliche Akteure geschrieben und nicht für Verwaltungen.',
+    url: 'https://www.bertelsmann-stiftung.de/en/our-projects/data-for-society/project-news/new-guide-to-open-data-from-civil-society' },
 ];
 
 const LAENDER_KIND = {
