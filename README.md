@@ -28,7 +28,7 @@
 |---|---|---|
 | 🗺️ | **Onboarding-Rundgang** | Elf Schritte durch alle Bausteine – der Rundgang wechselt selbst in die passende Ansicht und hebt hervor, worum es gerade geht. Wird **angeboten statt aufgedrängt** (wegklickbarer Hinweis, jederzeit über die Seitenleiste wiederholbar); Schritte, die Daten brauchen, bieten den Beispielimport an, statt ihn heimlich auszuführen |
 | 📈 | **Kompass-Verlauf** | Reifegrad-Stände auf Knopfdruck festhalten und die Entwicklung als Balken samt Trend sehen – belegbarer Fortschritt gegenüber Leitung oder Gremium. Bewusst **kein automatischer Mitschnitt**: festgehalten wird, was man festhalten will |
-| 🧭 | **Daten-Kompass** | Open-Data-Reifegrad-Checkliste nach anerkannten Modellen (ODRA, EU Open Data Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR): **7 Dimensionen mit 27 Prüfpunkten**, Score + Ampel, Vorbelegung aus dem aktuellen Stand, adaptive Empfehlungen der nächsten Bausteine und PDF-Export – der Haupteinstieg |
+| 🧭 | **Daten-Kompass** | Open-Data-Reifegrad-Checkliste nach anerkannten Modellen (ODRA, EU Open Data Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR, Data Orchard Data Maturity): **8 Dimensionen mit 33 Prüfpunkten**, Score + Ampel, Vorbelegung aus dem aktuellen Stand, adaptive Empfehlungen der nächsten Bausteine und PDF-Export – der Haupteinstieg |
 | 🔗 | **DatenGraf-CSV-Import** | Liest exakt das CSV-Schema, das DatenGraf exportiert – die Datenkartierung wird ohne Umweg zur Umsetzungsgrundlage |
 | 📦 | **Dateninventar (DCAT-AP.de)** | Aus jedem Datenfluss wird ein Dataset-Kandidat abgeleitet und in editierbaren Karten dargestellt: Beschreibung, Publisher, Ansprechpartner, **Kategorie** (EU-Datenthemen), **Schlagwörter**, Aktualisierungszyklus, **Lizenz** (volles DCAT-AP.de-Register), Zugriffsrechte und Info-/Zugriffs-URL – mit Live-Vollständigkeits-% in Ampelfarben. Dazu ein ausklappbarer Block **erweiterter DCAT-AP.de-Felder** (Veröffentlichungs-/Änderungsdatum, zeitliche und räumliche Abdeckung, Regionalschlüssel samt Gebietsebene, Kontributor-Kennung) und eine **Live-Vorschau des JSON-LD** je Datensatz. Der Export schreibt kontrollierte Werte als offizielle NAL-/Register-URIs |
 | ✏️ | **Massenbearbeitung** | Mehrere Datensätze markieren und Publisher, Ansprechpartner, Lizenz, Kategorie, Zugriffsrechte, Zyklus oder Schlagwörter in einem Zug setzen – oder Einträge entfernen, die nicht ins Inventar gehören. „Alle auswählen" meint dabei die **sichtbare** Teilmenge, wirkt also mit den Filtern zusammen |
@@ -42,7 +42,7 @@
 | 🔗 | **Konsistenzprüfung über den Bestand** | Findet, was der Blick auf den einzelnen Datensatz nicht sieht: doppelte Identifier, doppelte Titel, zweimal dieselbe Zugriffs-URL und Schreibvarianten beim Publisher. Gemeldet wird jeweils der Abweichler, mit Sprung zur betroffenen Karte |
 | ⚖️ | **Hochwertige Datensätze (HVD)** | Für Datensätze, die unter die Durchführungsverordnung (EU) 2023/138 fallen, gelten **verbindliche** Vorgaben: kostenfrei, maschinenlesbar, über eine API, Lizenz nicht restriktiver als CC BY 4.0. Die Qualitätsprüfung meldet Verstöße deshalb als Fehler statt als Warnung. Zur Auswahl steht das **vollständige amtliche Vokabular** der EU-Publikationsstelle (96 Konzepte, gruppiert nach den sechs Kategorien) – die Spezifikation empfiehlt den genauesten Begriff. Das Werkzeug **schlägt eine Einstufung vor, nimmt sie aber niemandem ab**: ob die Verordnung greift, ist eine Rechtsfrage |
 | ✅ | **DCAT-AP.de-Qualitätsprüfung** | Publish-Ready-Check je Datensatz: fehlende Pflichtfelder als **Fehler**, fehlende Empfehlungsfelder und Werteprüfungen (offene Lizenz, kontrolliertes Vokabular, E-Mail im Ansprechpartner) als **Warnungen** – mit Ampel-Übersicht und direktem Sprung zum Bearbeiten im Inventar |
-| 📚 | **Wissens- & Methodik-Center** | In-App-Nachschlagewerk mit Live-Filter über alles: **20 Glossar-Begriffe**, **9 Rechtsgrundlagen** (Bund/EU mit amtlichen Links zu gesetze-im-internet.de bzw. EUR-Lex, inklusive der HVD-Durchführungsverordnung), **alle 16 Landesregelungen** (Transparenz- vs. Informationsfreiheitsgesetz, jeweils mit amtlicher Fundstelle und eigenem Bundesland-Filter), **kommunale Informationsfreiheitssatzungen** für die Länder ohne Landesgesetz, **Prüfwerkzeuge & Normtexte** (offizieller EU-SHACL-Validator, DCAT-AP.de-Spezifikation und Konventionenhandbuch) und die **5 Reifegrad-Modelle** hinter dem Kompass – lokal, ausdrücklich keine Rechtsberatung |
+| 📚 | **Wissens- & Methodik-Center** | In-App-Nachschlagewerk mit Live-Filter über alles: **20 Glossar-Begriffe**, **9 Rechtsgrundlagen** (Bund/EU mit amtlichen Links zu gesetze-im-internet.de bzw. EUR-Lex, inklusive der HVD-Durchführungsverordnung), **alle 16 Landesregelungen** (Transparenz- vs. Informationsfreiheitsgesetz, jeweils mit amtlicher Fundstelle und eigenem Bundesland-Filter), **kommunale Informationsfreiheitssatzungen** für die Länder ohne Landesgesetz, **Prüfwerkzeuge & Normtexte** (offizieller EU-SHACL-Validator, DCAT-AP.de-Spezifikation und Konventionenhandbuch) und die **6 Reifegrad-Modelle** hinter dem Kompass – lokal, ausdrücklich keine Rechtsberatung |
 | 🧾 | **Status auf einen Blick** | Einseitige Zusammenfassung über alle Bausteine – Reifegrade, Inventar, Publikationsreife, Clearing-Verteilung und die nächsten Schritte. Für Leitungsrunden und Gremien; funktioniert auch ohne Inventar, weil der leere Stand ebenfalls eine Aussage ist |
 | 🔒 | **Eigene Datenschutzerklärung** | Unter `/datenschutz/`, aus demselben Generator wie die Wissensseiten. Sie beschreibt, was das Werkzeug wirklich tut: Local Storage statt Server, GitHub Pages als Hoster samt US-Transfer, die anonyme Seitenzählung mit dem, was sie sieht und was nicht, keine Cookies, keine Schriften-CDN, kein KI-Dienst – und der Hinweis, dass sich all das im Quelltext nachprüfen lässt |
 | 📄 | **Vorlagen & Musterdokumente** | Fertige Dokumente lokal erzeugt: Open-Data-Richtlinie und DSFA-Kurz-Checkliste (Muster) sowie aus dem Inventar generierte Veröffentlichungs-Freigabe-Formulare und ein VVT-Auszug der DSGVO-relevanten Datensätze – als PDF druckbar oder als Markdown/CSV ladbar |
@@ -112,7 +112,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 270 Tests, ~95 s
+npm test                         # 272 Tests, ~95 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -302,7 +302,7 @@ datenlotse/
 │   ├── sample-landkreis.csv    # Beispiel: fiktive Kreisverwaltung (12 Datensätze)
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (270 Tests)
+├── tests/                      # Playwright-End-to-End-Tests (272 Tests)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection

@@ -96,16 +96,51 @@ test.describe('Governance & Rollen (Modul 1)', () => {
 });
 
 test.describe('Daten-Kompass', () => {
-  test('Struktur: 7 Dimensionen mit je 3–4 Items und Quellenangabe', async ({ page }) => {
+  test('Struktur: 8 Dimensionen mit je 3–5 Items und Quellenangabe', async ({ page }) => {
     await openApp(page);
     const r = await page.evaluate(() => ({
       n: KOMPASS_DIMENSIONS.length,
+      punkte: KOMPASS_DIMENSIONS.reduce((a, d) => a + d.items.length, 0),
       items: KOMPASS_DIMENSIONS.map(d => d.items.length),
       ohneQuelle: KOMPASS_DIMENSIONS.filter(d => !d.source).map(d => d.id),
+      doppelt: KOMPASS_DIMENSIONS.flatMap(d => d.items.map(i => `${d.id}.${i.id}`))
+        .filter((k, i, a) => a.indexOf(k) !== i),
     }));
-    expect(r.n).toBe(7);
-    expect(r.items.every(n => n >= 3 && n <= 4)).toBe(true);
+    expect(r.n).toBe(8);
+    // Die Zahl steht in README und CLAUDE.md – sie darf nicht still auseinanderlaufen
+    expect(r.punkte).toBe(33);
+    expect(r.items.every(n => n >= 3 && n <= 5)).toBe(true);
     expect(r.ohneQuelle).toEqual([]);
+    expect(r.doppelt).toEqual([]);
+  });
+
+  test('Können & Kapazität misst die Fortführung, nicht das Getane', async ({ page }) => {
+    await openApp(page);
+    const dim = await page.evaluate(() => KOMPASS_DIMENSIONS.find(d => d.id === 'koennen'));
+    expect(dim, 'achte Dimension fehlt').toBeTruthy();
+    expect(dim.items.map(i => i.id)).toEqual(['fachwissen', 'schulung', 'fortfuehrung', 'externe']);
+    // Diese Punkte kann das Werkzeug nicht aus dem Arbeitsstand ableiten –
+    // sie beantwortet nur, wer die Organisation kennt.
+    const abgeleitet = await page.evaluate(() =>
+      KOMPASS_DIMENSIONS.find(d => d.id === 'koennen').items
+        .filter(i => kompassDerived('koennen', i.id) !== 'offen').map(i => i.id));
+    expect(abgeleitet).toEqual([]);
+  });
+
+  test('Selbstprüfung leitet sich aus festgehaltenen Ständen ab', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      const stand = () => kompassDerived('wirkung', 'selbstpruefung');
+      kompassHistory = [];
+      const leer = stand();
+      kompassHistory = [{ date: '2026-01-01', score: 20 }];
+      const einer = stand();
+      kompassHistory = [{ date: '2026-01-01', score: 20 }, { date: '2026-02-01', score: 40 }];
+      const zwei = stand();
+      kompassHistory = [];
+      return { leer, einer, zwei };
+    });
+    expect(r).toEqual({ leer: 'offen', einer: 'teilweise', zwei: 'erfuellt' });
   });
 
   test('Score und Ampel rechnen wie dokumentiert', async ({ page }) => {
