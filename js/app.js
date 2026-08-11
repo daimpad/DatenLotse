@@ -427,7 +427,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v57';
+const APP_VERSION = 'v58';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -675,7 +675,7 @@ function guessTheme(r) {
     ['HEAL', /gesundheit|medizin|pflege|impf|klinik/],
     ['ENER', /energie|strom|gas|solar|photovoltaik|wärme|waerme/],
     ['JUST', /polizei|ordnung|sicherheit|justiz|gericht|bußgeld|bussgeld/],
-    ['GOVE', /rat|gremium|beschluss|verwaltung|personal|organigramm|wahl|sitzung/],
+    ['GOVE', /rat|gremium|beschluss|verwaltung|personal|organigramm|wahl|sitzung|vorstand|satzung|mitglied|versammlung|protokoll/],
     ['REGI', /stadtplan|flächennutzung|flaechennutzung|quartier|bezirk|bebauungsplan/],
   ];
   for (const [code, re] of rules) if (re.test(t)) return code;
@@ -3138,15 +3138,15 @@ function policyBodyHTML() {
   <ul>
     <li><strong>Data Owner</strong> – fachliche Verantwortung je Datendomäne.</li>
     <li><strong>Data Steward</strong> – operative Pflege und Metadatenqualität.</li>
-    <li><strong>Datenschutzbeauftragte:r</strong> – Prüfung bei DSGVO-Relevanz.</li>
-    <li><strong>Leitung</strong> – Freigabe zur Veröffentlichung.</li>
+    <li><strong>Datenschutzbeauftragte:r</strong> – Prüfung bei DSGVO-Relevanz (soweit bestellt; nach § 38 BDSG nicht in jeder Organisation erforderlich).</li>
+    <li><strong>Leitung</strong> (Amtsleitung, Geschäftsführung oder Vorstand) – Freigabe zur Veröffentlichung.</li>
   </ul>
   <h2>4. Prozess</h2>
   <ol>
     <li>Inventarisierung nach DCAT-AP.de.</li>
     <li>Risiko-Clearing (Rot/Gelb/Grün).</li>
     <li>Aufbereitung (Pseudonymisierung/Aggregation) bei Bedarf.</li>
-    <li>Freigabe und Veröffentlichung über GovData/CKAN.</li>
+    <li>Freigabe und Veröffentlichung über das gewählte Zielportal (öffentliche Stellen: GovData bzw. kommunales Portal; sonst eigenes CKAN oder ein offenes Repositorium).</li>
     <li>Pflege, Monitoring und Rückkopplung (zirkuläres Ökosystem).</li>
   </ol>
   <h2>5. Qualität &amp; Aktualität</h2>
@@ -3173,14 +3173,14 @@ Diese Richtlinie regelt die Bereitstellung offener Daten (Open Data) der ${org}.
 ## 3. Rollen & Verantwortlichkeiten
 - **Data Owner** – fachliche Verantwortung je Datendomäne.
 - **Data Steward** – operative Pflege und Metadatenqualität.
-- **Datenschutzbeauftragte:r** – Prüfung bei DSGVO-Relevanz.
-- **Leitung** – Freigabe zur Veröffentlichung.
+- **Datenschutzbeauftragte:r** – Prüfung bei DSGVO-Relevanz (soweit bestellt; nach § 38 BDSG nicht in jeder Organisation erforderlich).
+- **Leitung** (Amtsleitung, Geschäftsführung oder Vorstand) – Freigabe zur Veröffentlichung.
 
 ## 4. Prozess
 1. Inventarisierung nach DCAT-AP.de.
 2. Risiko-Clearing (Rot/Gelb/Grün).
 3. Aufbereitung (Pseudonymisierung/Aggregation) bei Bedarf.
-4. Freigabe und Veröffentlichung über GovData/CKAN.
+4. Freigabe und Veröffentlichung über das gewählte Zielportal (öffentliche Stellen: GovData bzw. kommunales Portal; sonst eigenes CKAN oder ein offenes Repositorium).
 5. Pflege, Monitoring und Rückkopplung.
 
 ## 5. Qualität & Aktualität
@@ -3567,7 +3567,15 @@ Steuer-ID: 12 345 678 901, Sozialversicherungsnummer 65 170839 M 003.
 Das Fahrzeug mit dem Kennzeichen M-AB 1234 ist betroffen.
 Zahlungen erfolgen auf IBAN DE12 3456 7890 1234 5678 90.
 Kontakt: max.mustermann@example.de, Tel. +49 30 1234567.
-Der Bescheid vom 15.03.2024 bleibt davon unberührt.`;
+Der Bescheid vom 15.03.2024 bleibt davon unberührt.
+
+--- Zweiter Fall, anderer Zuschnitt ---
+
+Beratungsnotiz zum Termin mit Frau Dr. Anna Beispiel (Gz. BER-2024/88).
+Frau Anna Beispiel, wohnhaft Lindenweg 3, 04315 Leipzig, geboren am 12.09.1979,
+ist seit 2019 ehrenamtlich tätig. Spendenquittung ging an
+a.beispiel@example.org; Rückfragen unter 0341 9876543.
+Die Erstattung läuft über IBAN DE02 1203 0000 0000 2020 51.`;
 
 /* Mapping (Platzhalter ↔ Original) als CSV – für die Reidentifizierung
    bzw. revisionssichere Dokumentation. Bewusst lokal, nichts verlässt
@@ -4072,8 +4080,8 @@ const GOV_OPTS = [['', '— wählen —'], ['ja', 'Ja'], ['teilweise', 'Teilweis
 const RACI_ROLES = [
   { key: 'owner',   label: 'Data Owner' },
   { key: 'steward', label: 'Data Steward' },
-  { key: 'fach',    label: 'Fachbereich' },
-  { key: 'it',      label: 'IT-Betrieb' },
+  { key: 'fach',    label: 'Fachbereich / Ressort' },
+  { key: 'it',      label: 'IT-Betrieb / Dienstleister' },
   { key: 'dsb',     label: 'Datenschutz (DSB)' },
 ];
 // Welche Frage „besetzt" welche Rolle (für Lücken-Markierung)
