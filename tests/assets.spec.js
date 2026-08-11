@@ -12,6 +12,7 @@
  * reale Fehlerfall – ein neues Icon im Markup, ohne `npm run icons`.
  */
 const { test, expect } = require('@playwright/test');
+const { ZAEHLUNG_HOSTS } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 
@@ -127,6 +128,16 @@ test.describe('Ladegewicht', () => {
     let bytes = 0;
     page.on('response', async res => {
       try {
+        /* Der Zähl-Aufruf zählt nicht mit – gemessen wird, was DatenLotse
+           selbst ausliefert. Regression v69: er hing daran, ob die Umgebung
+           `gc.zgo.at` erreicht. In der CI ging er durch und brachte rund 9 KB
+           mit, im Entwicklungscontainer sperrt die Netzwerkrichtlinie ihn –
+           derselbe Commit maß zwei verschiedene Zahlen, das Urteil hing am Netz
+           statt am Repo. Gefiltert wird beim Zählen, NICHT über `page.route()`:
+           ein Interceptor umgeht den Speicher-Cache und zieht dann Dateien ein
+           zweites Mal über die Leitung. Dass es genau einen fremden Aufruf gibt,
+           hält `tests/smoke.spec.js` fest. */
+        if (ZAEHLUNG_HOSTS.includes(new URL(res.url()).hostname)) return;
         const len = res.headers()['content-length'];
         bytes += len ? Number(len) : (await res.body()).length;
       } catch { /* abgebrochene Antworten zählen nicht */ }

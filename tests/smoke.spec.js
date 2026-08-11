@@ -85,6 +85,9 @@ test.describe('Grundgerüst & Navigation', () => {
   test('die DatenGraf-Brücke trägt das echte Logo, lokal ausgeliefert', async ({ page }) => {
     await openApp(page);
     const logo = page.locator('img.graf-bridge-icon');
+    // `loading="lazy"`: der Abschnitt steht weit unter dem Falz, das Bild wird
+    // beim ersten Laden bewusst nicht mitgeholt (siehe Ladegewicht-Budget).
+    await logo.scrollIntoViewIfNeeded();
     await expect(logo).toBeVisible();
     const bild = await logo.evaluate(el => ({
       quelle: el.getAttribute('src'),
