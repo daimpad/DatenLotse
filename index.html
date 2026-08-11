@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DatenLotse – Von der Datenökosystem-Map zur Open-Data-Umsetzung</title>
-  <meta name="description" content="DatenLotse führt Organisationen von der kartierten Datenökosystem-Map zur operativen Umsetzung: Dateninventar nach DCAT-AP.de, Risiko-Clearing und datenschutzkonforme Pseudonymisierung – lokal im Browser.">
+  <meta name="description" content="DatenLotse führt Organisationen von der kartierten Datenökosystem-Map zur Veröffentlichung als Open Data: Dateninventar nach DCAT-AP.de, Risiko-Clearing und datenschutzkonforme Pseudonymisierung – lokal im Browser.">
   <meta name="author" content="nozilla">
   <meta name="robots" content="index, follow">
 
@@ -21,7 +21,7 @@
 
   <!-- Open Graph -->
   <meta property="og:title"       content="DatenLotse – Von der Map zur Open-Data-Umsetzung">
-  <meta property="og:description" content="Dateninventar nach DCAT-AP.de, Risiko-Clearing und datenschutzkonforme Pseudonymisierung – lokal im Browser, ohne Server.">
+  <meta property="og:description" content="Daten öffnen statt nur verwalten: Dateninventar nach DCAT-AP.de, Risiko-Clearing und datenschutzkonforme Pseudonymisierung – lokal im Browser, ohne Server.">
   <meta property="og:type"        content="website">
   <meta property="og:url"         content="https://datenlotse.nozilla.net/">
   <meta property="og:image"       content="https://datenlotse.nozilla.net/social-preview.png">
@@ -35,7 +35,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image">
   <meta name="twitter:title"       content="DatenLotse – Von der Map zur Open-Data-Umsetzung">
-  <meta name="twitter:description" content="Dateninventar nach DCAT-AP.de, Risiko-Clearing und datenschutzkonforme Pseudonymisierung – lokal im Browser, ohne Server.">
+  <meta name="twitter:description" content="Daten öffnen statt nur verwalten: Dateninventar nach DCAT-AP.de, Risiko-Clearing und datenschutzkonforme Pseudonymisierung – lokal im Browser, ohne Server.">
   <meta name="twitter:image"       content="https://datenlotse.nozilla.net/social-preview.png">
   <meta name="twitter:image:alt"   content="DatenLotse – Von der Map zur Open-Data-Umsetzung">
 
@@ -125,10 +125,10 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <!-- Zugeschnitten auf die verwendeten Icons (tools/build-icons.py) – das
        vollstaendige all.min.css bleibt als Quelle im Repo, wird aber nicht geladen. -->
-  <link rel="stylesheet" href="assets/fonts/fa/icons.min.css?v=65">
+  <link rel="stylesheet" href="assets/fonts/fa/icons.min.css?v=66">
 
-  <link rel="stylesheet" href="css/tokens.css?v=65">
-  <link rel="stylesheet" href="css/styles.css?v=65">
+  <link rel="stylesheet" href="css/tokens.css?v=66">
+  <link rel="stylesheet" href="css/styles.css?v=66">
 </head>
 <body>
 
@@ -181,38 +181,47 @@
   <main id="main-content" tabindex="-1">
 
   <!-- ── Hero ──────────────────────────────────────────────────── -->
-  <section class="hero" id="hero">
+  <section class="hero home-only" id="hero">
     <div class="hero-panel">
     <img src="logo.svg" alt="DatenLotse" class="hero-logo">
-    <h1 class="hero-headline">DatenLotse: Datenmanagement verstehen, aufbauen, vertiefen</h1>
-    <p class="hero-sub">Der <strong>DatenLotse</strong> begleitet Ihre Organisation dabei, ein umfassendes <strong>Datenmanagement zu verstehen</strong> und <strong>aufzubauen</strong> – und den <strong>Ist-Zustand</strong> Ihrer Datenlandschaft vertiefend einzusehen.</p>
-
-    <ol class="hero-steps" aria-label="Die vier Schritte des DatenLotsen">
-      <li><button class="hero-step" data-go="kompass">
-        <span class="hero-step-ic"><i class="fas fa-compass"></i></span>
-        <span class="hero-step-text"><strong>Überblick</strong><span>Daten-Kompass</span></span>
-      </button></li>
-      <li><button class="hero-step" data-go="inventory">
-        <span class="hero-step-ic"><i class="fas fa-boxes-stacked"></i></span>
-        <span class="hero-step-text"><strong>Inventar</strong><span>nach DCAT-AP.de</span></span>
-      </button></li>
-      <li><button class="hero-step" data-go="clearing">
-        <span class="hero-step-ic"><i class="fas fa-traffic-light"></i></span>
-        <span class="hero-step-text"><strong>Risiko-Clearing</strong><span>Rot · Gelb · Grün</span></span>
-      </button></li>
-      <li><button class="hero-step" data-go="pseudo">
-        <span class="hero-step-ic"><i class="fas fa-user-shield"></i></span>
-        <span class="hero-step-text"><strong>Pseudonymisierung</strong><span>Texte bereinigen</span></span>
-      </button></li>
-    </ol>
-
-    <p class="hero-trust"><i class="fas fa-lock"></i> Ihre Daten bleiben im Browser · kein Konto · keine Übertragung von Inhalten</p>
+    <h1 class="hero-headline">DatenLotse: Daten verstehen, ordnen und als Open Data ver&ouml;ffentlichen</h1>
+    <p class="hero-sub">Vom <strong>Ist-Zustand</strong> Ihrer Datenlandschaft bis zur Ver&ouml;ffentlichung als <strong>Open Data</strong>: Welche Best&auml;nde lassen sich <strong>&ouml;ffnen</strong>, wie werden sie nach dem Standard <strong>DCAT-AP.de</strong> beschrieben &ndash; und was muss vorher gekl&auml;rt oder gesch&uuml;tzt werden?</p>
 
     <button class="btn btn-primary hero-cta" id="hero-kompass-btn"><i class="fas fa-compass"></i> Daten-Kompass starten</button>
     <p class="hero-from-graf">
       <i class="fas fa-file-csv"></i>
       Schon kartiert? <a href="#modul-inventar">DatenGraf-CSV importieren</a> und direkt mit dem Inventar starten.
     </p>
+    </div>
+  </section>
+
+  <!-- ── Der Weg in vier Schritten ──────────────────────────────
+       Bewusst ein eigener Abschnitt statt eines weiteren Blocks im Hero:
+       Logo, Titel, Einleitung, Chips, Zusage, Aktion und Import-Zeile
+       standen sonst als sieben Bausteine in einem Container. -->
+  <section class="steps-section home-only" id="hero-steps">
+    <div class="steps-panel">
+      <h2 class="steps-title"><i class="fas fa-route"></i> So kommen Sie zu offenen Daten</h2>
+      <p class="steps-lead">Vier Schritte, jeder f&uuml;r sich nutzbar. Wenn Sie nicht wissen, wo Sie anfangen sollen: Der Daten-Kompass sagt es Ihnen.</p>
+      <ol class="hero-steps" aria-label="Die vier Schritte des DatenLotsen">
+        <li><button class="hero-step" data-go="kompass">
+          <span class="hero-step-ic"><i class="fas fa-compass"></i></span>
+          <span class="hero-step-text"><strong>Überblick</strong><span>Daten-Kompass</span></span>
+        </button></li>
+        <li><button class="hero-step" data-go="inventory">
+          <span class="hero-step-ic"><i class="fas fa-boxes-stacked"></i></span>
+          <span class="hero-step-text"><strong>Inventar</strong><span>nach DCAT-AP.de</span></span>
+        </button></li>
+        <li><button class="hero-step" data-go="clearing">
+          <span class="hero-step-ic"><i class="fas fa-traffic-light"></i></span>
+          <span class="hero-step-text"><strong>Risiko-Clearing</strong><span>Rot · Gelb · Grün</span></span>
+        </button></li>
+        <li><button class="hero-step" data-go="pseudo">
+          <span class="hero-step-ic"><i class="fas fa-user-shield"></i></span>
+          <span class="hero-step-text"><strong>Pseudonymisierung</strong><span>Texte bereinigen</span></span>
+        </button></li>
+      </ol>
+      <p class="hero-trust"><i class="fas fa-lock"></i> Ihre Daten bleiben im Browser · kein Konto · keine &Uuml;bertragung von Inhalten</p>
     </div>
   </section>
 
@@ -225,7 +234,7 @@
     </span>
   </div>
 
-  <section class="about-accordion" id="about-accordion">
+  <section class="about-accordion home-only" id="about-accordion">
     <details class="about-details">
       <summary class="about-summary">
         <span><i class="fas fa-compass"></i> Mehr über den DatenLotsen erfahren</span>
@@ -281,7 +290,7 @@
   </section>
 
   <!-- ── Modul-Grid ────────────────────────────────────────────── -->
-  <section class="module-grid" id="module-grid">
+  <section class="module-grid home-only" id="module-grid">
 
     <!-- Modul 1 – Governance -->
     <article class="module-card">
@@ -858,7 +867,7 @@
   </section>
 
   <!-- ── Beratungs-CTA (Phase 4–5) ─────────────────────────────── -->
-  <section class="consult-cta">
+  <section class="consult-cta home-only">
     <div class="consult-cards">
       <div class="consult-card consult-card-info">
         <h2 class="consult-card-headline">Phase 4 &amp; 5: Pipeline &amp; zirkuläres Ökosystem</h2>
@@ -893,7 +902,7 @@
            Brands-Familie und h&auml;tte daf&uuml;r 116 KB Schrift nachgeladen. -->
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository" aria-label="DatenLotse auf GitHub"><svg class="footer-github" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
     </nav>
-    <span class="footer-version">v65</span>
+    <span class="footer-version">v66</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -1109,7 +1118,7 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=65"></script>
+  <script src="js/app.js?v=66"></script>
 
   <!-- Anonyme Seitenzählung (GoatCounter). Der EINZIGE externe Aufruf der
        Seite: keine Cookies, kein LocalStorage, keine Kennung, kein

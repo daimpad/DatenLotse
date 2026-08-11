@@ -9,6 +9,55 @@ test.describe('Grundgerüst & Navigation', () => {
     expect(errors).toEqual([]);
   });
 
+  /* v66: Der Hero sagte „Datenmanagement verstehen, aufbauen, vertiefen" und
+     verschwieg damit, wofür das Werkzeug gebaut ist – Daten zu öffnen. Titel
+     UND Einleitung benennen den Zweck jetzt; ein Test hält beides fest, weil
+     eine Überschrift ohne den Satz darunter nur die halbe Aussage wäre. */
+  test('Hero benennt Open Data als Zweck – in Titel und Einleitung', async ({ page }) => {
+    await openApp(page);
+    await expect(page.locator('#hero h1')).toContainText(/Open Data/i);
+    const sub = await page.locator('.hero-sub').innerText();
+    expect(sub).toMatch(/Open Data/i);
+    expect(sub).toMatch(/öffnen/i);
+  });
+
+  /* v66: Der Hero trug sieben Bausteine (Logo, Titel, Einleitung, Chips,
+     Zusage, Aktion, Import-Zeile). Die vier Schritte stehen jetzt in einem
+     eigenen Abschnitt – mit `<h2>`, denn je Ansicht bleibt genau eine `<h1>`. */
+  test('die vier Schritte stehen in einem eigenen Abschnitt unter dem Hero', async ({ page }) => {
+    await openApp(page);
+    const steps = page.locator('#hero-steps');
+    await expect(steps).toBeVisible();
+    await expect(steps.locator('h2')).toBeVisible();
+    expect(await steps.locator('h1').count()).toBe(0);
+    // die Chips liegen nicht mehr im Hero
+    expect(await page.locator('#hero .hero-step').count()).toBe(0);
+    expect(await steps.locator('.hero-step').count()).toBe(4);
+    // und navigieren weiterhin
+    await steps.locator('.hero-step[data-go="kompass"]').click();
+    await expect(page.locator('#kompass-view')).toBeVisible();
+  });
+
+  /* v66: `showView()` führte eine Liste von IDs plus einen Sonderfall für
+     `.consult-cta`. Ein neuer Startseiten-Abschnitt wäre auf allen Unterseiten
+     stehen geblieben – jetzt entscheidet die Klasse `.home-only`. */
+  test('kein Startseiten-Abschnitt bleibt auf einer Unterseite stehen', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const stehen = [];
+    for (const view of ['kompass', 'inventory', 'governance', 'pseudo', 'wissen', 'vorlagen']) {
+      await page.evaluate(v => navTo(v), view);
+      stehen.push(...await page.evaluate(v => Array.from(document.querySelectorAll('.home-only'))
+        .filter(el => el.offsetParent !== null)
+        .map(el => `${v}: ${el.id || el.className}`), view));
+    }
+    expect(stehen).toEqual([]);
+    // …und auf der Startseite sind sie alle wieder da
+    await page.evaluate(() => navTo('home'));
+    expect(await page.evaluate(() => Array.from(document.querySelectorAll('.home-only'))
+      .filter(el => el.offsetParent === null).length)).toBe(0);
+  });
+
   /* Genau ein externer Aufruf ist erlaubt: die anonyme Seitenzählung.
      Alles andere – Schriften, Icons, Bibliotheken, Karten – wird lokal
      ausgeliefert, und genau das prüft dieser Test weiterhin. Die Liste ist
