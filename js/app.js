@@ -407,7 +407,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v53';
+const APP_VERSION = 'v54';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -2961,6 +2961,7 @@ const METHOD_MODELS = [
   { name: '5-Sterne-Open-Data', by: 'Tim Berners-Lee', desc: 'Technische Offenheit von ★ (offen lizenziert) bis ★★★★★ (Linked Open Data).' },
   { name: 'DCAT-AP.de', by: 'GovData / IT-Planungsrat', desc: 'Metadaten-Anwendungsprofil für einheitliche, harvestbare Datensatzbeschreibungen.' },
   { name: 'DSGVO & FAIR', by: 'EU', desc: 'Rechtliche Leitplanken (Datenschutz) und Nachnutzbarkeits-Prinzipien (Findable, Accessible, Interoperable, Reusable).' },
+  { name: 'Data Maturity Framework', by: 'Data Orchard CIC (CC BY-NC-SA 4.0)', desc: 'Sieben Themen (Nutzung, Daten, Analyse, Führung, Kultur, Werkzeuge, Können) über fünf Reifestufen. Angeregt die Dimension „Können & Kapazität" – die Prüfpunkte hier sind eigene Formulierungen, kein übernommener Text.' },
 ];
 
 const wissenFilter = { q: '', land: '' };
@@ -3969,6 +3970,7 @@ const KOMPASS_DIMENSIONS = [
       { id: 'recht',         label: 'Rechtsgrundlagen sind geklärt (2. Open-Data-Gesetz / Datennutzungsgesetz, IFG, Fachrecht).' },
       { id: 'openbydefault', label: '„Open by default" ist als Grundsatz etabliert.' },
       { id: 'lizenzpolitik', label: 'Eine Lizenzpolitik ist festgelegt (DL-DE / Creative Commons).' },
+      { id: 'ressourcen',    label: 'Mittel, Stellenanteile und Zeit für die Fortführung sind zugesagt.' },
     ],
   },
   {
@@ -4032,6 +4034,24 @@ const KOMPASS_DIMENSIONS = [
       { id: 'feedback',   label: 'Es gibt Feedback-Kanäle für Nachnutzende.' },
       { id: 'wirkung',    label: 'Anwendungsfälle / Wirkung werden erfasst.' },
       { id: 'zirkulaer',  label: 'Ein kontinuierlicher Verbesserungsprozess ist etabliert (zirkulär).' },
+      { id: 'selbstpruefung', label: 'Der eigene Stand wird regelmäßig hinterfragt (z. B. Kompass-Verlauf).' },
+    ],
+  },
+  /* Achte Dimension. Der Kompass maß bisher, ob eine Organisation etwas
+     GETAN hat – nicht, ob sie es WEITER kann. Der Governance-Fragebogen
+     fragt nach Rollen (Owner, Steward, DSB), aber an keiner Stelle nach
+     Können. Angeregt durch das Thema „Skills" im Data Maturity Framework
+     von Data Orchard (eigene Prüfpunkte, kein übernommener Text – das
+     Rahmenwerk steht unter CC BY-NC-SA und wäre mit der GPL unvereinbar). */
+  {
+    id: 'koennen', title: 'Können & Kapazität', icon: 'fa-graduation-cap',
+    source: 'Data Orchard Data Maturity (Skills) · ODRA (Institutional)',
+    action: { label: 'Wissens-Center öffnen', target: 'wissen' },
+    items: [
+      { id: 'fachwissen',  label: 'Es ist benannt, wer DCAT-AP.de und die Metadatenpflege beherrscht.' },
+      { id: 'schulung',    label: 'Die Beteiligten sind geschult (Metadaten, Lizenzen, Datenschutz).' },
+      { id: 'fortfuehrung',label: 'Die Pflege ist über die Projektlaufzeit hinaus gesichert (Vertretung geregelt).' },
+      { id: 'externe',     label: 'Externe Unterstützung ist angebunden oder bewusst nicht nötig.' },
     ],
   },
 ];
@@ -4050,6 +4070,9 @@ function kompassDerived(dimId, itemId) {
     case 'inventar.identifier':     return has ? 'erfuellt' : 'offen';
     case 'datenschutz.pb':          return allClassified ? 'erfuellt' : someClassified ? 'teilweise' : 'offen';
     case 'organisation.reifegrad':  return govAnswered ? 'teilweise' : 'offen';
+    // Wer Stände festhält, hinterfragt seinen Stand – ab dem zweiten belegbar
+    case 'wirkung.selbstpruefung':  return kompassHistory.length > 1 ? 'erfuellt'
+                                         : kompassHistory.length === 1 ? 'teilweise' : 'offen';
     default: return 'offen';
   }
 }
