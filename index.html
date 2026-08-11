@@ -125,10 +125,10 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <!-- Zugeschnitten auf die verwendeten Icons (tools/build-icons.py) – das
        vollstaendige all.min.css bleibt als Quelle im Repo, wird aber nicht geladen. -->
-  <link rel="stylesheet" href="assets/fonts/fa/icons.min.css?v=56">
+  <link rel="stylesheet" href="assets/fonts/fa/icons.min.css?v=57">
 
-  <link rel="stylesheet" href="css/tokens.css?v=56">
-  <link rel="stylesheet" href="css/styles.css?v=56">
+  <link rel="stylesheet" href="css/tokens.css?v=57">
+  <link rel="stylesheet" href="css/styles.css?v=57">
 </head>
 <body>
 
@@ -513,10 +513,11 @@
     <div class="inv-tabs pseudo-tabs" role="tablist" aria-label="Art der Bereinigung">
       <button class="inv-tab is-active" id="pseudo-tab-text" role="tab" aria-selected="true" aria-controls="pseudo-text-panel"><i class="fas fa-align-left"></i> Freitext</button>
       <button class="inv-tab" id="pseudo-tab-csv" role="tab" aria-selected="false" aria-controls="pseudo-csv-panel"><i class="fas fa-table-columns"></i> CSV spaltenweise</button>
+      <button class="inv-tab" id="pseudo-tab-risiko" role="tab" aria-selected="false" aria-controls="pseudo-risiko-panel"><i class="fas fa-user-shield"></i> Re-Identifikationsrisiko</button>
     </div>
 
     <div id="pseudo-csv-panel" class="pseudo-csv-panel hidden" role="tabpanel" aria-labelledby="pseudo-tab-csv">
-      <p class="inventory-hint">Bei strukturierten Daten liefert die <strong>Spalten&uuml;berschrift</strong> den Kontext, den die Muster im Freitext brauchen: In einer Spalte &bdquo;Name&ldquo; steht der Name ohne Anrede und w&uuml;rde vom Muster nicht erfasst. W&auml;hle deshalb je Spalte, wie sie behandelt wird &ndash; <strong>Muster erkennen</strong> f&uuml;r Freitextspalten, <strong>ganze Spalte ersetzen</strong> f&uuml;r klar belegte Spalten. Gleiche Werte erhalten &uuml;ber alle Zellen hinweg denselben Platzhalter.</p>
+      <p class="inventory-hint">Bei strukturierten Daten liefert die <strong>Spalten&uuml;berschrift</strong> den Kontext, den die Muster im Freitext brauchen: In einer Spalte &bdquo;Name&ldquo; steht der Name ohne Anrede und w&uuml;rde vom Muster nicht erfasst. W&auml;hlen Sie deshalb je Spalte, wie sie behandelt wird &ndash; <strong>Muster erkennen</strong> f&uuml;r Freitextspalten, <strong>ganze Spalte ersetzen</strong> f&uuml;r klar belegte Spalten. Gleiche Werte erhalten &uuml;ber alle Zellen hinweg denselben Platzhalter.</p>
       <div class="pseudo-csv-actions">
         <button class="btn btn-secondary" id="pseudo-csv-file"><i class="fas fa-file-arrow-up"></i> CSV laden</button>
       </div>
@@ -527,6 +528,20 @@
         <button class="btn btn-primary" id="pseudo-csv-run" disabled><i class="fas fa-wand-magic-sparkles"></i> Spalten bereinigen</button>
       </div>
       <div id="pseudo-csv-out" class="pseudo-csv-out" aria-live="polite"></div>
+    </div>
+
+    <div id="pseudo-risiko-panel" class="pseudo-risiko-panel hidden" role="tabpanel" aria-labelledby="pseudo-tab-risiko">
+      <p class="inventory-hint">Bereinigte Spalten sagen, <strong>was</strong> ersetzt wurde &ndash; nicht, ob das Ergebnis noch auf einzelne Personen zur&uuml;ckf&uuml;hrt. Merkmale, die f&uuml;r sich niemanden benennen, tun das in Kombination oft doch: Geburtsjahr, Postleitzahl und Geschlecht reichen h&auml;ufig aus. Diese Pr&uuml;fung bildet Gruppen aus den Merkmalen, die Sie w&auml;hlen, und z&auml;hlt, wie viele Zeilen in der kleinsten Gruppe stehen (<strong>k-Anonymit&auml;t</strong>). Optional pr&uuml;ft sie zus&auml;tzlich, wie vielf&auml;ltig ein sensibles Merkmal innerhalb dieser Gruppen ist (<strong>l-Diversit&auml;t</strong>). Es wird ausschlie&szlig;lich gez&auml;hlt &ndash; nichts wird ver&auml;ndert und nichts gedeutet.</p>
+      <div class="pseudo-csv-actions">
+        <button class="btn btn-secondary" id="risk-file"><i class="fas fa-file-arrow-up"></i> CSV laden</button>
+      </div>
+      <label class="pseudo-label" for="risk-input">CSV-Inhalt</label>
+      <textarea id="risk-input" class="pseudo-input pseudo-csv-input" spellcheck="false" placeholder="CSV hier einf&uuml;gen oder Datei laden &hellip;"></textarea>
+      <div id="risk-cols" class="risk-cols"></div>
+      <div class="pseudo-csv-run-row">
+        <button class="btn btn-primary" id="risk-run" disabled><i class="fas fa-user-shield"></i> Risiko messen</button>
+      </div>
+      <div id="risk-out" class="risk-out" aria-live="polite"></div>
     </div>
 
     <div id="pseudo-text-panel" class="pseudo-text-panel" role="tabpanel" aria-labelledby="pseudo-tab-text">
@@ -876,7 +891,7 @@
            Brands-Familie und h&auml;tte daf&uuml;r 116 KB Schrift nachgeladen. -->
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository" aria-label="DatenLotse auf GitHub"><svg class="footer-github" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
     </nav>
-    <span class="footer-version">v56</span>
+    <span class="footer-version">v57</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -1072,7 +1087,7 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=56"></script>
+  <script src="js/app.js?v=57"></script>
 
   <!-- Anonyme Seitenzählung (GoatCounter). Der EINZIGE externe Aufruf der
        Seite: keine Cookies, kein LocalStorage, keine Kennung, kein
