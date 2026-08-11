@@ -2562,3 +2562,12 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
   .module-card:hover,
   .feature-card:hover { transform: none; }
 }
+
+/* Zweite Leserichtung bei den Landesgesetzen: abgesetzt, aber kein Kasten –
+   es ist eine Ergänzung zum Lead, kein eigener Abschnitt. */
+.know-lead--alt {
+  border-left: 3px solid var(--c-accent);
+  padding-left: 12px;
+  margin-top: 10px;
+}
+.know-lead--alt i { color: var(--c-accent); }

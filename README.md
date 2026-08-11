@@ -46,7 +46,7 @@
 | 🔗 | **Konsistenzprüfung über den Bestand** | Findet, was der Blick auf den einzelnen Datensatz nicht sieht: doppelte Identifier, doppelte Titel, zweimal dieselbe Zugriffs-URL und Schreibvarianten beim Publisher. Gemeldet wird jeweils der Abweichler, mit Sprung zur betroffenen Karte |
 | ⚖️ | **Hochwertige Datensätze (HVD)** | Für Datensätze, die unter die Durchführungsverordnung (EU) 2023/138 fallen, gelten **verbindliche** Vorgaben: kostenfrei, maschinenlesbar, über eine API, Lizenz nicht restriktiver als CC BY 4.0. Die Qualitätsprüfung meldet Verstöße deshalb als Fehler statt als Warnung. Zur Auswahl steht das **vollständige amtliche Vokabular** der EU-Publikationsstelle (96 Konzepte, gruppiert nach den sechs Kategorien) – die Spezifikation empfiehlt den genauesten Begriff. Das Werkzeug **schlägt eine Einstufung vor, nimmt sie aber niemandem ab**: ob die Verordnung greift, ist eine Rechtsfrage |
 | ✅ | **DCAT-AP.de-Qualitätsprüfung** | Publish-Ready-Check je Datensatz: fehlende Pflichtfelder als **Fehler**, fehlende Empfehlungsfelder und Werteprüfungen (offene Lizenz, kontrolliertes Vokabular, E-Mail im Ansprechpartner) als **Warnungen** – mit Ampel-Übersicht und direktem Sprung zum Bearbeiten im Inventar |
-| 📚 | **Wissens- & Methodik-Center** | In-App-Nachschlagewerk mit Live-Filter über alles: **20 Glossar-Begriffe**, **11 Rechtsgrundlagen** (Bund/EU mit amtlichen Links zu gesetze-im-internet.de bzw. EUR-Lex, inklusive der HVD-Durchführungsverordnung), **alle 16 Landesregelungen** (Transparenz- vs. Informationsfreiheitsgesetz, jeweils mit amtlicher Fundstelle und eigenem Bundesland-Filter), **kommunale Informationsfreiheitssatzungen** für die Länder ohne Landesgesetz, **Prüfwerkzeuge & Normtexte** (offizieller EU-SHACL-Validator, DCAT-AP.de-Spezifikation und Konventionenhandbuch) und die **6 Reifegrad-Modelle** hinter dem Kompass – lokal, ausdrücklich keine Rechtsberatung |
+| 📚 | **Wissens- & Methodik-Center** | In-App-Nachschlagewerk mit Live-Filter über alles: **20 Glossar-Begriffe**, **11 Rechtsgrundlagen** (Bund/EU mit amtlichen Links zu gesetze-im-internet.de bzw. EUR-Lex, inklusive der HVD-Durchführungsverordnung), **alle 16 Landesregelungen** (Transparenz- vs. Informationsfreiheitsgesetz, jeweils mit amtlicher Fundstelle und eigenem Bundesland-Filter), **kommunale Informationsfreiheitssatzungen** für die Länder ohne Landesgesetz, **Prüfwerkzeuge & Normtexte** (offizieller EU-SHACL-Validator, DCAT-AP.de-Spezifikation und Konventionenhandbuch) und die **7 Reifegrad-Modelle** hinter dem Kompass – lokal, ausdrücklich keine Rechtsberatung |
 | 🧾 | **Status auf einen Blick** | Einseitige Zusammenfassung über alle Bausteine – Reifegrade, Inventar, Publikationsreife, Clearing-Verteilung und die nächsten Schritte. Für Leitungsrunden und Gremien; funktioniert auch ohne Inventar, weil der leere Stand ebenfalls eine Aussage ist |
 | 🔒 | **Eigene Datenschutzerklärung** | Unter `/datenschutz/`, aus demselben Generator wie die Wissensseiten. Sie beschreibt, was das Werkzeug wirklich tut: Local Storage statt Server, GitHub Pages als Hoster samt US-Transfer, die anonyme Seitenzählung mit dem, was sie sieht und was nicht, keine Cookies, keine Schriften-CDN, kein KI-Dienst – und der Hinweis, dass sich all das im Quelltext nachprüfen lässt |
 | 📄 | **Vorlagen & Musterdokumente** | Fertige Dokumente lokal erzeugt: Open-Data-Richtlinie und DSFA-Kurz-Checkliste (Muster) sowie aus dem Inventar generierte Veröffentlichungs-Freigabe-Formulare und ein VVT-Auszug der DSGVO-relevanten Datensätze – als PDF druckbar oder als Markdown/CSV ladbar |
@@ -116,7 +116,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 361 Tests, ~145 s
+npm test                         # 367 Tests, ~145 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -306,7 +306,7 @@ datenlotse/
 │   ├── sample-landkreis.csv    # Beispiel: fiktive Kreisverwaltung (12 Datensätze)
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (361 Tests)
+├── tests/                      # Playwright-End-to-End-Tests (367 Tests)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection
