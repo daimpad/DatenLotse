@@ -515,7 +515,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v61';
+const APP_VERSION = 'v62';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -3008,11 +3008,18 @@ const GLOSSARY = [
 ];
 
 const LEGAL_BASIS = [
-  { name: 'Open-Data-Gesetz (§ 12a EGovG)', summary: 'Verpflichtet Bundesbehörden, unbearbeitete Daten maschinenlesbar und offen bereitzustellen.', url: 'https://www.gesetze-im-internet.de/egovg/__12a.html' },
+  { name: 'Open-Data-Gesetz (§ 12a EGovG)', summary: 'Verpflichtet die Behörden des Bundes, unbearbeitete Daten maschinenlesbar und offen bereitzustellen. Durch das OZG-Änderungsgesetz (2024) über die unmittelbare Bundesverwaltung hinaus ausgeweitet (ohne Selbstverwaltungskörperschaften); dazu kamen die Benennung von Open-Data-Koordinatoren, eine zentrale Beratungsstelle und eine zweijährliche Berichtspflicht.', url: 'https://www.gesetze-im-internet.de/egovg/__12a.html' },
   { name: 'E-Government-Gesetz (EGovG)', summary: 'Rechtsrahmen für die elektronische Verwaltung des Bundes – enthält u. a. die Open-Data-Pflicht (§ 12a).', url: 'https://www.gesetze-im-internet.de/egovg/' },
   { name: 'Datennutzungsgesetz (DNG)', summary: 'Setzt die EU-Open-Data-Richtlinie um und regelt die Weiterverwendung von Verwaltungsdaten; löste das IWG ab.', url: 'https://www.gesetze-im-internet.de/dng/' },
   { name: 'EU Open Data Directive (2019/1024)', summary: 'EU-Richtlinie zur offenen Bereitstellung und Weiterverwendung von Daten des öffentlichen Sektors (vormals PSI-Richtlinie).', url: 'https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32019L1024' },
   { name: 'Hochwertige Datensätze – DVO (EU) 2023/138', summary: 'Legt fest, welche Datensätze als hochwertig gelten (Georaum, Erdbeobachtung und Umwelt, Meteorologie, Statistik, Unternehmen, Mobilität) und wie sie zu veröffentlichen sind: kostenfrei, maschinenlesbar, über eine API und unter CC BY 4.0 oder einer weniger einschränkenden Lizenz. Anzuwenden seit 9. Juni 2024.', url: 'https://eur-lex.europa.eu/eli/reg_impl/2023/138/oj?locale=de' },
+  /* Beide Verordnungen betreffen die Weitergabe und Weiterverwendung von
+     Daten und gehören damit in dieselbe Liste. Verlinkt ist jeweils die
+     EU-Verordnung – die deutschen Durchführungsgesetze (DADG, DGG) sind
+     im Text benannt, aber nicht verlinkt, weil ihre Fundstelle nicht
+     gegen das amtliche Portal geprüft werden konnte. */
+  { name: 'Data Act – VO (EU) 2023/2854', summary: 'Regelt den Zugang zu Daten vernetzter Produkte und deren Weitergabe. Kapitel V verpflichtet Dateninhaber nur bei „außergewöhnlicher Notwendigkeit" (etwa Naturkatastrophen oder Notlagen) zur Bereitstellung nicht personenbezogener Daten an öffentliche Stellen – es ist also kein allgemeiner Datenzugang. Anwendbar seit 12. September 2025; das deutsche Durchführungsgesetz (DADG) ist seit 30. Mai 2026 in Kraft, zuständige Behörde ist die Bundesnetzagentur.', url: 'https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32023R2854' },
+  { name: 'Data Governance Act – VO (EU) 2022/868', summary: 'Schafft den Rahmen für Datenvermittlungsdienste und Datenaltruismus. Für Behörden ist vor allem Kapitel II einschlägig: die Weiterverwendung geschützter Verwaltungsdaten. Das deutsche Daten-Governance-Gesetz (DGG) ist seit 19. Mai 2026 in Kraft; zentrale Informationsstelle nach Kapitel II ist das Statistische Bundesamt, das unter anderem bei Anonymisierung und Pseudonymisierung unterstützt.', url: 'https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32022R0868' },
   { name: 'Informationsfreiheitsgesetz (IFG)', summary: 'Gibt jeder Person einen Anspruch auf Zugang zu amtlichen Informationen des Bundes.', url: 'https://www.gesetze-im-internet.de/ifg/' },
   { name: 'DSGVO (VO (EU) 2016/679)', summary: 'EU-Datenschutz-Grundverordnung – Grundlage für den rechtmäßigen Umgang mit personenbezogenen Daten.', url: 'https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32016R0679' },
   { name: 'Bundesdatenschutzgesetz (BDSG)', summary: 'Ergänzt die DSGVO national und konkretisiert sie für Deutschland (u. a. Behörden, Beschäftigtendatenschutz).', url: 'https://www.gesetze-im-internet.de/bdsg_2018/' },
@@ -3106,11 +3113,11 @@ const PRUEF_WERKZEUGE = [
   { name: 'SHACL-Validator der EU (DCAT-AP)',
     summary: 'Offizieller Validator der Interoperability Test Bed: JSON-LD oder Turtle hochladen bzw. per URL prüfen lassen. Deckt die vollständigen SHACL-Regeln ab – mehr, als eine regelbasierte Prüfung im Browser leisten kann.',
     url: 'https://www.itb.ec.europa.eu/shacl/dcat-ap/upload' },
-  { name: 'DCAT-AP.de-Spezifikation 2.0',
-    summary: 'Der Normtext hinter dem Export: semantische Regeln für die Kommunikation mit GovData und dem europäischen Datenportal.',
-    url: 'https://www.dcat-ap.de/def/dcatde/2.0/spec/' },
-  { name: 'DCAT-AP.de-Konventionenhandbuch',
-    summary: 'Ergänzende Regeln, Wertelisten und URIs, die speziell für die Anlieferung an GovData gelten – hier steht auch, welche Felder beim Harvesting tatsächlich verlangt werden.',
+  { name: 'DCAT-AP.de-Spezifikation',
+    summary: 'Der Normtext hinter dem Export: semantische Regeln für die Kommunikation mit GovData und dem europäischen Datenportal. Aktuell ist Version 3.0, die Adaption von DCAT-AP 3.0 – neu sind dort unter anderem Datensatzserien und das generische `applicableLegislation`, über das auch die hochwertigen Datensätze gekennzeichnet werden.',
+    url: 'https://www.dcat-ap.de/def/' },
+  { name: 'DCAT-AP.de-Konventionenhandbuch (2.0)',
+    summary: 'Ergänzende Regeln, Wertelisten und URIs, die speziell für die Anlieferung an GovData gelten – hier steht auch, welche Felder beim Harvesting tatsächlich verlangt werden. Bleibt bei Version 2.0: eine geschlossene Fortschreibung auf 3.0 ist nicht vorgesehen, ergänzt wird stattdessen durch Best Practices.',
     url: 'https://www.dcat-ap.de/def/dcatde/2.0/implRules/' },
   { name: 'GovData: Metadaten-Struktur',
     summary: 'Portalseitige Beschreibung des Metadatenschemas – nützlich für die Abstimmung mit der eigenen Datenbereitstellung.',
