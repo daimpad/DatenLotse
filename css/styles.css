@@ -1120,6 +1120,31 @@ a { color: var(--c-accent); }
 
 /* ── Bestandsprüfung (übergreifend) ───────────────────────────── */
 .quality-inventory { min-width: 0; }
+
+/* ── Metadaten-Güte nach dem MQA-Schema ── */
+.quality-mqa { min-width: 0; }
+.quality-mqa:not(:empty) {
+  background: var(--glass-bg); border: 1px solid var(--c-border-s);
+  border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px;
+}
+.qual-mqa-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; margin-bottom: 14px; }
+.qual-mqa-head strong { font-size: 15px; color: var(--c-accent); }
+.qual-mqa-score { margin-left: auto; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.qual-mqa-score span { font-size: 12px; font-weight: 500; color: var(--c-muted); }
+.qual-mqa-dims { display: flex; flex-direction: column; gap: 8px; }
+.qual-mqa-dim { display: grid; grid-template-columns: minmax(0, 160px) 1fr 44px; align-items: center; gap: 10px; }
+.qual-mqa-dim-lbl { font-size: 12px; color: var(--c-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qual-mqa-dim-lbl i { color: var(--c-accent); margin-right: 5px; }
+.qual-mqa-bar { height: 8px; border-radius: 4px; background: rgba(122,117,145,0.16); overflow: hidden; }
+.qual-mqa-bar > span { display: block; height: 100%; border-radius: 4px; background: var(--c-accent); transition: width 0.25s var(--ease-fluid); }
+.qual-mqa-pct { font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.qual-mqa-hint { font-size: 12.5px; margin-top: 14px; }
+.qual-mqa-anteil { color: var(--c-muted); }
+.qual-mqa-note { font-size: 11.5px; color: var(--c-muted); margin-top: 10px; line-height: 1.5; }
+@media (max-width: 600px) {
+  .qual-mqa-dim { grid-template-columns: 1fr 44px; }
+  .qual-mqa-bar { grid-column: 1 / -1; order: 3; }
+}
 .qual-cross {
   margin: 0 0 18px;
   padding: 14px 16px;

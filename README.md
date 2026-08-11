@@ -37,6 +37,7 @@
 | 📥 | **DCAT-AP.de-Katalog einlesen** | Wer bereits veröffentlicht, braucht kein Erstinventar, sondern eine Prüfung des Bestands: einen vorhandenen JSON-LD-Katalog einlesen, gegen die Qualitätsprüfung halten und mit Clearing und Governance verbinden. Zusammengeführt über die `id` – bereits gegebene Clearing-Antworten bleiben |
 | ♻️ | **Rückimport der Inventar-CSV** | Die exportierte Liste außerhalb bearbeiten (Tabellenkalkulation, Zuarbeit aus den Fachbereichen) und wieder einlesen. Der Import **führt über die `id` zusammen statt zu ersetzen** – bereits gegebene Clearing-Antworten bleiben erhalten |
 | 🗂️ | **Verteilungen je Datensatz** | Ein Datensatz kann in mehreren Formaten vorliegen – CSV *und* JSON *und* GeoJSON, je mit eigener Zugriffs-URL und Lizenz. Genau so modelliert es DCAT-AP.de; die Vollständigkeit verlangt entsprechend eine Lizenz **je** Verteilung |
+| 📐 | **Metadaten-Güte (MQA)** | Statt gefüllte Pflichtfelder zu zählen, bewertet DatenLotse die Beschreibung graduell nach dem Schema der **Metadata Quality Assurance** von data.europa.eu: fünf FAIR-Dimensionen, 405 Punkte, 18 Prüfungen. Der Qualitäts-Tab zeigt, **wo** das Inventar schwach ist – „Auffindbarkeit 20 %" ist ein Arbeitsauftrag, ein Durchschnitt ist nur eine Zahl. ⚠️ Nicht identisch mit dem Wert des Portals: dort werden Adressen tatsächlich abgerufen, DatenLotse macht keine Netzaufrufe und prüft nur Vorhandensein und Wohlgeformtheit |
 | 🔍 | **Suche, Filter & Sortierung** | Inventar live durchsuchen (Titel/Publisher/Quellsystem), nach Schutzbedarf, Clearing-Ampel oder **Publikationsreife** filtern und nach Titel, Vollständigkeit oder **Publikationsreife** sortieren – Editieren bleibt auch über gefilterten Teilmengen korrekt |
 | 📊 | **Status-Dashboard** | Startseite zeigt – sobald Daten vorliegen – Live-Kennzahlen über alle Bausteine (Kompass-Reifegrad, Inventar-Anzahl & Ø-Vollständigkeit, Clearing-Ampelverteilung, Governance-Reifegrad) mit Schnellsprung direkt zum Weiterarbeiten |
 | 📤 | **DCAT-Export (JSON-LD, RDF/Turtle, CSV)** | DCAT-AP.de-konformes JSON-LD (`dcat:Catalog`/`dcat:Dataset` mit `@context`) zum Harvesting durch GovData/CKAN, dieselbe Ausgabe als **RDF/Turtle** (`.ttl`, für Portale die RDF direkt harvesten) sowie eine flache CSV-Liste |
@@ -115,7 +116,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 355 Tests, ~140 s
+npm test                         # 361 Tests, ~145 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -305,7 +306,7 @@ datenlotse/
 │   ├── sample-landkreis.csv    # Beispiel: fiktive Kreisverwaltung (12 Datensätze)
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (355 Tests)
+├── tests/                      # Playwright-End-to-End-Tests (361 Tests)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection
