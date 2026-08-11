@@ -507,6 +507,8 @@ test.describe('Beispieldaten, Verlauf & Prüfwerkzeuge', () => {
       'Musterdatenkatalog': 'govdata.de',
       'ARX Data Anonymization Tool': 'arx.deidentifier.org',
       'OParl 1.1': 'oparl.org',
+      'Initiative Transparente Zivilgesellschaft': 'transparente-zivilgesellschaft.de',
+      'Offene Daten der Zivilgesellschaft – Leitfaden': 'bertelsmann-stiftung.de',
     };
     const eintraege = await page.evaluate(() => PRUEF_WERKZEUGE.map(w => ({ n: w.name, u: w.url })));
     expect(eintraege.map(e => e.n).sort()).toEqual(Object.keys(HERKUNFT).sort());
@@ -1142,5 +1144,57 @@ test.describe('Zivilgesellschaftliche Anknüpfungspunkte (v64)', () => {
     await expect(page.locator('#wissen-tools')).toContainText('ARX');
     await page.fill('#wissen-search', 'digcomp');
     await expect(page.locator('#wissen-models')).toContainText('DigComp');
+  });
+});
+
+/* v65: Initiative Transparente Zivilgesellschaft. Quelle sind
+   Suchergebnisse, nicht der Volltext – die Formulierung darf deshalb
+   keine Vollständigkeit behaupten. Genau das halten diese Tests fest. */
+test.describe('Initiative Transparente Zivilgesellschaft (v65)', () => {
+  const eintrag = page => page.evaluate(() =>
+    PRUEF_WERKZEUGE.find(w => /Transparente Zivilgesellschaft/.test(w.name)));
+
+  test('steht mit der Seite der Initiative selbst in der Liste', async ({ page }) => {
+    await openApp(page);
+    const e = await eintrag(page);
+    expect(e).toBeTruthy();
+    expect(e.url).toBe('https://www.transparente-zivilgesellschaft.de/');
+    expect(e.summary).toMatch(/Transparency International Deutschland/);
+    expect(e.summary).toMatch(/zehn/);
+  });
+
+  test('die genannten Punkte sind ausdrücklich ein Ausschnitt', async ({ page }) => {
+    await openApp(page);
+    const s = (await eintrag(page)).summary;
+    // Aus den Suchergebnissen sind fünf der zehn Punkte belegt. Der Text
+    // muss das als Ausschnitt kennzeichnen und für den Wortlaut auf die
+    // Quelle verweisen – sonst liest es sich als vollständige Liste.
+    expect(s).toMatch(/darunter/);
+    expect(s).toMatch(/vollständigen Wortlaut/);
+    // Und er darf die Zahl der Unterzeichnenden nicht führen: sie altert,
+    // wie alle Jahreszahlen, die das Werkzeug bewusst nicht führt.
+    expect(s).not.toMatch(/\d\.\d{3}\s*(Organisationen|Unterzeichn)/);
+  });
+
+  test('der Praxisleitfaden nennt Autor und Herausgeberin', async ({ page }) => {
+    await openApp(page);
+    const e = await page.evaluate(() =>
+      PRUEF_WERKZEUGE.find(w => /Offene Daten der Zivilgesellschaft/.test(w.name)));
+    expect(e).toBeTruthy();
+    expect(e.summary).toMatch(/Krabina/);
+    expect(e.summary).toMatch(/Bertelsmann Stiftung/);
+    // Für zivilgesellschaftliche Akteure geschrieben – das ist der Punkt
+    expect(e.summary).toMatch(/nicht für Verwaltungen/);
+    // Keine Lizenzangabe: sie war aus den Suchergebnissen nicht belegt
+    expect(e.summary).not.toMatch(/CC BY/);
+  });
+
+  test('beide sind über die Volltextsuche auffindbar', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => navTo('wissen'));
+    await page.fill('#wissen-search', 'zivilgesellschaft');
+    const tools = page.locator('#wissen-tools');
+    await expect(tools).toContainText('Initiative Transparente Zivilgesellschaft');
+    await expect(tools).toContainText('Offene Daten der Zivilgesellschaft');
   });
 });
