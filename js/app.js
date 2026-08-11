@@ -515,7 +515,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v60';
+const APP_VERSION = 'v61';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -3750,6 +3750,21 @@ function runPseudonymize() {
   dlBtn.hidden = false;
 }
 
+/* Wird der Eingabetext geändert, gehört das alte Ergebnis weg: sonst
+   steht eine bereinigte Fassung auf dem Schirm, die zum Text daneben
+   nicht mehr passt – und `lastPseudoText` gäbe sie über „Herunterladen"
+   auch noch heraus. Derselbe Fehler wie in der Spaltenbereinigung. */
+function pseudoTextInvalidate() {
+  const outEl = document.getElementById('pseudo-output');
+  const mapEl = document.getElementById('pseudo-mapping');
+  const dlBtn = document.getElementById('pseudo-download-btn');
+  if (!outEl || lastPseudoText === null) return;
+  outEl.innerHTML = '<span class="pseudo-placeholder">Der Text wurde geändert – bitte erneut bereinigen.</span>';
+  if (mapEl) mapEl.innerHTML = '';
+  if (dlBtn) dlBtn.hidden = true;
+  lastPseudoText = null;
+}
+
 /* ── Spaltenweise CSV-Bereinigung ─────────────────────────────────
    Die Muster sind bewusst kontextgetriggert (siehe PSEUDO_PATTERNS) und
    greifen deshalb in strukturierten Daten oft nicht: in einer Spalte „Name“
@@ -3825,12 +3840,34 @@ function renderPseudoCsv() {
     }).join('') + `</div>`;
 
   box.querySelectorAll('[data-col-mode]').forEach(sel => sel.addEventListener('change', () => {
-    pseudoCsv.cols[+sel.dataset.colMode].mode = sel.value;
-    renderPseudoCsv();   // Typ-Auswahl nur bei „ganze Spalte“ aktiv
+    const i = +sel.dataset.colMode;
+    pseudoCsv.cols[i].mode = sel.value;
+    /* Nur die Typ-Auswahl derselben Zeile umschalten, nicht die ganze Box
+       neu rendern – sonst verliert das gerade bediente Feld den Fokus.
+       Dieselbe Regel wie im Risiko-Tab und in der Massenbearbeitung. */
+    const typ = box.querySelector(`[data-col-type="${i}"]`);
+    if (typ) {
+      typ.disabled = sel.value !== 'ganz';
+      typ.closest('.pseudo-csv-sel')?.classList.toggle('pseudo-csv-sel--off', sel.value !== 'ganz');
+    }
+    pseudoCsvInvalidate();
   }));
   box.querySelectorAll('[data-col-type]').forEach(sel => sel.addEventListener('change', () => {
     pseudoCsv.cols[+sel.dataset.colType].type = sel.value;
+    pseudoCsvInvalidate();
   }));
+  if (run) run.disabled = !Object.values(pseudoCsv.cols).some(c => c.mode);
+}
+
+/* Jede Änderung an der Spaltenkonfiguration macht ein vorhandenes
+   Ergebnis ungültig. Es stehen zu lassen ist hier nicht nur unschön:
+   der Knopf „Bereinigte CSV" hält die Ausgabe des LETZTEN Laufs fest –
+   auf dem Schirm stünde „Spalte ersetzen", die heruntergeladene Datei
+   trüge den Wert aber weiter im Klartext. */
+function pseudoCsvInvalidate() {
+  const out = document.getElementById('pseudo-csv-out');
+  if (out) out.innerHTML = '';
+  const run = document.getElementById('pseudo-csv-run');
   if (run) run.disabled = !Object.values(pseudoCsv.cols).some(c => c.mode);
 }
 
@@ -4153,6 +4190,7 @@ function pickPseudoFile() {
 }
 
 document.getElementById('pseudo-clean-btn')?.addEventListener('click', runPseudonymize);
+document.getElementById('pseudo-input')?.addEventListener('input', pseudoTextInvalidate);
 document.getElementById('pseudo-tab-text')?.addEventListener('click', () => showPseudoTab('text'));
 document.getElementById('pseudo-tab-csv')?.addEventListener('click', () => showPseudoTab('csv'));
 document.getElementById('pseudo-tab-risiko')?.addEventListener('click', () => showPseudoTab('risiko'));

@@ -300,3 +300,81 @@ test.describe('Pseudonymisierung – CSV spaltenweise', () => {
     expect(map.text).toContain('Max Mustermann');
   });
 });
+
+/* v61: dieselben drei Fehlerklassen, die v57 im Risiko-Tab behoben hat –
+   sie steckten auch in den beiden Schwester-Tabs. Der CSV-Fall ist der
+   schwerste, weil ein Download daran hängt. */
+test.describe('Ergebnis bleibt zur Eingabe passend (v61)', () => {
+  const csvTab = async page => {
+    await openApp(page);
+    await page.evaluate(() => navTo('pseudo'));
+    await page.click('#pseudo-tab-csv');
+    await page.fill('#pseudo-csv-input', 'Name,Ort\nAnna Beispiel,Leipzig');
+  };
+
+  test('die bereinigte CSV passt immer zur angezeigten Konfiguration', async ({ page }) => {
+    await csvTab(page);
+    await page.selectOption('[data-col-mode="0"]', 'ganz');
+    await page.click('#pseudo-csv-run');
+    await expect(page.locator('#pseudo-csv-out')).toContainText('Ersetzungen');
+
+    // Zweite Spalte dazunehmen, ohne erneut zu bereinigen.
+    await page.selectOption('[data-col-mode="1"]', 'ganz');
+    // Vorher blieb das alte Ergebnis stehen – und der Knopf „Bereinigte CSV"
+    // hätte eine Datei geliefert, in der „Leipzig" noch im Klartext steht,
+    // obwohl die Konfiguration daneben „ganze Spalte ersetzen" sagte.
+    await expect(page.locator('#pseudo-csv-out')).toBeEmpty();
+    await expect(page.locator('#pseudo-csv-dl')).toHaveCount(0);
+
+    await page.click('#pseudo-csv-run');
+    const csv = await page.evaluate(() => buildPseudoCSVResult().csv);
+    expect(csv).not.toContain('Leipzig');
+    expect(csv).not.toContain('Anna Beispiel');
+  });
+
+  test('auch ein geänderter Entitätstyp verwirft das Ergebnis', async ({ page }) => {
+    await csvTab(page);
+    await page.selectOption('[data-col-mode="0"]', 'ganz');
+    await page.click('#pseudo-csv-run');
+    await expect(page.locator('#pseudo-csv-out')).not.toBeEmpty();
+    await page.selectOption('[data-col-type="0"]', 'plzort');
+    await expect(page.locator('#pseudo-csv-out')).toBeEmpty();
+  });
+
+  test('der Fokus bleibt beim Umschalten einer Spaltenbehandlung stehen', async ({ page }) => {
+    await csvTab(page);
+    await page.locator('[data-col-mode="1"]').focus();
+    await page.selectOption('[data-col-mode="1"]', 'ganz');
+    // Vorher rutschte der Fokus auf <body>, weil die ganze Box neu
+    // gerendert wurde – dieselbe Lehre wie im Risiko-Tab.
+    expect(await page.evaluate(() => document.activeElement.dataset.colMode)).toBe('1');
+    // Die Typ-Auswahl derselben Zeile wird trotzdem aktiviert
+    await expect(page.locator('[data-col-type="1"]')).toBeEnabled();
+    await expect(page.locator('[data-col-type="0"]')).toBeDisabled();
+  });
+
+  test('im Freitext verwirft eine Textänderung das alte Ergebnis', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => navTo('pseudo'));
+    await page.fill('#pseudo-input', 'Herr Max Mustermann wohnt in 12345 Musterstadt.');
+    await page.click('#pseudo-clean-btn');
+    await expect(page.locator('#pseudo-download-btn')).toBeVisible();
+    await expect(page.locator('#pseudo-output')).toContainText('[PERSON_1]');
+
+    await page.fill('#pseudo-input', 'Ein ganz anderer Text.');
+    // Vorher stand die alte bereinigte Fassung weiter da – und
+    // „Herunterladen" hätte sie auch noch herausgegeben.
+    await expect(page.locator('#pseudo-output')).toContainText('erneut bereinigen');
+    await expect(page.locator('#pseudo-download-btn')).toBeHidden();
+    expect(await page.evaluate(() => lastPseudoText)).toBe(null);
+    await expect(page.locator('#pseudo-mapping')).toBeEmpty();
+  });
+
+  test('ohne vorheriges Ergebnis tut die Textänderung nichts', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => navTo('pseudo'));
+    await page.fill('#pseudo-input', 'Nur getippt, nie bereinigt.');
+    // Der Platzhaltertext der leeren Ausgabe darf nicht überschrieben werden
+    await expect(page.locator('#pseudo-output')).not.toContainText('erneut bereinigen');
+  });
+});
