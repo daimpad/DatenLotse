@@ -276,7 +276,6 @@ a { color: var(--c-accent); }
 .graf-bridge-panel {
   background: #fff;
   border: 1px solid var(--glass-border);
-  border-left: 4px solid var(--c-accent);
   border-radius: 18px;
   box-shadow: var(--shadow-md);
   padding: 26px 28px;
@@ -291,7 +290,7 @@ a { color: var(--c-accent); }
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(135deg, #420093 0%, #6c2fbf 100%);
   color: #fff;
-  font-size: 18px;
+  font-size: 22px;
 }
 .graf-bridge-body { min-width: 0; }
 .graf-bridge-title {
@@ -1493,37 +1492,6 @@ a { color: var(--c-accent); }
 }
 
 /* ── Onboarding-Rundgang ──────────────────────────────────────── */
-.tour-hint.hidden { display: none; }
-.tour-hint {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
-  max-width: 1180px;
-  margin: 0 auto var(--home-gap);
-  padding: 14px 18px;
-  background: #fff;
-  border: 1px solid var(--c-border-s);
-  border-left: 4px solid var(--c-accent);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  min-width: 0;
-}
-.tour-hint-text { font-size: 14px; color: var(--c-text); display: flex; align-items: center; gap: 9px; min-width: 0; }
-.tour-hint-text i { color: var(--c-accent); }
-.tour-hint-btns { display: flex; align-items: center; gap: 8px; }
-.tour-hint-close {
-  background: none;
-  border: none;
-  color: var(--c-muted);
-  font-size: 15px;
-  cursor: pointer;
-  padding: 6px 8px;
-  border-radius: 7px;
-}
-.tour-hint-close:hover { background: rgba(66, 0, 147, 0.07); color: var(--c-accent); }
-
 /* Das Abdunkeln liegt UNTER der hervorgehobenen Stelle (1201) und deshalb
    an body::before, nicht am Layer: `position: fixed` macht den Layer zum
    eigenen Stapelkontext, aus dem die Karte nicht herauskommt – sie stünde

@@ -2,30 +2,32 @@ const { test, expect } = require('@playwright/test');
 const { openApp, loadSample } = require('./helpers');
 
 test.describe('Onboarding-Rundgang', () => {
-  test('Erstnutzer bekommen einen Hinweis, kein aufgezwungenes Modal', async ({ page }) => {
+  test('kein aufgezwungenes Modal – der Rundgang wird angeboten', async ({ page }) => {
     const errors = await openApp(page);
     // Bewusst KEIN Auto-Start: der Rundgang wird angeboten, nicht aufgedrängt
     await expect(page.locator('#tour-layer')).toBeHidden();
-    await expect(page.locator('#tour-hint')).toBeVisible();
+    // …aber sichtbar angeboten, im Hero und dauerhaft in der Seitenleiste
+    await expect(page.locator('#hero-tour-btn')).toBeVisible();
     expect(errors).toEqual([]);
   });
 
-  test('weggeklickter Hinweis bleibt über den Reload weg', async ({ page }) => {
+  /* v68: Der wegklickbare Hinweis `#tour-hint` ist entfallen – der Hero bietet
+     den Rundgang jetzt dauerhaft an, der Hinweis war die zweite Einladung an
+     derselben Seite. Mit ihm entfällt sein einziger Leser: der Schlüssel
+     `datenlotse_tour` wurde sonst nur noch geschrieben und von niemandem gelesen. */
+  test('kein Rundgang-Hinweis und kein verwaister Speicher-Schlüssel mehr', async ({ page }) => {
     await openApp(page);
-    await page.locator('#tour-hint-close').click();
-    await expect(page.locator('#tour-hint')).toBeHidden();
-    expect(await page.evaluate(() => localStorage.getItem('datenlotse_tour'))).toBe('done');
-
-    await page.reload();
-    await page.waitForFunction(() => typeof pseudonymize === 'function');
-    await expect(page.locator('#tour-hint')).toBeHidden();
+    expect(await page.locator('#tour-hint').count()).toBe(0);
+    await page.evaluate(() => { startTour(); endTour(); });
+    expect(await page.evaluate(() => localStorage.getItem('datenlotse_tour'))).toBeNull();
+    expect(await page.evaluate(() => typeof refreshTourHint)).toBe('undefined');
   });
 
   test('Rundgang führt durch alle Schritte und wechselt dabei die Ansicht', async ({ page }) => {
     const errors = await openApp(page);
     await loadSample(page);
     await page.evaluate(() => navTo('home'));
-    await page.locator('#tour-hint-start').click();
+    await page.locator('#hero-tour-btn').click();
 
     const gesamt = await page.evaluate(() => TOUR_STEPS.length);
     await expect(page.locator('#tour-card')).toContainText(`Schritt 1 von ${gesamt}`);
@@ -52,7 +54,6 @@ test.describe('Onboarding-Rundgang', () => {
     await page.evaluate(() => startTour());
     for (let i = 0; i < gesamt; i++) await page.locator('#tour-next').click();
     await expect(page.locator('#tour-layer')).toBeHidden();
-    expect(await page.evaluate(() => localStorage.getItem('datenlotse_tour'))).toBe('done');
   });
 
   test('Escape und „Überspringen“ beenden den Rundgang', async ({ page }) => {
@@ -123,8 +124,6 @@ test.describe('Onboarding-Rundgang', () => {
 
   test('Rundgang lässt sich über die Seitenleiste wiederholen', async ({ page }) => {
     await openApp(page);
-    await page.evaluate(() => markTourSeen());
-    await expect(page.locator('#tour-hint')).toBeHidden();
 
     await page.locator('#sidebar-toggle-btn').click();
     await page.locator('#sidebar-tour').click();
