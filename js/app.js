@@ -70,6 +70,94 @@ const LICENSE_OPTIONS = [['', '— bitte wählen —'], ...LICENSE_CATALOG.flatM
 
 function licenseIsOpen(id) { return !!(LICENSE_META[id] && LICENSE_META[id].open); }
 
+/* ── Lizenz-Kompatibilität ────────────────────────────────────────
+   Das Register listet 20 Lizenzen, sagte aber nichts über ihr
+   Zusammenspiel. Wer zwei Bestände zusammenführt – eigene Daten plus
+   eine fremde Quelle – erfährt das Problem sonst erst hinterher.
+
+   Bewusst ein HINWEIS mit Quellenangabe, kein Urteil: das Werkzeug
+   benennt die Pflichten, die sich aus den Lizenztexten ergeben, und
+   sagt, wo sie einander widersprechen. Ob eine Zusammenführung im
+   Einzelfall zulässig ist, entscheidet es nicht – das ist eine
+   Rechtsfrage, und DatenLotse leistet keine Rechtsberatung.
+
+   `sa` benennt die Copyleft-FAMILIE, nicht nur das Vorhandensein:
+   CC BY-SA und ODbL verlangen beide das Ergebnis unter sich selbst und
+   sind deshalb gegenseitig unvereinbar – zwei Mal `true` allein würde
+   diesen Fall verfehlen. */
+const LICENSE_TRAITS = {
+  'dl-de/by-2-0':     { by: true,  sa: '',  nc: false, nd: false },
+  'dl-de/zero-2-0':   { by: false, sa: '',  nc: false, nd: false, frei: true },
+  'cc-by-4.0':        { by: true,  sa: '',  nc: false, nd: false },
+  'cc-zero':          { by: false, sa: '',  nc: false, nd: false, frei: true },
+  'cc-by-sa-4.0':     { by: true,  sa: 'cc-by-sa', nc: false, nd: false },
+  'dl-de/by-1-0':     { by: true,  sa: '',  nc: false, nd: false },
+  'cc-by-3.0-de':     { by: true,  sa: '',  nc: false, nd: false },
+  'geonutzv-de-2013': { by: true,  sa: '',  nc: false, nd: false },
+  'official-work':    { by: false, sa: '',  nc: false, nd: false, frei: true, amtlich: true },
+  'odc-by':           { by: true,  sa: '',  nc: false, nd: false },
+  'odc-odbl':         { by: true,  sa: 'odbl', nc: false, nd: false },
+  'odc-pddl':         { by: false, sa: '',  nc: false, nd: false, frei: true },
+  'gfdl':             { by: true,  sa: 'gfdl', nc: false, nd: false },
+  'cc-by-nc-4.0':     { by: true,  sa: '',  nc: true,  nd: false },
+  'cc-by-nd-4.0':     { by: true,  sa: '',  nc: false, nd: true },
+  'cc-by-nc-sa-4.0':  { by: true,  sa: 'cc-by-nc-sa', nc: true, nd: false },
+  'cc-by-nc-nd-4.0':  { by: true,  sa: '',  nc: true,  nd: true },
+  'dl-de/by-nc-1-0':  { by: true,  sa: '',  nc: true,  nd: false },
+  // 'other-open' und 'other-closed' benennen keine konkrete Lizenz und
+  // stehen bewusst NICHT hier – sie führen zum Ergebnis „unklar".
+};
+
+/* Liefert { status, pflichten, gruende } für die Zusammenführung zweier
+   Bestände. status: 'ok' | 'achtung' | 'unvereinbar' | 'unklar'. */
+function licenseCompat(a, b) {
+  const ta = LICENSE_TRAITS[a], tb = LICENSE_TRAITS[b];
+  if (!a || !b) return { status: 'unklar', pflichten: [], gruende: ['Bitte zwei Lizenzen wählen.'] };
+  if (!ta || !tb) {
+    const offen = [a, b].filter(x => !LICENSE_TRAITS[x]).map(x => (LICENSE_META[x] || {}).label || x);
+    return { status: 'unklar', pflichten: [],
+             gruende: [`Für ${offen.join(' und ')} liegt kein festgelegter Lizenztext vor – die Bedingungen müssen Sie der jeweiligen Lizenz selbst entnehmen.`] };
+  }
+  const gruende = [];
+
+  // Keine Bearbeitung: eine Zusammenführung IST eine Bearbeitung.
+  const nd = [[a, ta], [b, tb]].filter(([, t]) => t.nd);
+  if (nd.length) {
+    nd.forEach(([id]) => gruende.push(`${LICENSE_META[id].label} verbietet Bearbeitungen (ND). Eine Zusammenführung ist eine Bearbeitung.`));
+    return { status: 'unvereinbar', pflichten: [], gruende };
+  }
+
+  // Zwei verschiedene Copyleft-Familien: jede verlangt das Ergebnis unter
+  // sich selbst, beides zugleich geht nicht.
+  if (ta.sa && tb.sa && ta.sa !== tb.sa) {
+    gruende.push(`${LICENSE_META[a].label} und ${LICENSE_META[b].label} sind beide Copyleft-Lizenzen aus verschiedenen Familien – jede verlangt das Ergebnis unter sich selbst.`);
+    return { status: 'unvereinbar', pflichten: [], gruende };
+  }
+
+  // Copyleft ohne NC trifft auf NC: das Ergebnis müsste zugleich
+  // kommerzielle Nutzung erlauben (Copyleft) und verbieten (NC).
+  const saOhneNc = (ta.sa && !ta.nc) ? a : (tb.sa && !tb.nc) ? b : '';
+  const ncSeite  = ta.nc ? a : tb.nc ? b : '';
+  if (saOhneNc && ncSeite) {
+    gruende.push(`${LICENSE_META[saOhneNc].label} verlangt das Ergebnis unter denselben Bedingungen und erlaubt dabei kommerzielle Nutzung – ${LICENSE_META[ncSeite].label} verbietet sie. Beides zugleich ist nicht erfüllbar.`);
+    return { status: 'unvereinbar', pflichten: [], gruende };
+  }
+
+  const pflichten = [];
+  if (ta.by || tb.by) { pflichten.push('attribution'); gruende.push('Das Ergebnis muss die Quellen nennen (Namensnennung).'); }
+  const sa = ta.sa || tb.sa;
+  if (sa) { pflichten.push('share-alike'); gruende.push(`Das Ergebnis muss unter ${LICENSE_META[ta.sa ? a : b].label} stehen (Copyleft).`); }
+  if (ta.nc || tb.nc) {
+    pflichten.push('nicht-kommerziell');
+    gruende.push('Das Ergebnis darf nur nicht-kommerziell genutzt werden – damit gilt es nach der Open Definition nicht als offen.');
+  }
+  if (ta.amtlich || tb.amtlich) {
+    gruende.push('„Amtliches Werk" setzt eine amtliche Herkunft voraus (§ 5 UrhG) – es lässt sich nicht durch eine Entscheidung des Herausgebers wählen.');
+  }
+  if (!pflichten.length) gruende.push('Beide Bestände sind ohne Bedingungen nutzbar – das Ergebnis kann frei bleiben.');
+  return { status: (ta.nc || tb.nc) ? 'achtung' : 'ok', pflichten, gruende };
+}
+
 // Dropdown mit <optgroup>; ein unbekannter (z. B. legacy) Wert bleibt erhalten
 function licenseSelectHTML(selected) {
   let html = `<option value=""${selected ? '' : ' selected'}>— bitte wählen —</option>`;
@@ -427,7 +515,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v58';
+const APP_VERSION = 'v59';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -1552,6 +1640,18 @@ function validateDataset(d) {
        nicht an einer Entscheidung des Herausgebers. Gemeldet wird das nur,
        wenn die Rechtspflicht-Frage schon mit „nein" beantwortet ist – ohne
        Angabe bleibt es wie bisher (dieselbe Zurueckhaltung wie in v55). */
+    /* Verschiedene Lizenzen an den Verteilungen DESSELBEN Datensatzes:
+       DCAT-AP.de erlaubt das, für Nachnutzende ist es aber eine Falle –
+       wer die CSV nimmt, unterliegt anderen Bedingungen als wer die JSON
+       nimmt. Warnung, kein Fehler: es gibt legitime Gründe dafür. */
+    if (i === 0 && dists.length > 1) {
+      const lizenzen = [...new Set(dists.map(y => y.license).filter(y => !empty(y)))];
+      if (lizenzen.length > 1) {
+        const r = licenseCompat(lizenzen[0], lizenzen[1]);
+        issues.push({ sev: 'warn', msg: `Die Verteilungen tragen verschiedene Lizenzen (${lizenzen.map(l => (LICENSE_META[l] || {}).label || l).join(' / ')})` +
+          (r.status === 'unvereinbar' ? ' – diese lassen sich zudem nicht zu einem Werk zusammenführen.' : ' – Nachnutzende erwarten in der Regel eine einheitliche.') });
+      }
+    }
     if (x.license === 'official-work' && kompassProfil.rechtspflicht === 'nein')
       issues.push({ sev: 'error', msg: `${wo}„Amtliches Werk – lizenzfrei nach § 5 UrhG" setzt eine amtliche Herkunft voraus. Nach Ihrer Angabe im Daten-Kompass unterliegt Ihre Organisation keiner Rechtspflicht – bitte eine echte offene Lizenz wählen (z. B. CC BY 4.0).` });
     if (!empty(x.accessURL) && !URL_RE.test(x.accessURL))
@@ -2671,7 +2771,38 @@ function renderLicenseWizard() {
   }
 }
 
-function openLicenseWizard() { showModal('license-backdrop', true); renderLicenseWizard(); }
+/* Eigener State, damit die Kompatibilitätsprüfung die Empfehlung oben
+   nicht anfasst – es sind zwei getrennte Fragen. */
+const licCompat = { a: '', b: '' };
+
+function renderLicenseCompat() {
+  const selA = document.getElementById('lic-compat-a');
+  const selB = document.getElementById('lic-compat-b');
+  const out = document.getElementById('lic-compat-out');
+  if (!selA || !selB || !out) return;
+  if (!selA.options.length) {
+    selA.innerHTML = licenseSelectHTML(licCompat.a);
+    selB.innerHTML = licenseSelectHTML(licCompat.b);
+    [selA, selB].forEach((sel, i) => sel.addEventListener('change', () => {
+      licCompat[i ? 'b' : 'a'] = sel.value;
+      renderLicenseCompat();
+    }));
+  }
+  if (!licCompat.a || !licCompat.b) { out.innerHTML = ''; return; }
+  const r = licenseCompat(licCompat.a, licCompat.b);
+  const icon = { ok: 'fa-circle-check', achtung: 'fa-triangle-exclamation',
+                 unvereinbar: 'fa-circle-xmark', unklar: 'fa-circle-question' }[r.status];
+  const titel = { ok: 'Lässt sich zusammenführen', achtung: 'Zusammenführbar, aber nicht mehr offen',
+                  unvereinbar: 'Nicht zusammenführbar', unklar: 'Nicht abschließend bestimmbar' }[r.status];
+  out.innerHTML =
+    `<div class="lic-compat-verdict lic-compat-verdict--${r.status}">
+       <strong><i class="fas ${icon}"></i> ${titel}</strong>
+     </div>
+     <ul class="lic-compat-list">${r.gruende.map(g => `<li>${esc(g)}</li>`).join('')}</ul>
+     <p class="lic-compat-note">Hinweis auf Grundlage der Lizenztexte, <strong>keine Rechtsberatung</strong>. Maßgeblich ist die jeweilige Lizenz im Original.</p>`;
+}
+
+function openLicenseWizard() { showModal('license-backdrop', true); renderLicenseWizard(); renderLicenseCompat(); }
 
 document.querySelectorAll('#license-backdrop .lic-opt').forEach(btn =>
   btn.addEventListener('click', () => { licenseWiz[btn.dataset.lic] = btn.dataset.val; renderLicenseWizard(); }));

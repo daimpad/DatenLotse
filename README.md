@@ -41,6 +41,7 @@
 | 📊 | **Status-Dashboard** | Startseite zeigt – sobald Daten vorliegen – Live-Kennzahlen über alle Bausteine (Kompass-Reifegrad, Inventar-Anzahl & Ø-Vollständigkeit, Clearing-Ampelverteilung, Governance-Reifegrad) mit Schnellsprung direkt zum Weiterarbeiten |
 | 📤 | **DCAT-Export (JSON-LD, RDF/Turtle, CSV)** | DCAT-AP.de-konformes JSON-LD (`dcat:Catalog`/`dcat:Dataset` mit `@context`) zum Harvesting durch GovData/CKAN, dieselbe Ausgabe als **RDF/Turtle** (`.ttl`, für Portale die RDF direkt harvesten) sowie eine flache CSV-Liste |
 | 🪪 | **Lizenz-Wegweiser** | Zwei Fragen (Namensnennung? national/international?) führen deterministisch zur passenden **offenen** Lizenz (DL-DE-BY/-Zero, CC-BY, CC0) inkl. Begründung und amtlichem Link; auf Wunsch für alle Datensätze ohne Lizenz übernehmbar. Das vollständige Register mit **20 Lizenzen** steht im Inventar-Dropdown |
+| ⚖️ | **Lizenz-Kompatibilität** | Zwei Bestände zusammenführen? Die Prüfung benennt, welche Pflichten sich aus beiden Lizenztexten ergeben und wo sie einander widersprechen – zwei verschiedene Copyleft-Lizenzen (CC BY-SA und ODbL) schließen sich gegenseitig aus, „keine Bearbeitung" schließt jede Zusammenführung aus, und NC färbt das Ergebnis so ein, dass es nicht mehr als offen gilt. Ausdrücklich ein Hinweis auf Grundlage der Lizenztexte, **keine Rechtsberatung** |
 | 🔗 | **Konsistenzprüfung über den Bestand** | Findet, was der Blick auf den einzelnen Datensatz nicht sieht: doppelte Identifier, doppelte Titel, zweimal dieselbe Zugriffs-URL und Schreibvarianten beim Publisher. Gemeldet wird jeweils der Abweichler, mit Sprung zur betroffenen Karte |
 | ⚖️ | **Hochwertige Datensätze (HVD)** | Für Datensätze, die unter die Durchführungsverordnung (EU) 2023/138 fallen, gelten **verbindliche** Vorgaben: kostenfrei, maschinenlesbar, über eine API, Lizenz nicht restriktiver als CC BY 4.0. Die Qualitätsprüfung meldet Verstöße deshalb als Fehler statt als Warnung. Zur Auswahl steht das **vollständige amtliche Vokabular** der EU-Publikationsstelle (96 Konzepte, gruppiert nach den sechs Kategorien) – die Spezifikation empfiehlt den genauesten Begriff. Das Werkzeug **schlägt eine Einstufung vor, nimmt sie aber niemandem ab**: ob die Verordnung greift, ist eine Rechtsfrage |
 | ✅ | **DCAT-AP.de-Qualitätsprüfung** | Publish-Ready-Check je Datensatz: fehlende Pflichtfelder als **Fehler**, fehlende Empfehlungsfelder und Werteprüfungen (offene Lizenz, kontrolliertes Vokabular, E-Mail im Ansprechpartner) als **Warnungen** – mit Ampel-Übersicht und direktem Sprung zum Bearbeiten im Inventar |
@@ -114,7 +115,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 328 Tests, ~130 s
+npm test                         # 340 Tests, ~140 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -304,7 +305,7 @@ datenlotse/
 │   ├── sample-landkreis.csv    # Beispiel: fiktive Kreisverwaltung (12 Datensätze)
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (328 Tests)
+├── tests/                      # Playwright-End-to-End-Tests (340 Tests)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection

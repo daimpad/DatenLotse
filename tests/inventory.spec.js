@@ -706,3 +706,151 @@ test.describe('Sortierung nach Publikationsreife', () => {
     expect(treffer[0]).toMatch(/DSGVO/i);
   });
 });
+
+/* v59: Das Register listete 20 Lizenzen, sagte aber nichts über ihr
+   Zusammenspiel. Die Tests rechnen die Fälle gegen die Lizenztexte nach –
+   nicht gegen die Implementierung. */
+test.describe('Lizenz-Kompatibilität (v59)', () => {
+  const pruef = (page, a, b) => page.evaluate(([a, b]) => licenseCompat(a, b), [a, b]);
+
+  test('gleiche oder anspruchslose Lizenzen lassen sich zusammenführen', async ({ page }) => {
+    await openApp(page);
+    expect((await pruef(page, 'cc-zero', 'cc-zero')).status).toBe('ok');
+    expect((await pruef(page, 'cc-zero', 'odc-pddl')).status).toBe('ok');
+    const by = await pruef(page, 'cc-by-4.0', 'cc-zero');
+    expect(by.status).toBe('ok');
+    expect(by.pflichten).toEqual(['attribution']);   // CC0 fordert nichts, CC BY schon
+  });
+
+  test('zwei verschiedene Copyleft-Familien sind unvereinbar', async ({ page }) => {
+    await openApp(page);
+    // Jede verlangt das Ergebnis unter sich selbst – beides geht nicht.
+    for (const [a, b] of [['cc-by-sa-4.0', 'odc-odbl'], ['gfdl', 'odc-odbl'], ['cc-by-sa-4.0', 'gfdl']]) {
+      const r = await pruef(page, a, b);
+      expect(r.status, `${a} + ${b}`).toBe('unvereinbar');
+      expect(r.pflichten, `${a} + ${b}`).toEqual([]);
+    }
+    // Dieselbe Familie dagegen ist unproblematisch
+    const gleich = await pruef(page, 'cc-by-sa-4.0', 'cc-by-sa-4.0');
+    expect(gleich.status).toBe('ok');
+    expect(gleich.pflichten).toContain('share-alike');
+  });
+
+  test('Copyleft ohne NC trifft auf NC: nicht erfüllbar', async ({ page }) => {
+    await openApp(page);
+    // CC BY-SA verlangt das Ergebnis unter Bedingungen, die kommerzielle
+    // Nutzung erlauben – CC BY-NC verbietet sie.
+    const r = await pruef(page, 'cc-by-sa-4.0', 'cc-by-nc-4.0');
+    expect(r.status).toBe('unvereinbar');
+    // NC-Copyleft mit NC ist dagegen erfüllbar
+    const nc = await pruef(page, 'cc-by-nc-sa-4.0', 'cc-by-nc-4.0');
+    expect(nc.status).toBe('achtung');
+    expect(nc.pflichten).toContain('share-alike');
+  });
+
+  test('„Keine Bearbeitung" schließt jede Zusammenführung aus', async ({ page }) => {
+    await openApp(page);
+    // Eine Zusammenführung IST eine Bearbeitung – auch mit gemeinfreien Daten.
+    for (const partner of ['cc-zero', 'cc-by-4.0', 'cc-by-nd-4.0']) {
+      expect((await pruef(page, 'cc-by-nd-4.0', partner)).status, partner).toBe('unvereinbar');
+    }
+  });
+
+  test('NC färbt das Ergebnis: zusammenführbar, aber nicht mehr offen', async ({ page }) => {
+    await openApp(page);
+    const r = await pruef(page, 'cc-by-nc-4.0', 'cc-by-4.0');
+    expect(r.status).toBe('achtung');
+    expect(r.pflichten).toContain('nicht-kommerziell');
+    expect(r.gruende.join(' ')).toMatch(/nicht als offen/);
+    // Gegenprobe: ohne NC bleibt es „ok"
+    expect((await pruef(page, 'dl-de/by-2-0', 'cc-by-4.0')).status).toBe('ok');
+  });
+
+  test('Sammelposten benennen keine Lizenz und führen zu „unklar"', async ({ page }) => {
+    await openApp(page);
+    for (const id of ['other-open', 'other-closed', 'gibt-es-nicht']) {
+      const r = await pruef(page, id, 'cc-by-4.0');
+      expect(r.status, id).toBe('unklar');
+      expect(r.pflichten, id).toEqual([]);
+    }
+    // Ohne Auswahl ebenfalls unklar, aber ohne Fehler
+    expect((await pruef(page, '', 'cc-by-4.0')).status).toBe('unklar');
+  });
+
+  test('„Amtliches Werk" wird auf seine Herkunft hingewiesen', async ({ page }) => {
+    await openApp(page);
+    const r = await pruef(page, 'official-work', 'cc-by-4.0');
+    expect(r.status).toBe('ok');
+    expect(r.gruende.join(' ')).toMatch(/§ 5 UrhG/);
+  });
+
+  test('jede Lizenz des Registers ist entweder bewertet oder ausdrücklich offen gelassen', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      const ids = LICENSE_CATALOG.flatMap(g => g.items.map(l => l.id));
+      return { ids, ohne: ids.filter(i => !LICENSE_TRAITS[i]) };
+    });
+    expect(r.ids.length).toBe(20);
+    // Genau die beiden Sammelposten dürfen fehlen
+    expect(r.ohne.sort()).toEqual(['other-closed', 'other-open']);
+  });
+
+  test('die Prüfung erscheint im Wegweiser und meldet den Widerspruch', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => openLicenseWizard());
+    await page.selectOption('#lic-compat-a', 'cc-by-sa-4.0');
+    await page.selectOption('#lic-compat-b', 'odc-odbl');
+    await expect(page.locator('.lic-compat-verdict')).toContainText('Nicht zusammenführbar');
+    await expect(page.locator('.lic-compat-list li')).toHaveCount(1);
+    // Der Wegweiser oben bleibt davon unberührt
+    expect(await page.evaluate(() => recommendLicense())).toBe('dl-de/by-2-0');
+    await expect(page.locator('#lic-compat-out')).toContainText('keine Rechtsberatung');
+  });
+});
+
+/* v59: verschiedene Lizenzen an den Verteilungen desselben Datensatzes */
+test.describe('Uneinheitliche Lizenzen je Verteilung (v59)', () => {
+  test('werden als Warnung gemeldet, nicht als Fehler', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      const d = inventory[0];
+      d.distributions = [
+        { title: '', format: 'CSV',  accessURL: '', license: 'cc-by-4.0' },
+        { title: '', format: 'JSON', accessURL: '', license: 'cc-by-sa-4.0' },
+      ];
+      const mehr = validateDataset(d).filter(i => /verschiedene Lizenzen/.test(i.msg));
+      d.distributions[1].license = 'cc-by-4.0';
+      const gleich = validateDataset(d).filter(i => /verschiedene Lizenzen/.test(i.msg));
+      return { mehr, gleich };
+    });
+    expect(r.mehr).toHaveLength(1);
+    expect(r.mehr[0].sev).toBe('warn');
+    expect(r.gleich).toHaveLength(0);
+  });
+
+  test('bei unvereinbaren Lizenzen sagt die Meldung das auch', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const msg = await page.evaluate(() => {
+      const d = inventory[0];
+      d.distributions = [
+        { title: '', format: 'CSV',  accessURL: '', license: 'cc-by-sa-4.0' },
+        { title: '', format: 'JSON', accessURL: '', license: 'odc-odbl' },
+      ];
+      return validateDataset(d).find(i => /verschiedene Lizenzen/.test(i.msg)).msg;
+    });
+    expect(msg).toMatch(/nicht zu einem Werk zusammenführen/);
+  });
+
+  test('nur eine Verteilung erzeugt keine Meldung', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const n = await page.evaluate(() => {
+      const d = inventory[0];
+      d.distributions = [{ title: '', format: 'CSV', accessURL: '', license: 'cc-by-4.0' }];
+      return validateDataset(d).filter(i => /verschiedene Lizenzen/.test(i.msg)).length;
+    });
+    expect(n).toBe(0);
+  });
+});
