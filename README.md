@@ -114,7 +114,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 320 Tests, ~130 s
+npm test                         # 328 Tests, ~130 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -304,7 +304,7 @@ datenlotse/
 │   ├── sample-landkreis.csv    # Beispiel: fiktive Kreisverwaltung (12 Datensätze)
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (320 Tests)
+├── tests/                      # Playwright-End-to-End-Tests (328 Tests)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection

@@ -23,9 +23,12 @@ test.describe('Pseudonymisierung – Erkennung', () => {
     const a = await page.evaluate(() => pseudonymize(PSEUDO_DEMO).text);
     const b = await page.evaluate(() => pseudonymize(PSEUDO_DEMO).text);
     expect(a).toBe(b);
-    // Derselbe Name kommt im Demo-Text zweimal vor → derselbe Platzhalter
-    expect(a.match(/\[PERSON_1\]/g).length).toBeGreaterThan(1);
-    expect(a).not.toContain('[PERSON_2]');
+    // Beide Namen kommen im Demo-Text je zweimal vor → je EIN Platzhalter.
+    // Seit v58 hat der Text zwei Zuschnitte (Bescheid + Beratungsnotiz), also
+    // zwei verschiedene Personen – aber keine dritte.
+    expect(a.match(/\[PERSON_1\]/g).length).toBe(2);
+    expect(a.match(/\[PERSON_2\]/g).length).toBe(2);
+    expect(a).not.toContain('[PERSON_3]');
   });
 
   test('Anrede + akademischer Titel lässt den echten Namen nicht stehen', async ({ page }) => {

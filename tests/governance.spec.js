@@ -358,12 +358,15 @@ test.describe('Beispieldaten, Verlauf & Prüfwerkzeuge', () => {
     'data/sample-kommune.csv',
     'data/sample-landkreis.csv',
     'data/sample-landesbehoerde.csv',
+    'data/sample-verein.csv',
   ];
 
-  test('drei Beispielorganisationen stehen zur Auswahl und laden korrekt', async ({ page }) => {
+  test('vier Beispielorganisationen stehen zur Auswahl und laden korrekt', async ({ page }) => {
     const errors = await openApp(page);
     await page.evaluate(() => openInventoryModal());
-    await expect(page.locator('.sample-card')).toHaveCount(3);
+    await expect(page.locator('.sample-card')).toHaveCount(4);
+    // toHaveCount zählt auch verborgene Karten – die Sichtbarkeit muss mit
+    await expect(page.locator('.sample-card[data-sample$="verein.csv"]')).toBeVisible();
 
     for (const datei of BEISPIELE) {
       await page.evaluate(d => { clearState(); loadSampleData(d); }, datei);
@@ -888,5 +891,111 @@ test.describe('„Keine bewertbare Frage" – alle Ausgabewege (v56)', () => {
     expect(r.badge).toContain('gov-score-badge--gruen');
     expect(r.status).toContain('100 / 100');
     expect(r.csv).toContain('Reifegrad,100/100');
+  });
+});
+
+/* v58: das Werkzeug zeigte vier Beispiele – alle Behörden. Wer als Verein
+   „Beispiel laden" klickt, sah Bürgeramt und Kämmerei und wusste in dem
+   Moment, dass es nicht für ihn gebaut wurde. */
+test.describe('Beispieldatensatz gemeinnütziger Träger (v58)', () => {
+  test('deckt einen Zuschnitt ab, den die Verwaltungsbeispiele nicht haben', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => { clearState(); loadSampleData('data/sample-verein.csv'); });
+    await page.waitForFunction(() => inventory.length > 0);
+    const r = await page.evaluate(() => {
+      return {
+        n: inventory.length,
+        publisher: [...new Set(inventory.map(d => d.publisher))],
+        titel: inventory.map(d => d.title),
+        schutz: grafRows.map(x => x.Schutzbedarf),
+      };
+    });
+    expect(r.n).toBe(12);
+    expect(r.publisher).toEqual(['Beispiel für Vielfalt e. V.']);
+    // Datenarten, für die es bisher kein Beispiel gab
+    expect(r.titel.join(' ')).toMatch(/Spendendaten/);
+    expect(r.titel.join(' ')).toMatch(/Verwendungsnachweise/);
+    expect(r.titel.join(' ')).toMatch(/Wirkungskennzahlen/);
+    expect(r.titel.join(' ')).toMatch(/Ehrenamtsstunden/);
+  });
+
+  test('enthält einen „Nicht öffentlich"-Fall (Regression v28)', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => { clearState(); loadSampleData('data/sample-verein.csv'); });
+    await page.waitForFunction(() => inventory.length > 0);
+    const r = await page.evaluate(() => {
+      ensureAllClearing();
+      const nichtOeff = inventory.filter(d => schutzKategorie(d._grafSchutzbedarf) === 'nicht-oeffentlich');
+      return { anzahl: nichtOeff.length, ampeln: nichtOeff.map(d => d.clearing.ampel) };
+    });
+    expect(r.anzahl).toBeGreaterThan(0);
+    // „Nicht öffentlich" darf nie automatisch auf Grün laufen
+    expect(r.ampeln).not.toContain('gruen');
+  });
+
+  test('das gequotete Komma im Freitext überlebt den Import', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => { clearState(); loadSampleData('data/sample-verein.csv'); });
+    await page.waitForFunction(() => inventory.length > 0);
+    const r = await page.evaluate(() => grafRows.find(x => x.Datentyp === 'Mitgliederstammdaten'));
+    expect(r.Anmerkungen).toBe('Name, Anschrift und Beitragsklasse der Mitglieder');
+    expect(r.Ansprechpartner).toContain('Aydin');   // Spalte nicht verrutscht
+  });
+
+  test('die Themenerkennung greift auch bei Vereinsbegriffen', async ({ page }) => {
+    await openApp(page);
+    // Begriffe, die AUSSCHLIESSLICH über die neuen Stichwörter greifen –
+    // „Beschluss" und „Verwaltung" standen schon vorher im Muster und
+    // machten einen Test darüber wertlos.
+    const r = await page.evaluate(() => ({
+      satzung:     guessTheme({ Datentyp: 'Satzung', QuelleBereich: '', Quelle: '' }),
+      versammlung: guessTheme({ Datentyp: 'Mitgliederversammlung', QuelleBereich: '', Quelle: '' }),
+      // Gegenprobe: ohne einschlägiges Stichwort bleibt es leer
+      neutral:     guessTheme({ Datentyp: 'Irgendwas', QuelleBereich: '', Quelle: '' }),
+    }));
+    expect(r.satzung).toBe('GOVE');
+    expect(r.versammlung).toBe('GOVE');
+    expect(r.neutral).toBe('');
+  });
+});
+
+/* v58: Sprachdurchgang – Stellen, an denen „Verwaltung" nur Gewohnheit war. */
+test.describe('Sprache: keine stillschweigende Behörde (v58)', () => {
+  test('die Oberfläche spricht nicht mehr von Verwaltungstexten', async ({ page }) => {
+    await openApp(page);
+    const html = await page.content();
+    // Die Muster (IBAN, E-Mail, Name, Adresse) sind nicht verwaltungsspezifisch –
+    // nur das Aktenzeichen ist es.
+    expect(html).not.toContain('Verwaltungstext');
+    const beschreibung = await page.locator('meta[name="description"]').getAttribute('content');
+    expect(beschreibung).not.toContain('Verwaltungen und Organisationen');
+  });
+
+  test('die RACI-Rollen benennen auch das Pendant außerhalb der Verwaltung', async ({ page }) => {
+    await openApp(page);
+    const rollen = await page.evaluate(() => RACI_ROLES.map(r => r.label));
+    expect(rollen).toContain('Fachbereich / Ressort');
+    expect(rollen).toContain('IT-Betrieb / Dienstleister');
+  });
+
+  test('die Musterrichtlinie setzt weder GovData noch eine bestellte DSB voraus', async ({ page }) => {
+    await openApp(page);
+    const md = await page.evaluate(() => policyMarkdown());
+    expect(md).toMatch(/§ 38 BDSG/);
+    expect(md).toMatch(/Vorstand/);
+    expect(md).toMatch(/Repositorium/);
+  });
+
+  test('der Beispieltext der Textbereinigung zeigt zwei Zuschnitte', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      const res = pseudonymize(PSEUDO_DEMO);
+      return { demo: PSEUDO_DEMO, typen: [...new Set(res.mapping.map(m => m.type))] };
+    });
+    expect(r.demo).toMatch(/Bescheid/);          // Verwaltungsfall
+    expect(r.demo).toMatch(/Beratungsnotiz/);    // zweiter Zuschnitt
+    // Beide Namen werden erfasst, auch der mit akademischem Titel
+    expect(r.typen).toContain('name');
+    expect(r.demo).not.toMatch(/\[PERSON/);
   });
 });

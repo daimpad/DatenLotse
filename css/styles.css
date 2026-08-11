@@ -1342,6 +1342,10 @@ a { color: var(--c-accent); }
   transition: transform 0.15s var(--ease-fluid), box-shadow 0.15s var(--ease-fluid), border-color 0.15s;
   min-width: 0;
 }
+/* Wie bei .pseudo-mini-btn: das display:flex oben gewinnt gegen die
+   UA-Regel [hidden] – ohne diese Zeile bliebe eine ausgeblendete Karte
+   sichtbar. Aufgefallen beim Mutationstest zu v58. */
+.sample-card[hidden] { display: none; }
 .sample-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: rgba(66, 0, 147, 0.3); }
 .sample-card:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
 .sample-card-name { font-size: 13.5px; font-weight: 700; color: var(--c-accent); display: flex; align-items: center; gap: 8px; }
