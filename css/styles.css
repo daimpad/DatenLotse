@@ -2267,6 +2267,10 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
 .gov-score-badge--gruen { background: var(--ampel-gruen); }
 .gov-score-badge--gelb  { background: var(--ampel-gelb); }
 .gov-score-badge--rot   { background: var(--ampel-rot); }
+/* Kein Ampelwert, weil nichts bewertet wurde. Ohne eigenen Hintergrund
+   stünde die weiße Schrift aus .gov-score-badge auf dem hellen Panel und
+   wäre unsichtbar (Kontrast 1:1). */
+.gov-score-badge--neutral { background: var(--c-muted); }
 .gov-score-num { font-size: 30px; font-weight: 800; line-height: 1; }
 .gov-score-unit { font-size: 13px; opacity: 0.85; }
 .gov-score-lbl { margin-left: auto; font-size: 13px; font-weight: 700; }
@@ -2278,6 +2282,9 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
 .gov-bar-fill--gruen { background: var(--ampel-gruen); }
 .gov-bar-fill--gelb  { background: var(--ampel-gelb); }
 .gov-bar-fill--rot   { background: var(--ampel-rot); }
+/* Als „nicht relevant" abgewählte Frage: kein Balken, weil es nichts zu
+   füllen gibt – die Frage fällt aus der Wertung, statt 0 % zu bedeuten. */
+.gov-bar-na { font-size: 10px; color: var(--c-muted); font-style: italic; text-align: right; }
 
 .gov-matrix-wrap { overflow-x: auto; border: 1px solid var(--c-border-s); border-radius: var(--radius); background: #fff; }
 .gov-matrix { width: 100%; border-collapse: collapse; font-size: 13px; }
