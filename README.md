@@ -2,7 +2,7 @@
 
 # DatenLotse – von der Datenkartierung zur Open-Data-Umsetzung
 
-**DatenLotse** ist ein browserbasiertes, datenbankfreies Werkzeug, das Organisationen – insbesondere die öffentliche Verwaltung – vom kartierten Datenökosystem in die konkrete Open-Data-Umsetzung führt. Es ist das Schwester-Tool zu [DatenGraf](https://datengraf.nozilla.net/): Wo DatenGraf zeigt, *wie* die Datenflüsse aussehen, beantwortet DatenLotse die Frage *„Was tue ich jetzt konkret?"* – Dateninventar nach DCAT-AP.de aufbauen, Risiken klären, Texte datenschutzkonform pseudonymisieren. Alles läuft lokal im Browser: kein Server, kein Account, keine Verarbeitung Ihrer Daten.
+**DatenLotse** ist ein browserbasiertes, datenbankfreies Werkzeug, das Organisationen vom kartierten Datenökosystem in die konkrete Open-Data-Umsetzung führt – Behörden, die einer Veröffentlichungspflicht unterliegen, ebenso wie Vereine, Stiftungen und Initiativen, die freiwillig offenlegen oder umgekehrt an Daten kommen wollen. Es ist das Schwester-Tool zu [DatenGraf](https://datengraf.nozilla.net/): Wo DatenGraf zeigt, *wie* die Datenflüsse aussehen, beantwortet DatenLotse die Frage *„Was tue ich jetzt konkret?"* – Dateninventar nach DCAT-AP.de aufbauen, Risiken klären, Texte datenschutzkonform pseudonymisieren. Alles läuft lokal im Browser: kein Server, kein Account, **Ihre Inhalte werden nicht übertragen**.
 
 <br>
 
@@ -29,7 +29,7 @@
 | 🗺️ | **Onboarding-Rundgang** | Elf Schritte durch alle Bausteine – der Rundgang wechselt selbst in die passende Ansicht und hebt hervor, worum es gerade geht. Wird **angeboten statt aufgedrängt** (wegklickbarer Hinweis, jederzeit über die Seitenleiste wiederholbar); Schritte, die Daten brauchen, bieten den Beispielimport an, statt ihn heimlich auszuführen |
 | 📈 | **Kompass-Verlauf** | Reifegrad-Stände auf Knopfdruck festhalten und die Entwicklung als Balken samt Trend sehen – belegbarer Fortschritt gegenüber Leitung oder Gremium. Bewusst **kein automatischer Mitschnitt**: festgehalten wird, was man festhalten will |
 | 🧭 | **Daten-Kompass** | Open-Data-Reifegrad-Checkliste nach anerkannten Modellen (ODRA, EU Open Data Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR, Data Orchard Data Maturity): **8 Dimensionen mit 33 Prüfpunkten**, Score + Ampel, Vorbelegung aus dem aktuellen Stand, adaptive Empfehlungen der nächsten Bausteine und PDF-Export – der Haupteinstieg |
-| ⚖️ | **Rechtspflicht der Organisation** | Eine einzige, **optionale** Angabe: Unterliegt Ihre Organisation einem Informationsfreiheits- oder Open-Data-Gesetz? Wer *nein* wählt (Verein, Stiftung, gGmbH), bekommt den Prüfpunkt zu den Rechtsgrundlagen als *nicht relevant* vorbelegt – er zählt dann nicht in den Reifegrad – und keine Vorschläge zu hochwertigen Datensätzen, weil die EU-Verordnung dazu öffentliche Stellen bindet. Bewusst **nicht** die Frage „Behörde oder NGO": dazwischen liegen Stadtwerke, Hochschulen und Belehnte, die ein Zwei-Wege-Schalter falsch einsortiert. Alles Übrige gilt unverändert |
+| ⚖️ | **Rechtspflicht der Organisation** | Eine einzige, **optionale** Angabe: Unterliegt Ihre Organisation einem Informationsfreiheits- oder Open-Data-Gesetz? Wer *nein* wählt (Verein, Stiftung, gGmbH), bekommt den Prüfpunkt zu den Rechtsgrundlagen als *nicht relevant* vorbelegt – er zählt dann nicht in den Reifegrad –, keine Vorschläge zu hochwertigen Datensätzen, weil die EU-Verordnung dazu öffentliche Stellen bindet, und einen Fehler bei der Lizenz „Amtliches Werk nach § 5 UrhG", deren Lizenzfreiheit an der amtlichen Herkunft hängt und nicht an einer Entscheidung des Herausgebers. Bewusst **nicht** die Frage „Behörde oder NGO": dazwischen liegen Stadtwerke, Hochschulen und Belehnte, die ein Zwei-Wege-Schalter falsch einsortiert. Alles Übrige gilt unverändert |
 | 🛡️ | **Re-Identifikationsrisiko (k-Anonymität)** | Bereinigte Spalten sagen, *was* ersetzt wurde – nicht, ob das Ergebnis noch auf einzelne Personen zurückführt. Diese Prüfung bildet Gruppen aus den Merkmalen, die Sie wählen, und zählt, wie viele Zeilen in der kleinsten Gruppe stehen (**k-Anonymität**); optional misst sie die Vielfalt eines sensiblen Merkmals innerhalb dieser Gruppen (**l-Diversität**). Sie **misst nur** – generalisiert und unterdrückt wird nichts, denn das wäre eine Entscheidung über fremde Daten. Rein arithmetisch, kein ML |
 | 🔗 | **DatenGraf-CSV-Import** | Liest exakt das CSV-Schema, das DatenGraf exportiert – die Datenkartierung wird ohne Umweg zur Umsetzungsgrundlage |
 | 📦 | **Dateninventar (DCAT-AP.de)** | Aus jedem Datenfluss wird ein Dataset-Kandidat abgeleitet und in editierbaren Karten dargestellt: Beschreibung, Publisher, Ansprechpartner, **Kategorie** (EU-Datenthemen), **Schlagwörter**, Aktualisierungszyklus, **Lizenz** (volles DCAT-AP.de-Register), Zugriffsrechte und Info-/Zugriffs-URL – mit Live-Vollständigkeits-% in Ampelfarben. Dazu ein ausklappbarer Block **erweiterter DCAT-AP.de-Felder** (Veröffentlichungs-/Änderungsdatum, zeitliche und räumliche Abdeckung, Regionalschlüssel samt Gebietsebene, Kontributor-Kennung) und eine **Live-Vorschau des JSON-LD** je Datensatz. Der Export schreibt kontrollierte Werte als offizielle NAL-/Register-URIs |
@@ -46,13 +46,13 @@
 | 🔗 | **Konsistenzprüfung über den Bestand** | Findet, was der Blick auf den einzelnen Datensatz nicht sieht: doppelte Identifier, doppelte Titel, zweimal dieselbe Zugriffs-URL und Schreibvarianten beim Publisher. Gemeldet wird jeweils der Abweichler, mit Sprung zur betroffenen Karte |
 | ⚖️ | **Hochwertige Datensätze (HVD)** | Für Datensätze, die unter die Durchführungsverordnung (EU) 2023/138 fallen, gelten **verbindliche** Vorgaben: kostenfrei, maschinenlesbar, über eine API, Lizenz nicht restriktiver als CC BY 4.0. Die Qualitätsprüfung meldet Verstöße deshalb als Fehler statt als Warnung. Zur Auswahl steht das **vollständige amtliche Vokabular** der EU-Publikationsstelle (96 Konzepte, gruppiert nach den sechs Kategorien) – die Spezifikation empfiehlt den genauesten Begriff. Das Werkzeug **schlägt eine Einstufung vor, nimmt sie aber niemandem ab**: ob die Verordnung greift, ist eine Rechtsfrage |
 | ✅ | **DCAT-AP.de-Qualitätsprüfung** | Publish-Ready-Check je Datensatz: fehlende Pflichtfelder als **Fehler**, fehlende Empfehlungsfelder und Werteprüfungen (offene Lizenz, kontrolliertes Vokabular, E-Mail im Ansprechpartner) als **Warnungen** – mit Ampel-Übersicht und direktem Sprung zum Bearbeiten im Inventar |
-| 📚 | **Wissens- & Methodik-Center** | In-App-Nachschlagewerk mit Live-Filter über alles: **20 Glossar-Begriffe**, **11 Rechtsgrundlagen** (Bund/EU mit amtlichen Links zu gesetze-im-internet.de bzw. EUR-Lex, inklusive der HVD-Durchführungsverordnung), **alle 16 Landesregelungen** (Transparenz- vs. Informationsfreiheitsgesetz, jeweils mit amtlicher Fundstelle und eigenem Bundesland-Filter), **kommunale Informationsfreiheitssatzungen** für die Länder ohne Landesgesetz, **Prüfwerkzeuge & Normtexte** (offizieller EU-SHACL-Validator, DCAT-AP.de-Spezifikation und Konventionenhandbuch) und die **7 Reifegrad-Modelle** hinter dem Kompass – lokal, ausdrücklich keine Rechtsberatung |
+| 📚 | **Wissens- & Methodik-Center** | In-App-Nachschlagewerk mit Live-Filter über alles: **20 Glossar-Begriffe**, **11 Rechtsgrundlagen** (Bund/EU mit amtlichen Links zu gesetze-im-internet.de bzw. EUR-Lex, inklusive der HVD-Durchführungsverordnung), **alle 16 Landesregelungen** (Transparenz- vs. Informationsfreiheitsgesetz, jeweils mit amtlicher Fundstelle und eigenem Bundesland-Filter), **kommunale Informationsfreiheitssatzungen** für die Länder ohne Landesgesetz, **9 Prüfwerkzeuge & Normtexte** (offizieller EU-SHACL-Validator, DCAT-AP.de-Spezifikation und Konventionenhandbuch, GovData-Metadatenschema, Musterdatenkatalog, ARX, OParl, Initiative Transparente Zivilgesellschaft, Praxisleitfaden zu offenen Daten der Zivilgesellschaft) und die **7 Reifegrad-Modelle** hinter dem Kompass – lokal, ausdrücklich keine Rechtsberatung. Die Landesgesetze stehen bewusst in **beiden Leserichtungen** da: als Veröffentlichungspflicht der informationspflichtigen Stelle *und* als Werkzeug, mit dem alle anderen an Daten kommen, die noch nicht offen liegen |
 | 🧾 | **Status auf einen Blick** | Einseitige Zusammenfassung über alle Bausteine – Reifegrade, Inventar, Publikationsreife, Clearing-Verteilung und die nächsten Schritte. Für Leitungsrunden und Gremien; funktioniert auch ohne Inventar, weil der leere Stand ebenfalls eine Aussage ist |
 | 🔒 | **Eigene Datenschutzerklärung** | Unter `/datenschutz/`, aus demselben Generator wie die Wissensseiten. Sie beschreibt, was das Werkzeug wirklich tut: Local Storage statt Server, GitHub Pages als Hoster samt US-Transfer, die anonyme Seitenzählung mit dem, was sie sieht und was nicht, keine Cookies, keine Schriften-CDN, kein KI-Dienst – und der Hinweis, dass sich all das im Quelltext nachprüfen lässt |
 | 📄 | **Vorlagen & Musterdokumente** | Fertige Dokumente lokal erzeugt: Open-Data-Richtlinie und DSFA-Kurz-Checkliste (Muster) sowie aus dem Inventar generierte Veröffentlichungs-Freigabe-Formulare und ein VVT-Auszug der DSGVO-relevanten Datensätze – als PDF druckbar oder als Markdown/CSV ladbar |
 | 📝 | **Notiz zur Clearing-Entscheidung** | Die automatische Begründung sagt, warum die Ampel so steht – für die Akte lässt sich je Datensatz eine eigene Notiz ergänzen (Abstimmung mit dem Datenschutz, vereinbarte Auflage). Sie geht nicht in den Entscheidungsbaum ein und erscheint im Bericht und im Freigabeformular |
 | 🚦 | **Clearing-Ampel (Rot-Gelb-Grün)** | Transparenter, deterministischer Entscheidungsbaum je Datensatz (Schutzbedarf-Vorbelegung, Art.-9-/Rechtsgrundlage-/Anonymisierbarkeit-Prüfung) mit nachvollziehbarer Begründung, Gesamtübersicht und Ampel-Spalte im CSV-Export |
-| 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende, deterministische Bereinigung deutscher Verwaltungstexte über **11 Muster**: Name (anrede-getriggert, akademische Titel werden übersprungen), Adresse, PLZ+Ort, Aktenzeichen/Geschäftszeichen, IBAN, E-Mail, Telefon, Geburtsdatum, Steuer-ID und Kfz-Kennzeichen (beide kontextgetriggert), Sozialversicherungsnummer. Konsistente Platzhalter, Mapping-Tabelle samt **CSV-Export** – rein per Regex, nichts verlässt den Browser |
+| 🛡️ | **Client-Side-Pseudonymisierung** | Strukturerhaltende, deterministische Bereinigung deutschsprachiger Texte über **11 Muster**: Name (anrede-getriggert, akademische Titel werden übersprungen), Adresse, PLZ+Ort, Aktenzeichen/Geschäftszeichen, IBAN, E-Mail, Telefon, Geburtsdatum, Steuer-ID und Kfz-Kennzeichen (beide kontextgetriggert), Sozialversicherungsnummer. Konsistente Platzhalter, Mapping-Tabelle samt **CSV-Export** – rein per Regex, nichts verlässt den Browser |
 | 🧮 | **Spaltenweise CSV-Bereinigung** | Zweiter Modus für strukturierte Daten: CSV laden, je Spalte entscheiden – unverändert lassen, Muster erkennen oder **ganze Spalte ersetzen** (für Spalten wie „Name", die ohne Anrede kein Muster auslösen). Gleiche Werte erhalten zeilenübergreifend denselben Platzhalter; die CSV-Struktur bleibt erhalten und das Ergebnis ist wieder importierbar |
 | 👥 | **Governance & RACI** | 8-Fragen-Reifegrad-Check (gewichtet, 0–100, **auch ohne Inventar nutzbar**) + automatisch aus dem Inventar abgeleitete RACI-Matrix (Domänen × Rollen) mit Lücken-Markierung; Export als CSV und PDF/Druck-Bericht. Jede Frage lässt sich als **„nicht relevant"** abwählen und fällt dann aus der Wertung, statt mit 0 zu zählen – wer nach § 38 BDSG rechtmäßig keine Datenschutzbeauftragte hat, bekommt dafür keinen Abzug |
 | 💾 | **Projekt speichern & laden (.json)** | Kompletter Arbeitsstand (Inventar inkl. Clearing, Governance, Kompass und importierte DatenGraf-Zeilen) als eine versionierte JSON-Datei exportier- und wieder importierbar – für Backup, Gerätewechsel oder zum Teilen; Import prüft Herkunft und fragt vor dem Überschreiben |
@@ -134,7 +134,7 @@ DatenLotse begleitet den Weg von der fertigen DatenGraf-Karte in die operative O
 | **1 · Fundament** | 👥 Governance & Rollen | 8-Fragen-Reifegrad-Check (gewichtet auf 100) + RACI-Matrix aus den Datendomänen. Der Fragebogen ist **unabhängig vom Inventar** und sofort ausfüllbar |
 | **2 · Asset Management** | 📦 Dateninventar | DatenGraf-CSV importieren, Datenflüsse zu DCAT-AP.de-Datasets verdichten, Metadaten ergänzen, Qualität prüfen, als JSON-LD/CSV exportieren |
 | **3 · Clearing** | 🚦 Risiko-Clearing | Rot/Gelb/Grün-Entscheidungsbaum je Datensatz – deterministisch, ohne ML |
-| **3 · Pseudonymisierung** | 🛡️ Textbereinigung | Deutsche Verwaltungstexte strukturerhaltend von personenbezogenen Daten befreien, vollständig client-seitig |
+| **3 · Pseudonymisierung** | 🛡️ Textbereinigung | Deutschsprachige Texte und CSV-Spalten strukturerhaltend von personenbezogenen Daten befreien und anschließend das Re-Identifikationsrisiko messen – vollständig client-seitig |
 
 Begleitend: 📊 **Status-Dashboard** auf der Startseite, 📚 **Wissens- & Methodik-Center** (Glossar, Rechtsgrundlagen, Modelle) und 📄 **Vorlagen & Musterdokumente** (Richtlinie, DSFA-Checkliste, Freigabe-Formulare, VVT-Auszug).
 
@@ -159,6 +159,8 @@ Begleitend: 📊 **Status-Dashboard** auf der Startseite, 📚 **Wissens- & Meth
 **Schulung und Befähigung.** Weil das Wissens-Center Begriffe, Rechtsgrundlagen und Methodik direkt neben dem Werkzeug hält, eignet sich DatenLotse für Workshops mit Fachbereichen, die den Standard nicht kennen – die Erklärung steht dort, wo die Arbeit stattfindet.
 
 **Erzeugung der Verwaltungsdokumente.** Freigabeformular, VVT-Auszug, Richtlinienentwurf und DSFA-Checkliste entstehen aus dem bereits erfassten Stand, statt separat geschrieben zu werden.
+
+**Freiwillige Transparenz jenseits der Pflicht.** Ein Verein, eine Stiftung oder eine gGmbH unterliegt keinem Informationsfreiheitsgesetz und arbeitet trotzdem an derselben Sache – etwa entlang der Initiative Transparente Zivilgesellschaft, die strukturell dasselbe ist wie ein Transparenzgesetz: ein fester Katalog, den man abarbeitet, nur eben freiwillig. Der Kompass rechnet dann nur, was zählbar ist (die Angabe zur Rechtspflicht nimmt die Punkte heraus, die ohne Pflicht nicht erreichbar sind), der Governance-Check lässt Fragen als *nicht relevant* abwählen, und `data/sample-verein.csv` zeigt einen Bestand mit Spenden, Verwendungsnachweisen, Ehrenamtsstunden und Wirkungskennzahlen statt Bürgeramt und Kämmerei.
 
 **Sensible Kontexte allgemein.** Überall dort, wo ein Upload auf einen fremden Dienst ausscheidet – Personaldaten, Sozialdaten, Verschlusssachen-nahe Bestände –, ist die Local-First-Architektur nicht bloß angenehm, sondern die Bedingung dafür, das Werkzeug überhaupt einsetzen zu dürfen.
 
@@ -230,7 +232,7 @@ Die Ausgabe erfolgt als JSON-LD mit `@context` auf das DCAT-AP.de-Profil, als **
 | **Vanilla JS** | ES2020+ | Gesamte Anwendungslogik ohne Framework, eine Datei (`js/app.js`) |
 | **CSS Custom Properties** | — | Design-System mit Glasmorphismus, Tokens in `css/tokens.css` |
 | **Inter** | lokal | Schriftart (latin + latin-ext, 400/500/600/700) |
-| **Font Awesome** | 6.7.2 (lokal) | Icon-Library (solid, regular, brands) |
+| **Font Awesome** | 6.7.2 (lokal, zugeschnitten) | Icon-Library – ausgeliefert werden nur Solid und Regular als Teilmenge; die Brands-Familie steckte nur wegen des GitHub-Zeichens im Fuß in der Auslieferung und ist seit v45 ein Inline-SVG |
 | **FileReader API** | — | Lokaler CSV-/Textimport ohne Upload |
 | **LocalStorage API** | — | Persistenz ohne Backend |
 | **Blob API** | — | DCAT-JSON-, CSV- und Text-Downloads |
@@ -261,7 +263,7 @@ Eine geordnete, deterministische Regelmenge bildet die Freigabeempfehlung je Dat
 <details>
 <summary><strong>Strukturerhaltende Pseudonymisierung</strong></summary>
 
-**11 Muster** für DE-Verwaltungstexte ersetzen erkannte Entitäten durch konsistente Platzhalter (`[PERSON_1]`, `[ADRESSE_1]`, `[STEUERID_1]` …). Pro Entitätstyp ein Zähler + Map `Originalwert → Platzhalter`: gleicher Wert ⇒ immer derselbe Platzhalter, deterministisch über das ganze Dokument.
+**11 Muster** für deutschsprachige Texte ersetzen erkannte Entitäten durch konsistente Platzhalter (`[PERSON_1]`, `[ADRESSE_1]`, `[STEUERID_1]` …). Pro Entitätstyp ein Zähler + Map `Originalwert → Platzhalter`: gleicher Wert ⇒ immer derselbe Platzhalter, deterministisch über das ganze Dokument.
 
 **Konservativ durch Kontext-Trigger:** Namen nur nach Anrede (optionale akademische Titel werden übersprungen, damit bei „Frau Dr. Anna Beispiel" nicht der Titel statt des Namens erfasst wird), Geburtsdaten nur nach „geb."/„geboren am", Steuer-ID und Kfz-Kennzeichen nur nach Schlüsselwort. Letzteres verhindert, dass Lizenz- und Normkürzel wie `DL-DE 2.0` oder `DIN-EN 1090` zerstört werden – eine Sperrliste scheidet aus, weil `DL` und `EN` echte Unterscheidungszeichen sind.
 
@@ -281,9 +283,9 @@ Liegt ein Inventar vor, kommt die **RACI-Matrix** hinzu: Die Datendomänen werde
 </details>
 
 <details>
-<summary><strong>Publish-Ready-Check statt reiner Vollständigkeits-%</strong></summary>
+<summary><strong>Publish-Ready-Check neben der Metadaten-Güte</strong></summary>
 
-Die Prozentanzeige sagt nur, *wie viele* Felder gefüllt sind. Der dritte Inventar-Tab prüft zusätzlich die **Werte**: Ist die Lizenz nach der Open Definition offen? Stammen `accessRights`, `theme` und `accrualPeriodicity` aus dem kontrollierten Vokabular? Enthält der Ansprechpartner eine E-Mail-Adresse? Ist die Info-URL eine gültige http(s)-Adresse? Sind Titel und Beschreibung aussagekräftig lang?
+Die Prozentanzeige ist ein **gradueller** Wert nach dem MQA-Schema (fünf FAIR-Dimensionen, 405 Punkte) – sie sagt, wie gut ein Datensatz beschrieben ist, aber nicht, ob er durchs Harvesting kommt. Der dritte Inventar-Tab prüft deshalb zusätzlich **hart gegen die Werte**: Ist die Lizenz nach der Open Definition offen? Stammen `accessRights`, `theme` und `accrualPeriodicity` aus dem kontrollierten Vokabular? Enthält der Ansprechpartner eine E-Mail-Adresse? Ist die Info-URL eine gültige http(s)-Adresse? Sind Titel und Beschreibung aussagekräftig lang?
 
 Fehlende Pflichtfelder sind **Fehler** (rot), fehlende Empfehlungsfelder und Wertprobleme **Warnungen** (gelb). Die Karten sind nach Schwere sortiert, jede springt per Klick zur betroffenen Stelle im Inventar. Deterministisch, kein ML.
 
@@ -305,19 +307,22 @@ datenlotse/
 │   ├── sample-kommune.csv      # Beispiel: fiktive Stadtverwaltung (12 Datensätze)
 │   ├── sample-landkreis.csv    # Beispiel: fiktive Kreisverwaltung (12 Datensätze)
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
+│   ├── sample-verein.csv       # Beispiel: fiktiver gemeinnütziger Träger (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (371 Tests)
+├── tests/                      # Playwright-End-to-End-Tests (371 Tests in 14 Dateien)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
-│   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
+│   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität, Anrede
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection
-│   ├── inventory.spec.js       # Karten, Filter, Lizenz-Register & -Wegweiser
+│   ├── inventory.spec.js       # Karten, Filter, MQA-Güte, Lizenz-Register & -Kompatibilität
 │   ├── clearing.spec.js        # Entscheidungsbaum Modul 3a
 │   ├── pseudonymize.spec.js    # Regex-Pack Modul 3b
+│   ├── risiko.spec.js          # k-Anonymität & l-Diversität
 │   ├── quality.spec.js         # DCAT-AP.de-Publish-Ready-Check
 │   ├── governance.spec.js      # Modul 1, Kompass, Wissen, Vorlagen
 │   ├── export.spec.js          # DCAT-URIs, Downloads, Persistenz
 │   ├── a11y.spec.js            # Fokus, ARIA, Kontrast, Responsive
 │   ├── hvd.spec.js             # hochwertige Datensätze (DVO (EU) 2023/138)
+│   ├── tour.spec.js            # Onboarding-Rundgang, Schritt-Ziele
 │   ├── seo.spec.js             # statische Wissensseiten, Metadaten, Sitemap
 │   └── assets.spec.js          # Icon-Zuschnitt, Ladegewicht der Startseite
 ├── playwright.config.js        # Testkonfiguration (startet den Webserver selbst)
