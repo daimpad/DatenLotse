@@ -999,3 +999,67 @@ test.describe('Sprache: keine stillschweigende Behörde (v58)', () => {
     expect(r.demo).not.toMatch(/\[PERSON/);
   });
 });
+
+/* v62: Rechtslage nachgezogen. Quelle ist der Recherchebericht des
+   Nutzers – die deutschen Durchführungsgesetze sind deshalb im Text
+   benannt, aber nicht verlinkt: ihre Fundstelle ließ sich nicht gegen
+   das amtliche Portal prüfen. */
+test.describe('Rechtsgrundlagen: Data Act und Data Governance Act (v62)', () => {
+  test('beide Verordnungen stehen mit EUR-Lex-Fundstelle in der Liste', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => LEGAL_BASIS.map(l => ({ name: l.name, url: l.url, s: l.summary })));
+    const act = r.find(l => /Data Act/.test(l.name));
+    const dga = r.find(l => /Data Governance Act/.test(l.name));
+    expect(act, 'Data Act').toBeTruthy();
+    expect(dga, 'Data Governance Act').toBeTruthy();
+    expect(act.url).toContain('eur-lex.europa.eu');
+    expect(dga.url).toContain('eur-lex.europa.eu');
+    expect(act.url).toContain('32023R2854');
+    expect(dga.url).toContain('32022R0868');
+  });
+
+  test('der Data Act wird nicht als allgemeiner Datenzugang dargestellt', async ({ page }) => {
+    await openApp(page);
+    const s = await page.evaluate(() => LEGAL_BASIS.find(l => /Data Act/.test(l.name)).summary);
+    // Kapitel V greift nur bei außergewöhnlicher Notwendigkeit – die
+    // Zusammenfassung muss das benennen, sonst weckt sie falsche Erwartungen.
+    expect(s).toMatch(/außergewöhnlich/i);
+    expect(s).toMatch(/kein allgemeiner Datenzugang/i);
+  });
+
+  test('der DGA-Eintrag nennt die Stelle, die bei Anonymisierung unterstützt', async ({ page }) => {
+    await openApp(page);
+    const s = await page.evaluate(() => LEGAL_BASIS.find(l => /Data Governance Act/.test(l.name)).summary);
+    // Das ist der Anknüpfungspunkt zu Modul 3a/3b.
+    expect(s).toMatch(/Anonymisierung/);
+    expect(s).toMatch(/Statistische[sn]? Bundesamt/);
+  });
+
+  test('§ 12a EGovG nennt die Änderungen durch das OZG-Änderungsgesetz', async ({ page }) => {
+    await openApp(page);
+    const s = await page.evaluate(() => LEGAL_BASIS.find(l => /12a EGovG/.test(l.name)).summary);
+    expect(s).toMatch(/Behörden des Bundes/);
+    expect(s).toMatch(/Open-Data-Koordinator/);
+  });
+
+  test('kein deutsches Durchführungsgesetz trägt eine erfundene Fundstelle', async ({ page }) => {
+    await openApp(page);
+    const urls = await page.evaluate(() => LEGAL_BASIS.map(l => l.url));
+    // DADG und DGG stehen bewusst nur im Text – hätte ich ihre Slugs
+    // geraten, stünde eine tote Adresse als „amtliche Quelle" im Werkzeug.
+    expect(urls.filter(u => /gesetze-im-internet\.de\/(dadg|dgg)/.test(u))).toEqual([]);
+    for (const u of urls) expect(u).toMatch(/^https:\/\//);
+  });
+
+  test('die Spezifikation ist nicht mehr auf 2.0 festgeschrieben', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => PRUEF_WERKZEUGE.map(w => ({ n: w.name, s: w.summary })));
+    const spec = r.find(w => /DCAT-AP\.de-Spezifikation/.test(w.n));
+    expect(spec.n).not.toContain('2.0');
+    expect(spec.s).toMatch(/3\.0/);
+    // Das Konventionenhandbuch bleibt dagegen ausdrücklich bei 2.0
+    const konv = r.find(w => /Konventionenhandbuch/.test(w.n));
+    expect(konv.n).toContain('2.0');
+    expect(konv.s).toMatch(/bleibt bei Version 2\.0/i);
+  });
+});
