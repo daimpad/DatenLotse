@@ -1443,7 +1443,62 @@ a { color: var(--c-accent); }
 
 /* ── Spaltenweise CSV-Bereinigung ─────────────────────────────── */
 .pseudo-csv-panel.hidden,
+.pseudo-risiko-panel.hidden,
 .pseudo-text-panel.hidden { display: none; }
+
+/* ── Re-Identifikationsrisiko (k-Anonymität / l-Diversität) ── */
+.risk-cols { min-width: 0; }
+.risk-qi {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 6px 14px;
+  margin: 10px 0 16px;
+}
+.risk-qi-item {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  font-size: 13px; cursor: pointer; padding: 4px 0;
+}
+.risk-qi-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.risk-sens { max-width: 340px; }
+.risk-out { margin-top: 18px; }
+/* Weiße Schrift auf --ampel-gelb erreicht nur 3,0 : 1 und auf --ampel-gruen
+   3,4 : 1 – bei 14 px verlangt WCAG AA 4,5 : 1. Die Ampel steckt deshalb im
+   Balken links (und im Icon), der Text bleibt auf hellem Grund. Die Aussage
+   steht ohnehin als Wort da, nicht nur als Farbe. */
+.risk-summary {
+  padding: 12px 14px 12px 16px; border-radius: var(--radius);
+  margin-bottom: 14px; font-size: 14px;
+  color: var(--c-text);
+  background: var(--glass-bg);
+  border: 1px solid var(--c-border-s);
+  border-left: 4px solid var(--c-muted);
+}
+.risk-summary i { color: var(--ampel-color, var(--c-muted)); }
+.risk-summary--gruen { border-left-color: var(--ampel-gruen); --ampel-color: var(--ampel-gruen); }
+.risk-summary--gelb  { border-left-color: var(--ampel-gelb);  --ampel-color: var(--ampel-gelb); }
+.risk-summary--rot   { border-left-color: var(--ampel-rot);   --ampel-color: var(--ampel-rot); }
+.risk-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+  gap: 10px; margin-bottom: 18px;
+}
+.risk-kpi {
+  background: var(--glass-bg); border: 1px solid var(--c-border-s);
+  border-radius: var(--radius); padding: 12px 14px; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.risk-kpi b { font-size: 24px; font-weight: 800; line-height: 1; color: var(--c-accent); }
+.risk-kpi span { font-size: 11px; color: var(--c-muted); line-height: 1.3; }
+.risk-table-wrap { overflow-x: auto; border: 1px solid var(--c-border-s); border-radius: var(--radius); background: #fff; }
+.risk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.risk-table th, .risk-table td { padding: 8px 12px; border-bottom: 1px solid var(--c-border-s); text-align: left; white-space: nowrap; }
+.risk-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--c-muted); background: rgba(66,0,147,0.03); }
+.risk-table tbody tr:last-child td { border-bottom: none; }
+.risk-table .risk-num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Kleine Gruppen sind der eigentliche Befund – sie werden markiert, aber
+   nicht NUR farblich: die Zahl in der letzten Spalte sagt dasselbe. */
+.risk-row--klein td { background: rgba(192,57,43,0.06); }
+.risk-leer { color: var(--c-muted); font-style: italic; }
 .pseudo-tabs { margin-bottom: 14px; }
 .pseudo-csv-actions { margin: 14px 0 10px; }
 .pseudo-csv-input { min-height: 140px; margin-bottom: 16px; }

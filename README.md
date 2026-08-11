@@ -30,6 +30,7 @@
 | 📈 | **Kompass-Verlauf** | Reifegrad-Stände auf Knopfdruck festhalten und die Entwicklung als Balken samt Trend sehen – belegbarer Fortschritt gegenüber Leitung oder Gremium. Bewusst **kein automatischer Mitschnitt**: festgehalten wird, was man festhalten will |
 | 🧭 | **Daten-Kompass** | Open-Data-Reifegrad-Checkliste nach anerkannten Modellen (ODRA, EU Open Data Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR, Data Orchard Data Maturity): **8 Dimensionen mit 33 Prüfpunkten**, Score + Ampel, Vorbelegung aus dem aktuellen Stand, adaptive Empfehlungen der nächsten Bausteine und PDF-Export – der Haupteinstieg |
 | ⚖️ | **Rechtspflicht der Organisation** | Eine einzige, **optionale** Angabe: Unterliegt Ihre Organisation einem Informationsfreiheits- oder Open-Data-Gesetz? Wer *nein* wählt (Verein, Stiftung, gGmbH), bekommt den Prüfpunkt zu den Rechtsgrundlagen als *nicht relevant* vorbelegt – er zählt dann nicht in den Reifegrad – und keine Vorschläge zu hochwertigen Datensätzen, weil die EU-Verordnung dazu öffentliche Stellen bindet. Bewusst **nicht** die Frage „Behörde oder NGO": dazwischen liegen Stadtwerke, Hochschulen und Belehnte, die ein Zwei-Wege-Schalter falsch einsortiert. Alles Übrige gilt unverändert |
+| 🛡️ | **Re-Identifikationsrisiko (k-Anonymität)** | Bereinigte Spalten sagen, *was* ersetzt wurde – nicht, ob das Ergebnis noch auf einzelne Personen zurückführt. Diese Prüfung bildet Gruppen aus den Merkmalen, die Sie wählen, und zählt, wie viele Zeilen in der kleinsten Gruppe stehen (**k-Anonymität**); optional misst sie die Vielfalt eines sensiblen Merkmals innerhalb dieser Gruppen (**l-Diversität**). Sie **misst nur** – generalisiert und unterdrückt wird nichts, denn das wäre eine Entscheidung über fremde Daten. Rein arithmetisch, kein ML |
 | 🔗 | **DatenGraf-CSV-Import** | Liest exakt das CSV-Schema, das DatenGraf exportiert – die Datenkartierung wird ohne Umweg zur Umsetzungsgrundlage |
 | 📦 | **Dateninventar (DCAT-AP.de)** | Aus jedem Datenfluss wird ein Dataset-Kandidat abgeleitet und in editierbaren Karten dargestellt: Beschreibung, Publisher, Ansprechpartner, **Kategorie** (EU-Datenthemen), **Schlagwörter**, Aktualisierungszyklus, **Lizenz** (volles DCAT-AP.de-Register), Zugriffsrechte und Info-/Zugriffs-URL – mit Live-Vollständigkeits-% in Ampelfarben. Dazu ein ausklappbarer Block **erweiterter DCAT-AP.de-Felder** (Veröffentlichungs-/Änderungsdatum, zeitliche und räumliche Abdeckung, Regionalschlüssel samt Gebietsebene, Kontributor-Kennung) und eine **Live-Vorschau des JSON-LD** je Datensatz. Der Export schreibt kontrollierte Werte als offizielle NAL-/Register-URIs |
 | ✏️ | **Massenbearbeitung** | Mehrere Datensätze markieren und Publisher, Ansprechpartner, Lizenz, Kategorie, Zugriffsrechte, Zyklus oder Schlagwörter in einem Zug setzen – oder Einträge entfernen, die nicht ins Inventar gehören. „Alle auswählen" meint dabei die **sichtbare** Teilmenge, wirkt also mit den Filtern zusammen |
@@ -113,7 +114,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 293 Tests, ~120 s
+npm test                         # 320 Tests, ~130 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -303,7 +304,7 @@ datenlotse/
 │   ├── sample-landkreis.csv    # Beispiel: fiktive Kreisverwaltung (12 Datensätze)
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (293 Tests)
+├── tests/                      # Playwright-End-to-End-Tests (320 Tests)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection

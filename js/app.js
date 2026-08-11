@@ -427,7 +427,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v56';
+const APP_VERSION = 'v57';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -3704,25 +3704,273 @@ function runPseudoCsv() {
     `<span class="pseudo-csv-btns">` +
     `<button class="pseudo-mini-btn" id="pseudo-csv-dl"><i class="fas fa-file-csv"></i> Bereinigte CSV</button>` +
     `<button class="pseudo-mini-btn" id="pseudo-csv-map"${res.mapping.length ? '' : ' disabled'}><i class="fas fa-table-list"></i> Mapping</button>` +
+    `<button class="pseudo-mini-btn" id="pseudo-csv-risk"><i class="fas fa-user-shield"></i> Risiko prüfen</button>` +
     `</span></div>` +
     `<pre class="pseudo-csv-preview">${esc(res.csv.split('\n').slice(0, 12).join('\n'))}${res.csv.split('\n').length > 12 ? '\n…' : ''}</pre>`;
   document.getElementById('pseudo-csv-dl')?.addEventListener('click', () =>
     downloadBlob(res.csv, 'bereinigt.csv', 'text/csv'));
   document.getElementById('pseudo-csv-map')?.addEventListener('click', () =>
     downloadBlob(buildPseudoMappingCSV(res.mapping), 'pseudonymisierung-mapping.csv', 'text/csv'));
+  // Genau der Weg, um den es geht: erst bereinigen, dann prüfen, ob es trägt.
+  document.getElementById('pseudo-csv-risk')?.addEventListener('click', () => riskFromCleaned(res.csv));
+}
+
+/* ── Re-Identifikationsrisiko: k-Anonymitaet & l-Diversitaet ──────
+   Die Spaltenbereinigung sagt, WAS ersetzt wurde – nie, ob das Ergebnis
+   noch re-identifizierbar ist. Vier Spalten pseudonymisieren und trotzdem
+   eine Zeile behalten, die als einzige „1948 · 04315 · weiblich" traegt,
+   ist keine Anonymisierung. Genau das misst dieser Baustein.
+
+   Bewusst nur MESSEN, nicht veraendern: Generalisieren und Unterdruecken
+   (wie ARX es kann) waere eine Entscheidung ueber fremde Daten. Das
+   Werkzeug nennt das Risiko, die Entscheidung bleibt beim Menschen.
+
+   Rein arithmetisch – Gruppen bilden und zaehlen. Kein ML, kein NER,
+   keine Deutung von Inhalten: die harte Regel aus Modul 3b gilt hier
+   genauso. Welche Spalten Quasi-Identifikatoren sind, waehlt der Mensch;
+   das Werkzeug raet es nicht. */
+const riskCsv = { header: [], rows: [], qi: [], sens: -1, done: false };
+
+/* Gaengige Schwelle aus der statistischen Geheimhaltung – KEINE
+   Rechtsvorschrift, und im UI auch so benannt. */
+const K_SCHWELLE = 5;
+
+/* NUL trennt die Merkmale: in CSV-Zellen kommt es praktisch nicht vor,
+   ein Semikolon oder Pipe dagegen schon – „a|b" + „c" duerfte nicht
+   dieselbe Gruppe treffen wie „a" + „b|c". */
+const RISK_SEP = '\u0000';
+
+/* Nur Leerraum am Rand wird vereinheitlicht. Gross-/Kleinschreibung
+   bleibt: Werte zusammenzufassen macht die Gruppen groesser und das
+   Ergebnis damit HARMLOSER, als es ist – im Zweifel lieber eine Warnung
+   zu viel. Leere Zellen sind ein eigener Wert, kein Freibrief. */
+function riskKey(row, qi) {
+  return qi.map(i => String(row[i] == null ? '' : row[i]).trim()).join(RISK_SEP);
+}
+
+/* Aequivalenzklassen: Zeilen, die in ALLEN Quasi-Identifikatoren
+   uebereinstimmen und daher voneinander nicht zu unterscheiden sind. */
+function equivalenceClasses(rows, qi) {
+  const map = new Map();
+  rows.forEach((row, idx) => {
+    const key = riskKey(row, qi);
+    let cls = map.get(key);
+    if (!cls) { cls = { key, werte: qi.map(i => String(row[i] == null ? '' : row[i]).trim()), zeilen: [] }; map.set(key, cls); }
+    cls.zeilen.push(idx);
+  });
+  return [...map.values()];
+}
+
+/* k = Groesse der kleinsten Klasse. k = 1 heisst: mindestens eine Zeile
+   ist ueber die gewaehlten Merkmale eindeutig bestimmbar. */
+function kAnonymitaet(classes) {
+  return classes.length ? Math.min(...classes.map(c => c.zeilen.length)) : 0;
+}
+
+/* l = kleinste Zahl VERSCHIEDENER Werte des sensiblen Merkmals in einer
+   Klasse. l = 1 heisst: wer die Gruppe kennt, kennt den Wert – auch bei
+   grossem k. Ein hohes k allein schuetzt davor nicht. */
+function lDiversitaet(classes, rows, sens) {
+  if (sens < 0) return null;
+  let min = Infinity;
+  classes.forEach(c => {
+    const werte = new Set(c.zeilen.map(i => String(rows[i][sens] == null ? '' : rows[i][sens]).trim()));
+    min = Math.min(min, werte.size);
+  });
+  return Number.isFinite(min) ? min : null;
+}
+
+function riskAmpel(k, l) {
+  if (!k) return { cls: 'rot', label: 'Nicht bewertbar' };
+  if (k === 1) return { cls: 'rot', label: 'Eindeutige Zeilen vorhanden' };
+  // Hohes k nuetzt nichts, wenn in einer Gruppe alle denselben sensiblen
+  // Wert tragen – dann ist das Merkmal trotzdem offengelegt.
+  if (l === 1) return { cls: 'gelb', label: 'Sensibles Merkmal in einer Gruppe einheitlich' };
+  if (k < K_SCHWELLE) return { cls: 'gelb', label: `Kleine Gruppen (k < ${K_SCHWELLE})` };
+  return { cls: 'gruen', label: `k ≥ ${K_SCHWELLE} erreicht` };
+}
+
+function riskReport() {
+  const { header, rows, qi, sens } = riskCsv;
+  if (!header.length || !rows.length || !qi.length) return null;
+  // Ein Merkmal kann nicht zugleich Quasi-Identifikator und das sensible
+  // Merkmal sein: innerhalb der Klasse waere es dann konstant und l immer 1.
+  const sensGueltig = sens >= 0 && !qi.includes(sens) ? sens : -1;
+  const classes = equivalenceClasses(rows, qi);
+  const k = kAnonymitaet(classes);
+  const l = lDiversitaet(classes, rows, sensGueltig);
+  const unikate = classes.filter(c => c.zeilen.length === 1).length;
+  const kleinZeilen = classes.reduce((s, c) => s + (c.zeilen.length < K_SCHWELLE ? c.zeilen.length : 0), 0);
+  const worst = classes.slice().sort((a, b) => a.zeilen.length - b.zeilen.length).slice(0, 20);
+  return {
+    k, l, classes, worst, unikate,
+    sensKonflikt: sens >= 0 && qi.includes(sens),
+    zeilen: rows.length, klassen: classes.length,
+    kleinZeilen, kleinAnteil: Math.round(kleinZeilen / rows.length * 100),
+    ampel: riskAmpel(k, l),
+  };
+}
+
+/* Uebersicht der Klassen als CSV – fuer die Akte und fuer die Abstimmung
+   mit dem Datenschutz. Nur die gewaehlten Merkmale plus Gruppengroesse,
+   nie die Originalzeilen. */
+function buildRiskCSV(rep) {
+  const head = [...riskCsv.qi.map(i => riskCsv.header[i]), 'Zeilen_in_Gruppe'].map(csvCell).join(',');
+  const rows = rep.classes.slice().sort((a, b) => a.zeilen.length - b.zeilen.length)
+    .map(c => [...c.werte, c.zeilen.length].map(csvCell).join(','));
+  return [head, ...rows].join('\n');
+}
+
+function parseRiskCSV(text) {
+  const recs = parseCSVRecords(text).filter(r => r.some(c => c.trim() !== ''));
+  riskCsv.header = recs.length ? recs[0] : [];
+  riskCsv.rows = recs.slice(1);
+  riskCsv.qi = [];
+  riskCsv.sens = -1;
+  riskCsv.done = false;
+  return riskCsv.header.length > 0;
+}
+
+/* Jede Änderung an der Auswahl macht ein vorhandenes Ergebnis ungültig.
+   Es stehen zu lassen wäre die gefährlichste Variante: der Bildschirm
+   zeigte dann eine Freigabe für eine Auswahl, die nie berechnet wurde. */
+function riskSyncRun() {
+  const run = document.getElementById('risk-run');
+  // rows.length gehört dazu: eine Tabelle aus reiner Kopfzeile ergibt
+  // keinen Bericht, der Knopf wäre sonst aktiv und täte nichts.
+  if (run) run.disabled = !riskCsv.qi.length || !riskCsv.rows.length;
+}
+
+function riskInvalidate() {
+  riskCsv.done = false;
+  const out = document.getElementById('risk-out');
+  if (out) out.innerHTML = '';
+  riskSyncRun();
+}
+
+function riskSensOptions() {
+  return [['-1', '— keines —'],
+    ...riskCsv.header.map((h, i) => [String(i), h || `Spalte ${i + 1}`])
+      .filter(([i]) => !riskCsv.qi.includes(Number(i)))];
+}
+
+/* Nur das Auswahlfeld neu füllen, nicht die ganze Box: ein vollständiges
+   Neu-Rendern verlöre den Tastaturfokus auf der gerade betätigten
+   Checkbox – dieselbe Regel wie bei der Massenbearbeitung im Inventar. */
+function refreshRiskSens() {
+  const sel = document.getElementById('risk-sens');
+  if (sel) sel.innerHTML = optionsHTML(riskSensOptions(), String(riskCsv.sens));
+}
+
+function renderRisk() {
+  const box = document.getElementById('risk-cols');
+  const run = document.getElementById('risk-run');
+  if (!box) return;
+  if (!riskCsv.header.length) {
+    box.innerHTML = `<p class="pseudo-hint">Noch keine Tabelle geladen. Fügen Sie eine CSV ein oder laden Sie eine Datei.</p>`;
+    if (run) run.disabled = true;
+    return;
+  }
+  const sensOpts = riskSensOptions();
+  box.innerHTML =
+    (riskCsv.rows.length ? '' :
+      `<p class="pseudo-hint"><i class="fas fa-triangle-exclamation"></i> Die Tabelle enthält nur eine Kopfzeile – ohne Datenzeilen gibt es nichts zu messen.</p>`) +
+    `<p class="pseudo-hint"><strong>Quasi-Identifikatoren</strong> benennen niemanden für sich allein – in Kombination aber oft doch: Geburtsjahr, Postleitzahl und Geschlecht reichen häufig. Wählen Sie die Merkmale, die in Ihren Daten zusammen auf eine Person zeigen könnten.</p>
+     <div class="risk-qi">${riskCsv.header.map((h, i) => `
+       <label class="risk-qi-item">
+         <input type="checkbox" data-risk-qi="${i}"${riskCsv.qi.includes(i) ? ' checked' : ''}>
+         <span>${esc(h || `Spalte ${i + 1}`)}</span>
+       </label>`).join('')}</div>
+     <label class="pseudo-label" for="risk-sens">Sensibles Merkmal (optional, für die l-Diversität)</label>
+     <select id="risk-sens" class="risk-sens">${optionsHTML(sensOpts, String(riskCsv.sens))}</select>
+     <p class="pseudo-hint">Das ist die Angabe, die niemand erfahren soll – Diagnose, Leistungsart, Beratungsgrund. Sie darf kein Quasi-Identifikator sein, sonst wäre sie in jeder Gruppe konstant.</p>`;
+  box.querySelectorAll('[data-risk-qi]').forEach(cb => cb.addEventListener('change', () => {
+    const i = Number(cb.dataset.riskQi);
+    riskCsv.qi = cb.checked ? [...riskCsv.qi, i].sort((a, b) => a - b) : riskCsv.qi.filter(x => x !== i);
+    if (riskCsv.sens === i) riskCsv.sens = -1;
+    refreshRiskSens();     // gewählte Merkmale fallen aus der Auswahl
+    riskInvalidate();      // kein Neu-Rendern → der Fokus bleibt stehen
+  }));
+  // Auch der Wechsel des sensiblen Merkmals verwirft das Ergebnis: l und
+  // Ampel gehörten sonst zu einer anderen Spalte als der angezeigten.
+  box.querySelector('#risk-sens')?.addEventListener('change', e => {
+    riskCsv.sens = Number(e.target.value);
+    riskInvalidate();
+  });
+  // Beim bloßen Anzeigen (Tab-Wechsel) darf ein gültiges Ergebnis stehen
+  // bleiben – verworfen wird nur, was durch eine Änderung ungültig wurde.
+  if (riskCsv.done) riskSyncRun(); else riskInvalidate();
+}
+
+function runRisk() {
+  const out = document.getElementById('risk-out');
+  const rep = riskReport();
+  if (!out || !rep) return;
+  riskCsv.done = true;
+  const kachel = (wert, label) => `<div class="risk-kpi"><b>${esc(String(wert))}</b><span>${label}</span></div>`;
+  const zeilen = rep.worst.map(c => `
+    <tr class="${c.zeilen.length < K_SCHWELLE ? 'risk-row--klein' : ''}">
+      ${c.werte.map(v => `<td>${esc(v) || '<span class="risk-leer">leer</span>'}</td>`).join('')}
+      <td class="risk-num">${c.zeilen.length}</td>
+    </tr>`).join('');
+  out.innerHTML =
+    // Das Icon trägt die Ampel ein zweites Mal, damit nicht die Farbe allein
+    // die Aussage macht – die steht ohnehin als Wort daneben.
+    `<div class="risk-summary risk-summary--${rep.ampel.cls}">
+       <strong><i class="fas ${{ gruen: 'fa-circle-check', gelb: 'fa-triangle-exclamation', rot: 'fa-circle-exclamation' }[rep.ampel.cls]}"></i> ${esc(rep.ampel.label)}</strong>
+     </div>
+     <div class="risk-kpis">
+       ${kachel(rep.k, 'kleinste Gruppe (k)')}
+       ${rep.l !== null ? kachel(rep.l, 'geringste Vielfalt (l)') : ''}
+       ${kachel(rep.unikate, 'eindeutige Gruppen')}
+       ${kachel(rep.klassen, 'Gruppen gesamt')}
+       ${kachel(rep.kleinAnteil + ' %', `Zeilen in Gruppen < ${K_SCHWELLE}`)}
+     </div>
+     ${rep.sensKonflikt ? `<p class="pseudo-hint"><i class="fas fa-triangle-exclamation"></i> Das gewählte sensible Merkmal ist zugleich Quasi-Identifikator – dann ist es in jeder Gruppe konstant und die l-Diversität ohne Aussage. Die Auswertung lässt es deshalb aus.</p>` : ''}
+     <div class="pseudo-map-head"><span>Die ${rep.worst.length} kleinsten Gruppen</span>
+       <span class="pseudo-csv-btns"><button class="pseudo-mini-btn" id="risk-dl"><i class="fas fa-file-csv"></i> Alle Gruppen</button></span>
+     </div>
+     <div class="risk-table-wrap"><table class="risk-table">
+       <thead><tr>${riskCsv.qi.map(i => `<th>${esc(riskCsv.header[i] || `Spalte ${i + 1}`)}</th>`).join('')}<th class="risk-num">Zeilen</th></tr></thead>
+       <tbody>${zeilen}</tbody>
+     </table></div>
+     <p class="pseudo-hint">Gemessen wird ausschließlich gezählt – die Bewertung, ob das Risiko tragbar ist, bleibt bei Ihnen. k ≥ ${K_SCHWELLE} ist eine gängige Schwelle aus der statistischen Geheimhaltung, keine Rechtsvorschrift.</p>`;
+  document.getElementById('risk-dl')?.addEventListener('click', () =>
+    downloadBlob(buildRiskCSV(rep), 'reidentifikationsrisiko.csv', 'text/csv'));
+}
+
+function loadRiskFromInput() {
+  const el = document.getElementById('risk-input');
+  const out = document.getElementById('risk-out');
+  if (out) out.innerHTML = '';
+  if (!el || !el.value.trim()) { riskCsv.header = []; riskCsv.rows = []; riskCsv.qi = []; riskCsv.sens = -1; renderRisk(); return; }
+  parseRiskCSV(el.value);
+  renderRisk();
+}
+
+/* Übergabe aus der Spaltenbereinigung: genau der Weg, um den es geht –
+   erst bereinigen, dann prüfen, ob das Ergebnis trägt. */
+function riskFromCleaned(csv) {
+  const el = document.getElementById('risk-input');
+  if (el) el.value = csv;
+  parseRiskCSV(csv);
+  showPseudoTab('risiko');
+  document.getElementById('pseudo-tab-risiko')?.focus();
 }
 
 function showPseudoTab(name) {
-  ['text', 'csv'].forEach(t => {
+  ['text', 'csv', 'risiko'].forEach(t => {
     document.getElementById('pseudo-' + t + '-panel')?.classList.toggle('hidden', t !== name);
     const btn = document.getElementById('pseudo-tab-' + t);
     btn?.classList.toggle('is-active', t === name);
     btn?.setAttribute('aria-selected', String(t === name));
   });
   if (name === 'csv') renderPseudoCsv();
+  if (name === 'risiko') renderRisk();
 }
 
-function pickPseudoCsvFile() {
+/* Eine Auswahl für beide CSV-Tabs – vorher stand derselbe Ablauf zweimal. */
+function pickCsvInto(inputId, after) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.csv,text/csv';
@@ -3731,14 +3979,16 @@ function pickPseudoCsvFile() {
     if (!f) return;
     const r = new FileReader();
     r.onload = () => {
-      const el = document.getElementById('pseudo-csv-input');
+      const el = document.getElementById(inputId);
       if (el) el.value = r.result;
-      loadPseudoCsvFromInput();
+      after();
     };
     r.readAsText(f, 'utf-8');
   });
   input.click();
 }
+
+function pickPseudoCsvFile() { pickCsvInto('pseudo-csv-input', loadPseudoCsvFromInput); }
 
 function loadPseudoCsvFromInput() {
   const el = document.getElementById('pseudo-csv-input');
@@ -3766,9 +4016,10 @@ function pickPseudoFile() {
 document.getElementById('pseudo-clean-btn')?.addEventListener('click', runPseudonymize);
 document.getElementById('pseudo-tab-text')?.addEventListener('click', () => showPseudoTab('text'));
 document.getElementById('pseudo-tab-csv')?.addEventListener('click', () => showPseudoTab('csv'));
+document.getElementById('pseudo-tab-risiko')?.addEventListener('click', () => showPseudoTab('risiko'));
 document.querySelector('.pseudo-tabs')?.addEventListener('keydown', e => {
   if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-  const order = ['text', 'csv'];
+  const order = ['text', 'csv', 'risiko'];
   const cur = order.findIndex(t => document.getElementById('pseudo-tab-' + t)?.classList.contains('is-active'));
   if (cur < 0) return;
   e.preventDefault();
@@ -3779,6 +4030,9 @@ document.querySelector('.pseudo-tabs')?.addEventListener('keydown', e => {
 document.getElementById('pseudo-csv-file')?.addEventListener('click', pickPseudoCsvFile);
 document.getElementById('pseudo-csv-input')?.addEventListener('input', loadPseudoCsvFromInput);
 document.getElementById('pseudo-csv-run')?.addEventListener('click', runPseudoCsv);
+document.getElementById('risk-file')?.addEventListener('click', () => pickCsvInto('risk-input', loadRiskFromInput));
+document.getElementById('risk-input')?.addEventListener('input', loadRiskFromInput);
+document.getElementById('risk-run')?.addEventListener('click', runRisk);
 document.getElementById('pseudo-file-btn')?.addEventListener('click', pickPseudoFile);
 document.getElementById('pseudo-demo-btn')?.addEventListener('click', () => {
   document.getElementById('pseudo-input').value = PSEUDO_DEMO;
