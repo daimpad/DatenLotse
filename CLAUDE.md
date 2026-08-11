@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v62` (Script-Tag: `<script src="js/app.js?v=62">`)
+- **Aktuelle Version:** `v63` (Script-Tag: `<script src="js/app.js?v=63">`)
 
 ---
 
@@ -26,7 +26,7 @@ python3 -m http.server 8080
 
 **Cache-Busting:** Nach Änderungen an `app.js` die Versionsnummer im Script-Tag in `index.html` erhöhen und die sichtbare `v{N}` im Footer mitziehen. **Auch die CSS-Links (`css/tokens.css?v=N`, `css/styles.css?v=N`) tragen denselben `?v=N`** – bei reinen CSS-/Layout-Änderungen unbedingt mitziehen, sonst liefert GitHub Pages das alte Stylesheet:
 ```html
-<script src="js/app.js?v=62"></script>
+<script src="js/app.js?v=63"></script>
 ```
 
 ### Externe Aufrufe
@@ -66,7 +66,7 @@ Die App hat keinen Build-Schritt – getestet wird **die ausgelieferte App**, al
 ```bash
 npm install                      # nur Dev: @playwright/test (exakt gepinnt)
 npx playwright install chromium  # einmalig
-npm test                         # 355 Tests, ~140 s
+npm test                         # 361 Tests, ~145 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -252,6 +252,31 @@ d.distributions = [{ title, format, accessURL, license }, …]   // mindestens e
 - Die Qualitätsprüfung benennt bei mehreren Verteilungen die betroffene (`Verteilung 2: …`) und meldet ein fehlendes `distributions`-Array als **Fehler**.
 
 **CSV:** die flache Liste zeigt bewusst nur die **erste** Verteilung (Spalten `format`/`license`) plus die Spalte `verteilungen` (Anzahl). Der Rückimport führt entsprechend nur die erste zusammen und lässt weitere unangetastet – dieselbe Merge-Logik wie bei den Clearing-Antworten. Vollständig sind alle Verteilungen in JSON-LD, Turtle und der Projektdatei.
+
+### Metadaten-Güte nach MQA (`mqaScore`, ersetzt die alte Vollständigkeit)
+
+Bis v62 zählte `completeness(d)` schlicht die gefüllten `REQUIRED_FIELDS`. Der Leitgedanke der **Metadata Quality Assurance** von data.europa.eu ist aber gerade, dass die Pflichtfelder allein noch keine gute Beschreibung ergeben – ein Datensatz mit allen Pflichtangaben, aber ohne Schlagwörter, ohne Zeitraum und nur als PDF ist schwer zu finden und kaum nachnutzbar.
+
+`MQA_DIMENSIONEN` trägt fünf FAIR-Dimensionen mit **405 Punkten**:
+
+| Dimension | Punkte | Prüfungen |
+|---|---|---|
+| Auffindbarkeit | 100 | Schlagwörter (30), Kategorie (30), räumliche (20) und zeitliche Abdeckung (20) |
+| Zugänglichkeit | 100 | Zugriffs-URL je Verteilung (50), Info-Seite (20), Zugriffsrechte (30) |
+| Interoperabilität | 110 | Format je Verteilung (30), maschinenlesbar (40), nicht herstellergebunden (20), Zyklus (20) |
+| Nachnutzbarkeit | 75 | Lizenz je Verteilung (25), Lizenz offen (20), Herausgeber (15), Kontakt mit E-Mail (15) |
+| Kontext | 20 | Beschreibung (8), Titel (6), Datum (6) |
+
+> ⚠️ **Was übernommen ist und was nicht.** Die **fünf Dimensionen und ihre Gewichte** stammen aus der MQA-Methodik (Quelle: Recherchebericht des Nutzers). Die **Zuordnung der Einzelprüfungen und ihre Punkte innerhalb einer Dimension sind eigene Zutat** – die Aufteilung im Original lag nicht vor. Ein Test hält beides auseinander: er pinnt die fünf Dimensionsgewichte wörtlich und prüft, dass jede Dimension genau ihr Maximum ausschöpft. Wer eine Prüfung ergänzt, muss innerhalb der Dimension umverteilen.
+
+> ⚠️ **Nicht dasselbe wie der Wert des Portals.** Die MQA ruft URLs tatsächlich ab und prüft, ob sie antworten. DatenLotse macht **keine Netzaufrufe** – geprüft wird nur, ob eine Angabe da und wohlgeformt ist. Der Kasten im Qualitäts-Tab sagt das ausdrücklich.
+
+- **`completeness(d)` behält seinen Namen** und liefert `mqaScore(d).prozent`. Damit gibt es weiterhin genau **eine** graduelle Zahl: Badge, Ø im Inventar, Sortierung, Dashboard, Status-Einseiter und PDF-Bericht hängen alle daran. Die Ampelschwellen (≥ 80 / ≥ 50) bleiben.
+- **Die Bestnote ist erreichbar** – ein rundum gepflegter Datensatz erreicht 100 %. Ein Test hält das fest; ohne ihn wäre die 80-%-Schwelle eine Schikane.
+- **Ein frischer Import fällt von ~83 % auf ~46 %.** Das ist beabsichtigt und der eigentliche Zweck: die alte Zahl war zu freundlich.
+- `MQA_OFFENE_FORMATE` ist eine **Positivliste**. „Nicht herstellergebunden" lässt sich nicht aus dem Fehlen von etwas ableiten; unbekannte Formate zählen deshalb **nicht** mit, statt großzügig durchgewunken zu werden.
+- `renderMqaSummary()` zeigt im Qualitäts-Tab (`#quality-mqa`) die Dimensionen **über den ganzen Bestand gemittelt** plus die drei schwächsten Einzelprüfungen. Der Einzelwert steht schon auf der Karte; hier interessiert, **wo** das Inventar schwach ist.
+- `empty(v)` liegt seit v63 **modulweit** – vorher stand dieselbe Definition zweimal lokal in `validateDataset()` und `inventoryIssues()`.
 
 ### Vollständigkeit (Ampel)
 
@@ -632,6 +657,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v16 | Daten-Kompass (Herzstück) – eigene View + Hero-Haupt-CTA (Topbar-„Loslegen" zeigt ebenfalls darauf): ausführliche Open-Data-Reifegrad-Checkliste nach ODRA / EU Open Data Maturity / 5-Sterne / DCAT-AP.de / DSGVO·FAIR (7 Dimensionen, Quellenangaben), Status je Item mit Score & Ampel, Vorbelegung aus dem App-Stand, adaptive Sprünge in die passenden Bausteine, Persistenz (`datenlotse_kompass`) und PDF-Export; leeres „Loslegen"-Platzhalter-Modal entfernt |
 | v17 | Weiterer Ausbau (1/4) – Inventar Suche, Filter & Sortierung: `renderInventory()` in `renderInventory()` + `renderInventoryBody()` aufgeteilt; `.inv-controls` (Volltextsuche + Schutzbedarf-/Clearing-Ampel-Filter + Sortierung Titel/Vollständigkeit) über `invFilter`-State und `filteredInventory()`; der echte `idx` wird durch den Filter mitgeführt, sodass Editieren über gefilterten Teilmengen weiterhin den richtigen Datensatz trifft; Live-Meta „X von Y" + Empty-State |
 | v18 | Weiterer Ausbau (2/4) – Pseudonymisierung erweitert: drei neue Muster (Sozialversicherungsnummer, Steuer-ID *kontextgetriggert*, Kfz-Kennzeichen), Aktenzeichen um Geschäftszeichen/„Gz." und buchstabenhaltige Kerne erweitert, zusätzliche Geburtsdatum-Trigger („Geburtsdatum"/„Geburtstag"); Mapping-Export als CSV (`buildPseudoMappingCSV` + Button im Mapping-Kopf); Demo-Text und Grenzen-Liste aktualisiert; verifiziert auf Determinismus, Platzhalter-Konsistenz und Null-Falschtreffer auf neutralem Verwaltungstext |
+| v63 | **Die Vollständigkeits-Zahl war zu freundlich.** `completeness()` zählte gefüllte Pflichtfelder – ein Datensatz mit allen Pflichtangaben stand auf 100 %, auch ohne Schlagwörter, ohne Zeitraum und nur als PDF. Genau dagegen richtet sich der Leitgedanke der Metadata Quality Assurance von data.europa.eu. Die Zahl folgt jetzt deren Schema: fünf FAIR-Dimensionen, 405 Punkte, 18 Einzelprüfungen. **Ersatz statt drittes Maß** – der Funktionsname bleibt, damit Badge, Durchschnitt, Sortierung, Dashboard und Bericht weiter an genau einer graduellen Zahl hängen. Ein frischer Import fällt damit von ~83 % auf ~46 %; das ist der Zweck. Sauber getrennt ist, was übernommen wurde: die **Dimensionsgewichte** stammen aus der Methodik, die **Zuordnung der Einzelprüfungen** ist eigene Zutat – ein Test pinnt die Gewichte wörtlich und prüft, dass jede Dimension ihr Maximum ausschöpft. Ausdrücklich benannt ist auch, was der Wert **nicht** ist: die MQA ruft URLs ab, DatenLotse macht keine Netzaufrufe und prüft nur Vorhandensein und Wohlgeformtheit. Der stärkste Test geht die 18 Prüfungen einzeln durch und misst, ob jede ihre vollen Punkte ausmacht – eine wirkungslose Prüfung fällt sofort auf. Beim Bauen zeigte sich nebenbei, dass `empty()` zweimal wortgleich als lokale Hilfe existierte; jetzt einmal modulweit. 8 neue Tests, drei bestehende auf die neue Semantik umgeschrieben statt gelockert. Ein erster Mutationsversuch war zu schwach gewählt und lief grün durch – erst die schärfere Fassung (Positivliste akzeptiert alles) machte ihn rot. |
 | v62 | **Rechtslage nachgezogen – mit offengelegter Herkunft.** `LEGAL_BASIS` kannte weder den **Data Act** noch den **Data Governance Act**, obwohl beide inzwischen anwendbar sind, und der Eintrag zu § 12a EGovG stand noch auf dem Stand vor dem OZG-Änderungsgesetz (Ausweitung auf die „Behörden des Bundes", Open-Data-Koordinatoren, Berichtspflicht). Der interessanteste Zugewinn ist **DGG Kapitel II**: das Statistische Bundesamt ist dort zentrale Informationsstelle für die Weiterverwendung geschützter Verwaltungsdaten und unterstützt ausdrücklich bei Anonymisierung und Pseudonymisierung – das ist der amtliche Anknüpfungspunkt zu Modul 3a und 3b. Beim Data Act war die Formulierung heikel: Kapitel V verpflichtet nur bei **außergewöhnlicher Notwendigkeit**, und ein Eintrag, der das verschweigt, weckt die Erwartung eines allgemeinen Datenzugangs; ein Test hält den Vorbehalt fest. **Zur Herkunft:** die Angaben stammen aus einem Recherchebericht des Nutzers, nicht aus eigener Prüfung an der amtlichen Quelle – die Netzwerkrichtlinie sperrt EUR-Lex und gesetze-im-internet.de. Verlinkt wurde deshalb nur, was sich aus dem dokumentierten CELEX-Schema sicher bilden lässt; DADG und DGG stehen im Text, aber ohne Link, damit keine geratene Fundstelle als amtliche Quelle erscheint. Dazu: die Prüfwerkzeuge nannten die **DCAT-AP.de-Spezifikation 2.0**, aktuell ist 3.0 – das Konventionenhandbuch bleibt dagegen ausdrücklich bei 2.0. 6 neue Tests, drei Mutationen geprüft. |
 | v61 | **Derselbe Fehler, zwei Tabs weiter.** Nachdem v57 im Risiko-Tab drei Fehlerklassen behoben hatte, lag die Frage nahe, ob die Schwester-Tabs sie auch tragen. Eine gezielte Probe sagte: ja, alle drei. Am schwersten wiegt die Spaltenbereinigung, weil dort ein **Download** daran hängt: wer nach dem Bereinigen eine zweite Spalte auf „ganze Spalte ersetzen" stellt, sah weiterhin das alte Ergebnis – und der Knopf „Bereinigte CSV" lieferte eine Datei, in der der Wert noch im Klartext stand, obwohl die Konfiguration daneben etwas anderes behauptete. Nachgemessen: Konfiguration `{0: ganz, 1: ganz}`, Datei `Name,Ort\n[PERSON_1],Leipzig`. Im Freitext-Tab dasselbe Muster – die bereinigte Fassung blieb nach einer Textänderung stehen, samt Download. Dazu der Fokusverlust beim Umschalten einer Spaltenbehandlung, weil `renderPseudoCsv()` die ganze Box neu baute. Alle drei behoben; die Regel steht jetzt als Konvention in der Doku, weil sie zum dritten Mal aufgetreten ist. 5 neue Tests, drei Mutationen einzeln geprüft. |
 | v60 | **Die Ampel war nicht lesbar – gemessen, nicht vermutet.** Beim Kontrast-Nachmessen in v57 war aufgefallen, dass die bestehenden Badges dieselbe Schwäche haben wie der damals neue Kasten; dieser Schnitt zieht es nach. Ein Durchgang über alle Ampelnutzungen förderte **zwei** Muster zutage, beide betroffen: Ampeltext auf der 12-%-Tönung derselben Farbe (`--ampel-gelb` **2,66 : 1**, `--ampel-gruen` 2,98) und weiße Schrift auf dem Vollton (3,00 bzw. 3,40). Rot bestand mit 4,54 / 5,44 – die beiden anderen nicht. Statt Einzelfarben zu korrigieren gibt es jetzt je Stufe **zwei Token**: der Vollton für Flächen, Balken und Punkte, eine dunklere Variante für Text und bedeutungstragende Icons. Die Regel ist mechanisch (`color:` → Text-Token) und per Test abgesichert, sodass eine neue Textfarbe auf dem Vollton rot wird. **Dazu der dritte Fund derselben Art beim `hidden`-Attribut:** nach `.quality-panel` (v28) und `.pseudo-mini-btn` (v29) war es in v58 `.sample-card` – jedes Mal gewinnt eine Klasse mit eigenem `display` gegen die UA-Regel mit Specificity 0-0-1. Statt eines vierten Einzelfalls jetzt **eine** globale Regel plus ein Test, der für jede der rund 180 Klassen mit eigenem `display` eine Probe anlegt und prüft, ob `hidden` greift. Der erste Lauf meldete 176 Verstöße – die Regel schließt sie alle. Nebenbei: mein erster Kontrast-Scanner meldete für viele Elemente exakt 1,00 : 1, weil die DOM-Suche bei Verläufen keinen Hintergrund findet und auf Weiß zurückfällt – gemessen wurde am Ende an den Token-Werten. |

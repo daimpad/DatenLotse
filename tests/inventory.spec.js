@@ -81,20 +81,41 @@ test.describe('Inventar – Karten, Suche, Filter, Sortierung', () => {
     expect([...pct].sort((a, b) => b - a)).toEqual(pct);
   });
 
-  test('completeness zählt genau die DCAT-Pflichtfelder', async ({ page }) => {
+  test('completeness folgt seit v63 dem MQA-Schema, nicht mehr der Pflichtfeld-Quote', async ({ page }) => {
     await openApp(page);
     const r = await page.evaluate(() => {
       const leer = {};
-      const voll = { distributions: [{ format: 'CSV', license: 'cc-zero', accessURL: '', title: '' }] };
-      REQUIRED_FIELDS.filter(f => f !== 'license').forEach(f => { voll[f] = 'x'; });
-      return { leer: completeness(leer), voll: completeness(voll), felder: REQUIRED_FIELDS };
+      // Alle Pflichtfelder gefüllt – nach der alten Zählung wären das 100 %.
+      const pflicht = { distributions: [{ format: 'CSV', license: 'cc-zero', accessURL: '', title: '' }] };
+      REQUIRED_FIELDS.filter(f => f !== 'license').forEach(f => { pflicht[f] = 'x'; });
+      return { leer: completeness(leer), pflicht: completeness(pflicht), felder: REQUIRED_FIELDS };
     });
     expect(r.leer).toBe(0);
-    expect(r.voll).toBe(100);
-    // REQUIRED_FIELDS leitet sich aus DCAT_REQUIRED ab (eine Quelle der Wahrheit)
+    // Genau der Leitgedanke der MQA: Pflichtfelder allein ergeben noch
+    // keine gute Beschreibung – ohne Schlagwörter, Kategorie, Zeitraum
+    // und Kontakt bleibt reichlich Luft nach oben.
+    expect(r.pflicht).toBeGreaterThan(0);
+    expect(r.pflicht).toBeLessThan(100);
+    // REQUIRED_FIELDS bleibt die Quelle für Pflicht vs. Empfehlung in
+    // validateDataset() – nur die graduelle Zahl hängt nicht mehr daran.
     expect(r.felder).toEqual([
       'title', 'description', 'publisher', 'contactPoint', 'accessRights', 'license',
     ]);
+  });
+
+  test('ein rundum gepflegter Datensatz erreicht 100 %', async ({ page }) => {
+    await openApp(page);
+    // Wichtig: die Bestnote muss erreichbar bleiben, sonst wäre die
+    // Ampel-Schwelle bei 80 % eine Schikane.
+    const pct = await page.evaluate(() => completeness({
+      title: 'Ein hinreichend langer Titel', description: 'x'.repeat(40),
+      publisher: 'Stadt Musterstadt', contactPoint: 'open@musterstadt.de',
+      accessRights: 'PUBLIC', theme: 'GOVE', keywords: 'haushalt, finanzen',
+      spatial: 'Musterstadt', temporalStart: '2024-01-01', issued: '2024-02-01',
+      accrualPeriodicity: 'ANNUAL', landingPage: 'https://example.org/x',
+      distributions: [{ title: '', format: 'CSV', accessURL: 'https://example.org/x.csv', license: 'cc-by-4.0' }],
+    }));
+    expect(pct).toBe(100);
   });
 
   test('Titel wird escaped in die Karte geschrieben (XSS)', async ({ page }) => {
@@ -505,11 +526,12 @@ test.describe('Verteilungen (dcat:Distribution)', () => {
         hasEine: hasLicense(eine), hasHalb: hasLicense(halb),
       };
     });
-    expect(r.eine).toBe(100);
     expect(r.hasEine).toBe(true);
-    // Eine Verteilung ohne Lizenz macht den Datensatz unvollständig
+    // Eine Verteilung ohne Lizenz macht den Datensatz unvollständig –
+    // seit v63 zählt das über die MQA-Dimension „Nachnutzbarkeit",
+    // die Aussage bleibt: weniger Punkte als mit Lizenz überall.
     expect(r.hasHalb).toBe(false);
-    expect(r.halb).toBeLessThan(100);
+    expect(r.halb).toBeLessThan(r.eine);
   });
 
   test('Qualitätsprüfung benennt die betroffene Verteilung', async ({ page }) => {
@@ -570,7 +592,14 @@ test.describe('Verteilungen (dcat:Distribution)', () => {
         n: inventory[0].distributions.length,
         dist: inventory[0].distributions[0],
         legacyWeg: !('format' in inventory[0]) && !('license' in inventory[0]),
-        vollstaendig: completeness(inventory[0]),
+        nachher: completeness(inventory[0]),
+        // Derselbe Stand, aber schon als Verteilung notiert: die Migration
+        // darf die Bewertung nicht verändern.
+        referenz: completeness({
+          id: 'alt-1', title: 'Alt', description: 'x', publisher: 'P', contactPoint: 'a@b.de',
+          accessRights: 'PUBLIC', landingPage: 'https://example.org/alt',
+          distributions: [{ title: '', format: 'CSV', accessURL: '', license: 'dl-de/by-2-0' }],
+        }),
       };
     });
     expect(r.n).toBe(1);
@@ -578,8 +607,9 @@ test.describe('Verteilungen (dcat:Distribution)', () => {
     expect(r.dist.license).toBe('dl-de/by-2-0');
     expect(r.dist.accessURL).toBe('https://example.org/alt');
     expect(r.legacyWeg).toBe(true);
-    // Der migrierte Datensatz bleibt vollständig – kein Rückschritt für Bestandsdaten
-    expect(r.vollstaendig).toBe(100);
+    // Kein Rückschritt für Bestandsdaten: die Migration allein ändert die
+    // Bewertung nicht (die absolute Höhe hängt seit v63 am MQA-Schema).
+    expect(r.nachher).toBe(r.referenz);
   });
 
   test('Projektdateien vor v39 bleiben importierbar', async ({ page }) => {
@@ -852,5 +882,108 @@ test.describe('Uneinheitliche Lizenzen je Verteilung (v59)', () => {
       return validateDataset(d).filter(i => /verschiedene Lizenzen/.test(i.msg)).length;
     });
     expect(n).toBe(0);
+  });
+});
+
+/* v63: Metadaten-Güte nach dem MQA-Schema. Die Dimensionsgewichte
+   stammen aus der Methodik von data.europa.eu, die Zuordnung der
+   Einzelprüfungen ist eigene Zutat – der Test hält beides auseinander. */
+test.describe('Metadaten-Güte nach MQA (v63)', () => {
+  test('die Dimensionsgewichte stimmen und summieren sich auf 405', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => ({
+      dims: MQA_DIMENSIONEN.map(d => ({ id: d.id, max: d.max, summe: d.checks.reduce((s, c) => s + c.punkte, 0) })),
+      max: MQA_MAX,
+    }));
+    // Übernommen aus der Methodik – wer eine Prüfung ergänzt, muss die
+    // Punkte innerhalb der Dimension umverteilen, nicht die Summe ändern.
+    expect(r.dims.map(d => [d.id, d.max])).toEqual([
+      ['auffindbar', 100], ['zugaenglich', 100], ['interoperabel', 110],
+      ['nachnutzbar', 75], ['kontext', 20],
+    ]);
+    for (const d of r.dims) expect(d.summe, d.id).toBe(d.max);
+    expect(r.dims.reduce((s, d) => s + d.max, 0)).toBe(405);
+    expect(r.max).toBe(405);
+  });
+
+  test('jede Prüfung schlägt einzeln durch', async ({ page }) => {
+    await openApp(page);
+    // Für jede Prüfung: erfüllt vs. nicht erfüllt muss genau ihre Punkte
+    // ausmachen – sonst hängt eine Prüfung wirkungslos in der Liste.
+    const r = await page.evaluate(() => {
+      const voll = {
+        title: 'Ein hinreichend langer Titel', description: 'x'.repeat(40),
+        publisher: 'Stadt', contactPoint: 'open@example.de', accessRights: 'PUBLIC',
+        theme: 'GOVE', keywords: 'a, b', spatial: 'Ort', temporalStart: '2024-01-01',
+        issued: '2024-02-01', accrualPeriodicity: 'ANNUAL', landingPage: 'https://example.org/x',
+        distributions: [{ title: '', format: 'CSV', accessURL: 'https://example.org/x.csv', license: 'cc-by-4.0' }],
+      };
+      const basis = mqaScore(voll).punkte;
+      const wirkungslos = [];
+      MQA_DIMENSIONEN.forEach((dim, i) => dim.checks.forEach((c, j) => {
+        const kopie = JSON.parse(JSON.stringify(voll));
+        // Alles leeren, was die Prüfung braucht, und die Differenz messen
+        ({
+          keywords: () => { kopie.keywords = ''; },
+          theme: () => { kopie.theme = ''; },
+          spatial: () => { kopie.spatial = ''; kopie.geocodingKey = ''; },
+          temporal: () => { kopie.temporalStart = ''; kopie.temporalEnd = ''; },
+          accessurl: () => { kopie.distributions[0].accessURL = ''; kopie.landingPage = ''; },
+          landing: () => { kopie.landingPage = ''; },
+          rechte: () => { kopie.accessRights = ''; },
+          format: () => { kopie.distributions[0].format = ''; },
+          maschine: () => { kopie.distributions[0].format = 'PDF'; },
+          offen: () => { kopie.distributions[0].format = 'XLS'; },
+          zyklus: () => { kopie.accrualPeriodicity = ''; },
+          lizenz: () => { kopie.distributions[0].license = ''; },
+          offenLiz: () => { kopie.distributions[0].license = 'cc-by-nc-4.0'; },
+          publisher: () => { kopie.publisher = ''; },
+          kontakt: () => { kopie.contactPoint = 'Frau Meier'; },
+          beschreibung: () => { kopie.description = 'kurz'; },
+          titel: () => { kopie.title = 'Kurz'; },
+          datum: () => { kopie.issued = ''; kopie.modified = ''; },
+        })[c.id]();
+        const s = mqaScore(kopie);
+        if (s.dimensionen[i].checks[j].ok) wirkungslos.push(c.id + ' (greift nicht)');
+        else if (basis - s.punkte < c.punkte) wirkungslos.push(`${c.id} (nur ${basis - s.punkte} statt ${c.punkte})`);
+      }));
+      return { basis, wirkungslos, anzahl: MQA_DIMENSIONEN.reduce((s, d) => s + d.checks.length, 0) };
+    });
+    expect(r.basis).toBe(405);
+    expect(r.wirkungslos).toEqual([]);
+    expect(r.anzahl).toBe(18);
+  });
+
+  test('„nicht herstellergebunden" ist eine Positivliste, keine Ausschlussliste', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      const mit = f => mqaScore({ distributions: [{ title: '', format: f, accessURL: '', license: '' }] })
+        .dimensionen.find(d => d.id === 'interoperabel').checks.find(c => c.id === 'offen').ok;
+      return { csv: mit('CSV'), json: mit('JSON'), xls: mit('XLS'), erfunden: mit('Wolkenformat'), leer: mit('') };
+    });
+    expect(r.csv).toBe(true);
+    expect(r.json).toBe(true);
+    expect(r.xls).toBe(false);
+    // Unbekanntes zählt NICHT mit – großzügig durchwinken hieße raten
+    expect(r.erfunden).toBe(false);
+    expect(r.leer).toBe(false);
+  });
+
+  test('die Auswertung im Qualitäts-Tab nennt Dimensionen und den größten Hebel', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => { renderInventory(); showInventoryTab('quality'); });
+    const box = page.locator('#quality-mqa');
+    await expect(box).toContainText('Metadaten-Güte');
+    await expect(box.locator('.qual-mqa-dim')).toHaveCount(5);
+    await expect(box).toContainText('Größter Hebel');
+    // Der Unterschied zum Portalwert muss dastehen – wir rufen keine URLs ab.
+    await expect(box).toContainText('Nicht identisch mit dem Wert des Portals');
+  });
+
+  test('ohne Inventar bleibt die Auswertung leer', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => { inventory = []; renderQuality(); });
+    await expect(page.locator('#quality-mqa')).toBeEmpty();
   });
 });

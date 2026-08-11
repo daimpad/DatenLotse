@@ -515,7 +515,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v62';
+const APP_VERSION = 'v63';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -873,10 +873,102 @@ function fieldFilled(d, key, scope) {
   if (scope === 'dist') return key === 'license' ? hasLicense(d) : hasFormat(d);
   return !!(d[key] && String(d[key]).trim() !== '');
 }
-function completeness(d) {
-  const filled = DCAT_REQUIRED.filter(([k, , scope]) => fieldFilled(d, k, scope)).length;
-  return Math.round((filled / DCAT_REQUIRED.length) * 100);
+/* ── Metadaten-Qualität nach dem MQA-Schema ───────────────────────
+   Vorher zählte `completeness()` schlicht die gefüllten Pflichtfelder.
+   Der Leitgedanke der Metadata Quality Assurance von data.europa.eu ist
+   aber gerade, dass die Pflichtfelder allein noch keine gute Beschreibung
+   ergeben – ein Datensatz mit allen Pflichtangaben, aber ohne
+   Schlagwörter, ohne Zeitraum und nur als PDF ist schwer zu finden und
+   kaum nachnutzbar.
+
+   ÜBERNOMMEN sind die fünf FAIR-Dimensionen und ihre Gewichte
+   (Auffindbarkeit 100, Zugänglichkeit 100, Interoperabilität 110,
+   Nachnutzbarkeit 75, Kontext 20 = 405 Punkte).
+
+   EIGENE ZUTAT ist die Zuordnung der Einzelprüfungen zu den Dimensionen
+   und ihre Punkte innerhalb einer Dimension – die Aufteilung im Original
+   lag nicht vor. Die Dimensionssummen stimmen; ein Test hält das fest.
+
+   ⚠️ NICHT dasselbe wie der Wert des Portals: die MQA ruft URLs
+   tatsächlich ab und prüft, ob sie antworten. Das kann DatenLotse nicht
+   und will es nicht – die App macht keine Netzaufrufe. Geprüft wird
+   deshalb nur, ob eine Angabe da und wohlgeformt ist. Das UI sagt das. */
+/* Stand vor v63 zweimal wortgleich als lokale Hilfe in validateDataset()
+   und inventoryIssues() – jetzt einmal, damit die MQA-Prüfungen
+   dieselbe Definition benutzen und nichts auseinanderlaufen kann. */
+const empty = v => v == null || String(v).trim() === '';
+
+const MQA_MAX = 405;
+const MQA_DIMENSIONEN = [
+  { id: 'auffindbar', label: 'Auffindbarkeit', icon: 'fa-magnifying-glass', max: 100, checks: [
+    { id: 'keywords', punkte: 30, label: 'Schlagwörter vergeben',
+      test: d => keywordList(d).length > 0 },
+    { id: 'theme',    punkte: 30, label: 'Kategorie aus dem EU-Datenthemen-Vokabular',
+      test: d => !empty(d.theme) && DCAT_THEMES.some(o => o[0] === d.theme) },
+    { id: 'spatial',  punkte: 20, label: 'Räumliche Abdeckung angegeben',
+      test: d => !empty(d.spatial) || !empty(d.geocodingKey) },
+    { id: 'temporal', punkte: 20, label: 'Zeitliche Abdeckung angegeben',
+      test: d => !empty(d.temporalStart) || !empty(d.temporalEnd) },
+  ]},
+  { id: 'zugaenglich', label: 'Zugänglichkeit', icon: 'fa-link', max: 100, checks: [
+    { id: 'accessurl', punkte: 50, label: 'Zugriffs-URL an jeder Verteilung',
+      test: d => (d.distributions || []).length > 0 &&
+                 d.distributions.every(x => !empty(x.accessURL) || !empty(d.landingPage)) },
+    { id: 'landing',   punkte: 20, label: 'Info-Seite hinterlegt',
+      test: d => !empty(d.landingPage) && URL_RE.test(d.landingPage) },
+    { id: 'rechte',    punkte: 30, label: 'Zugriffsrechte aus dem Vokabular',
+      test: d => ['PUBLIC', 'RESTRICTED', 'NON_PUBLIC'].includes(d.accessRights) },
+  ]},
+  { id: 'interoperabel', label: 'Interoperabilität', icon: 'fa-arrows-turn-to-dots', max: 110, checks: [
+    { id: 'format',   punkte: 30, label: 'Format an jeder Verteilung',
+      test: d => (d.distributions || []).length > 0 && d.distributions.every(x => !empty(x.format)) },
+    { id: 'maschine', punkte: 40, label: 'Format ist maschinenlesbar',
+      test: d => (d.distributions || []).some(x => HVD_MACHINE_RE.test(x.format || '')) },
+    { id: 'offen',    punkte: 20, label: 'Format ist nicht herstellergebunden',
+      test: d => (d.distributions || []).some(x => MQA_OFFENE_FORMATE.test(x.format || '')) },
+    { id: 'zyklus',   punkte: 20, label: 'Aktualisierungszyklus aus dem Vokabular',
+      test: d => !empty(d.accrualPeriodicity) && FREQ_OPTIONS.some(o => o[0] === d.accrualPeriodicity) },
+  ]},
+  { id: 'nachnutzbar', label: 'Nachnutzbarkeit', icon: 'fa-recycle', max: 75, checks: [
+    { id: 'lizenz',    punkte: 25, label: 'Lizenz an jeder Verteilung',
+      test: d => hasLicense(d) },
+    { id: 'offenLiz',  punkte: 20, label: 'Lizenz ist offen',
+      test: d => hasLicense(d) && d.distributions.every(x => licenseIsOpen(x.license)) },
+    { id: 'publisher', punkte: 15, label: 'Herausgeber benannt',
+      test: d => !empty(d.publisher) },
+    { id: 'kontakt',   punkte: 15, label: 'Ansprechpartner mit E-Mail',
+      test: d => !empty(d.contactPoint) && EMAIL_RE.test(d.contactPoint) },
+  ]},
+  { id: 'kontext', label: 'Kontext', icon: 'fa-circle-info', max: 20, checks: [
+    { id: 'beschreibung', punkte: 8, label: 'Aussagekräftige Beschreibung',
+      test: d => !empty(d.description) && d.description.trim().length >= 30 },
+    { id: 'titel',        punkte: 6, label: 'Aussagekräftiger Titel',
+      test: d => !empty(d.title) && d.title.trim().length >= 10 },
+    { id: 'datum',        punkte: 6, label: 'Veröffentlichungs- oder Änderungsdatum',
+      test: d => !empty(d.issued) || !empty(d.modified) },
+  ]},
+];
+
+/* Bewusst eine Positivliste: „nicht herstellergebunden" lässt sich nicht
+   aus dem Fehlen von etwas ableiten. Unbekannte Formate zählen nicht mit,
+   statt großzügig durchgewunken zu werden. */
+const MQA_OFFENE_FORMATE = /\b(csv|tsv|json|geojson|jsonld|json-ld|xml|gml|kml|rdf|ttl|turtle|n3|nt|ods|odt|odp|txt|md|parquet|netcdf|gtfs|wfs|wms|wcs|api|png|svg|tiff|zip)\b/i;
+
+function mqaScore(d) {
+  const dimensionen = MQA_DIMENSIONEN.map(dim => {
+    const checks = dim.checks.map(c => ({ id: c.id, label: c.label, punkte: c.punkte, ok: !!c.test(d) }));
+    return { id: dim.id, label: dim.label, icon: dim.icon, max: dim.max,
+             checks, punkte: checks.reduce((s, c) => s + (c.ok ? c.punkte : 0), 0) };
+  });
+  const punkte = dimensionen.reduce((s, x) => s + x.punkte, 0);
+  return { punkte, max: MQA_MAX, prozent: Math.round(punkte / MQA_MAX * 100), dimensionen };
 }
+
+/* Die eine Kennzahl je Datensatz – seit v63 nach dem MQA-Schema statt
+   als reine Pflichtfeld-Quote. Der Name bleibt, damit es weiterhin genau
+   EINE graduelle Zahl gibt: Badge, Durchschnitt, Sortierung, Dashboard
+   und Bericht hängen alle hier dran. */
+function completeness(d) { return mqaScore(d).prozent; }
 
 /* ── Onboarding-Rundgang ──────────────────────────────────────────
    Geführter Durchlauf durch die Bausteine. Bewusst KEIN Auto-Start als
@@ -1616,7 +1708,6 @@ const URL_RE = /^https?:\/\/.+/i;
 
 function validateDataset(d) {
   const issues = [];
-  const empty = v => v == null || String(v).trim() === '';
   DCAT_REQUIRED.forEach(([k, label, scope]) => {
     if (!fieldFilled(d, k, scope)) issues.push({ sev: 'error', msg: `Pflichtfeld fehlt: ${label}` });
   });
@@ -1701,7 +1792,6 @@ function validateDataset(d) {
    wird nur, wenn der Mensch den Datensatz als HVD eingestuft hat. */
 function hvdIssues(d) {
   const issues = [];
-  const empty = v => v == null || String(v).trim() === '';
   if (empty(d.hvd)) return issues;
   if (!HVD_META[d.hvd]) {
     issues.push({ sev: 'warn', msg: 'HVD-Kategorie nicht aus dem amtlichen Vokabular „High-value dataset categories" – bitte aus der Liste wählen.' });
@@ -1903,9 +1993,45 @@ function renderHvdHinweise() {
     btn.addEventListener('click', () => jumpToInventoryCard(+btn.dataset.fix)));
 }
 
+/* Die Dimensionen über den GANZEN Bestand gemittelt. Der Einzelwert je
+   Datensatz steht schon auf der Inventar-Karte; hier interessiert, WO das
+   Inventar schwach ist – „Auffindbarkeit 20 %" ist ein Arbeitsauftrag,
+   „Ø 46 %" ist nur eine Zahl. */
+function renderMqaSummary() {
+  const box = document.getElementById('quality-mqa');
+  if (!box) return;
+  if (!inventory.length) { box.innerHTML = ''; return; }
+  const werte = inventory.map(mqaScore);
+  const gesamt = Math.round(werte.reduce((s, x) => s + x.punkte, 0) / werte.length);
+  const dims = MQA_DIMENSIONEN.map((dim, i) => {
+    const punkte = werte.reduce((s, x) => s + x.dimensionen[i].punkte, 0) / werte.length;
+    return { label: dim.label, icon: dim.icon, max: dim.max, pct: Math.round(punkte / dim.max * 100) };
+  });
+  // Der schwächste Punkt quer über alle Datensätze – das ist der Hebel.
+  const schwach = MQA_DIMENSIONEN.flatMap((dim, i) => dim.checks.map((c, j) => ({
+    label: c.label,
+    anteil: werte.filter(x => x.dimensionen[i].checks[j].ok).length / werte.length,
+  }))).sort((a, b) => a.anteil - b.anteil).slice(0, 3).filter(x => x.anteil < 1);
+  box.innerHTML =
+    `<div class="qual-mqa-head">
+       <strong><i class="fas fa-gauge-high"></i> Metadaten-Güte</strong>
+       <span class="qual-mqa-score">${gesamt} <span>von ${MQA_MAX} Punkten im Schnitt</span></span>
+     </div>
+     <div class="qual-mqa-dims">${dims.map(x => `
+       <div class="qual-mqa-dim">
+         <span class="qual-mqa-dim-lbl"><i class="fas ${x.icon}"></i> ${esc(x.label)}</span>
+         <span class="qual-mqa-bar"><span style="width:${x.pct}%"></span></span>
+         <span class="qual-mqa-pct">${x.pct} %</span>
+       </div>`).join('')}</div>
+     ${schwach.length ? `<p class="qual-mqa-hint"><strong>Größter Hebel:</strong> ${schwach.map(x =>
+        `${esc(x.label)} <span class="qual-mqa-anteil">(${Math.round(x.anteil * 100)} % der Datensätze)</span>`).join(' · ')}</p>` : ''}
+     <p class="qual-mqa-note">Nachgebildet nach der <em>Metadata Quality Assurance</em> von data.europa.eu: fünf FAIR-Dimensionen, ${MQA_MAX} Punkte. <strong>Nicht identisch mit dem Wert des Portals</strong> – dort werden Adressen tatsächlich abgerufen, um zu prüfen, ob sie antworten. DatenLotse macht keine Netzaufrufe und prüft deshalb nur, ob eine Angabe da und wohlgeformt ist.</p>`;
+}
+
 function renderQuality() {
   renderInventoryIssues();
   renderHvdHinweise();
+  renderMqaSummary();
   const body = document.getElementById('quality-body');
   const sum = document.getElementById('quality-summary');
   if (!body) return;
