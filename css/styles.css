@@ -283,14 +283,18 @@ a { color: var(--c-accent); }
   gap: 20px;
   align-items: flex-start;
 }
+/* Das DatenGraf-Logo statt eines Zeichens – die beiden Werkzeuge teilen ihre
+   Bildsprache, und das Logo sagt sofort, wovon die Rede ist. Runde Fassung wie
+   `.hero-logo`, damit es neben dem DatenLotsen als Geschwister lesbar bleibt. */
 .graf-bridge-icon {
-  width: 46px; height: 46px;
+  width: 56px; height: 56px;
   flex-shrink: 0;
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #420093 0%, #6c2fbf 100%);
-  color: #fff;
-  font-size: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(66, 0, 147, 0.15);
+  box-shadow: var(--shadow-sm);
+  object-fit: contain;
+  padding: 3px;
 }
 .graf-bridge-body { min-width: 0; }
 .graf-bridge-title {

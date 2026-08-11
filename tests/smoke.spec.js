@@ -78,6 +78,29 @@ test.describe('Grundgerüst & Navigation', () => {
     expect(await page.locator('#hero .graf-bridge, #hero .hero-from-graf').count()).toBe(0);
   });
 
+  /* v69: Die Brücke trug erst ein CSV-Zeichen, dann das DatenGraf-Zeichen aus der
+     Icon-Schrift – beides, weil das echte Logo nicht zu beschaffen war. Jetzt liegt
+     es lokal im Repo. Der Test prüft, dass es wirklich geladen wird und nicht als
+     kaputtes Bild endet; ein `<img>`, das 404 liefert, hat naturalWidth 0. */
+  test('die DatenGraf-Brücke trägt das echte Logo, lokal ausgeliefert', async ({ page }) => {
+    await openApp(page);
+    const logo = page.locator('img.graf-bridge-icon');
+    // `loading="lazy"`: der Abschnitt steht weit unter dem Falz, das Bild wird
+    // beim ersten Laden bewusst nicht mitgeholt (siehe Ladegewicht-Budget).
+    await logo.scrollIntoViewIfNeeded();
+    await expect(logo).toBeVisible();
+    const bild = await logo.evaluate(el => ({
+      quelle: el.getAttribute('src'),
+      alt: el.getAttribute('alt'),
+      geladen: el.complete && el.naturalWidth > 0,
+    }));
+    expect(bild.quelle).toBe('datengraf-logo.svg');   // lokal, kein CDN
+    expect(bild.alt).toBeTruthy();
+    expect(bild.geladen).toBe(true);
+    // kein Icon-Schriftzeichen mehr an dieser Stelle
+    expect(await page.locator('#graf-bridge .graf-bridge-icon i').count()).toBe(0);
+  });
+
   /* v66: Der Hero trug sieben Bausteine (Logo, Titel, Einleitung, Chips,
      Zusage, Aktion, Import-Zeile). Die vier Schritte stehen jetzt in einem
      eigenen Abschnitt – mit `<h2>`, denn je Ansicht bleibt genau eine `<h1>`. */

@@ -116,7 +116,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 379 Tests, ~150 s
+npm test                         # 380 Tests, ~150 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -309,7 +309,7 @@ datenlotse/
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   ├── sample-verein.csv       # Beispiel: fiktiver gemeinnütziger Träger (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (379 Tests in 14 Dateien)
+├── tests/                      # Playwright-End-to-End-Tests (380 Tests in 14 Dateien)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität, Anrede
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection
@@ -343,6 +343,7 @@ datenlotse/
 │   │   └── tests.yml           # Playwright-Tests (Push auf main + Pull Requests)
 │   └── CONTRIBUTING.md         # Beitragsrichtlinien
 ├── logo.svg                    # Marken-Logo (Topbar + Hero)
+├── datengraf-logo.svg          # Logo des Schwester-Tools (DatenGraf-Brücke)
 ├── favicon.svg / .ico / *.png  # Favicon-Set
 ├── site.webmanifest            # PWA-Manifest
 ├── social-preview.svg/.png     # Open-Graph-/Twitter-Vorschaubild (PNG wird ausgeliefert)
