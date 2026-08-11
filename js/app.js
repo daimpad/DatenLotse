@@ -515,7 +515,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v67';
+const APP_VERSION = 'v68';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -980,7 +980,6 @@ function completeness(d) { return mqaScore(d).prozent; }
    zu laden (Nebenwirkung, die niemand bestellt hat), bietet der Schritt den
    Import an und lässt die Entscheidung beim Menschen.
    ────────────────────────────────────────────────────────────── */
-const LS_TOUR = 'datenlotse_tour';
 const TOUR_STEPS = [
   { view: 'home', title: 'Willkommen beim DatenLotsen',
     text: 'Dieser Rundgang zeigt in wenigen Schritten, wofür die Bausteine da sind und in welcher Reihenfolge sie sinnvoll sind. Alles läuft lokal in Ihrem Browser – es gibt keinen Server, keinen Account und keine Übertragung.' },
@@ -1007,14 +1006,6 @@ const TOUR_STEPS = [
 ];
 const tour = { i: 0, active: false };
 
-function tourSeen() {
-  try { return localStorage.getItem(LS_TOUR) === 'done'; } catch (e) { return false; }
-}
-function markTourSeen() {
-  try { localStorage.setItem(LS_TOUR, 'done'); } catch (e) { /* ignorieren */ }
-  document.getElementById('tour-hint')?.classList.add('hidden');
-}
-
 function startTour() {
   tour.i = 0;
   tour.active = true;
@@ -1028,7 +1019,6 @@ function endTour() {
   document.body.classList.remove('tour-on');
   document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
   closeSidebar();
-  markTourSeen();
 }
 function tourGo(delta) {
   const next = tour.i + delta;
@@ -1082,20 +1072,11 @@ function renderTour() {
   card.focus();
 }
 
-function refreshTourHint() {
-  const hint = document.getElementById('tour-hint');
-  if (!hint) return;
-  // Nur für Erstnutzer und nur auf der Startseite – und nie während des Rundgangs
-  hint.classList.toggle('hidden', tourSeen() || tour.active);
-}
-
 document.getElementById('sidebar-tour')?.addEventListener('click', e => {
   e.preventDefault();
   closeSidebar();
   startTour();
 });
-document.getElementById('tour-hint-start')?.addEventListener('click', startTour);
-document.getElementById('tour-hint-close')?.addEventListener('click', markTourSeen);
 
 document.addEventListener('keydown', e => {
   if (!tour.active) return;
@@ -2970,7 +2951,7 @@ function showView(name) {
   document.getElementById('vorlagen-view')?.classList.toggle('hidden', name !== 'vorlagen');
   // Der Phase-4&5-Beratungsblock (`.consult-cta`) trägt dieselbe Klasse: Unterseiten
   // bekommen stattdessen ihren eigenen, kontextpassenden „Wie geht es weiter?"-Block.
-  if (name === 'home') { refreshDashboard(); refreshTourHint(); }
+  if (name === 'home') refreshDashboard();
   else { const dash = document.getElementById('dashboard'); if (dash) dash.classList.add('hidden'); }
   window.scrollTo({ top: 0 });
 }
@@ -5025,7 +5006,6 @@ document.getElementById('reset-data-btn')?.addEventListener('click', () => {
 // Beim Laden den gespeicherten Stand wiederherstellen (still – Daten sind über die Views erreichbar)
 loadState();
 refreshDashboard();   // Status-Dashboard auf der Startseite zeigen, falls bereits Daten vorliegen
-refreshTourHint();    // Rundgang-Hinweis nur für Erstnutzer
 
 /* ──────────────────────────────────────────────────────────────
    ROADMAP / BAUAUFTRÄGE
