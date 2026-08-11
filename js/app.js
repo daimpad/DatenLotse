@@ -515,7 +515,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v65';
+const APP_VERSION = 'v66';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -1019,11 +1019,13 @@ function startTour() {
   tour.i = 0;
   tour.active = true;
   document.getElementById('tour-layer')?.classList.remove('hidden');
+  document.body.classList.add('tour-on');
   renderTour();
 }
 function endTour() {
   tour.active = false;
   document.getElementById('tour-layer')?.classList.add('hidden');
+  document.body.classList.remove('tour-on');
   document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
   closeSidebar();
   markTourSeen();
@@ -2950,9 +2952,11 @@ document.addEventListener('keydown', e => {
 
 /* ── View-Umschaltung (home / inventory / governance / pseudo) ── */
 function showView(name) {
-  ['hero', 'about-accordion', 'module-grid'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = (name === 'home') ? '' : 'none';
+  // Alles, was nur auf die Startseite gehört, trägt `.home-only` – vorher stand
+  // dafür eine Liste von IDs plus ein Sonderfall für `.consult-cta`; ein neuer
+  // Startseiten-Abschnitt wäre auf den Unterseiten stehen geblieben.
+  document.querySelectorAll('.home-only').forEach(el => {
+    el.style.display = (name === 'home') ? '' : 'none';
   });
   document.getElementById('inventory-view')?.classList.toggle('hidden', name !== 'inventory');
   document.getElementById('governance-view')?.classList.toggle('hidden', name !== 'governance');
@@ -2960,10 +2964,8 @@ function showView(name) {
   document.getElementById('kompass-view')?.classList.toggle('hidden', name !== 'kompass');
   document.getElementById('wissen-view')?.classList.toggle('hidden', name !== 'wissen');
   document.getElementById('vorlagen-view')?.classList.toggle('hidden', name !== 'vorlagen');
-  // Der Phase-4&5-Beratungsblock gehört auf die Startseite; Unterseiten bekommen
-  // stattdessen ihren eigenen, kontextpassenden „Wie geht es weiter?"-Block.
-  const cta = document.querySelector('.consult-cta');
-  if (cta) cta.style.display = (name === 'home') ? '' : 'none';
+  // Der Phase-4&5-Beratungsblock (`.consult-cta`) trägt dieselbe Klasse: Unterseiten
+  // bekommen stattdessen ihren eigenen, kontextpassenden „Wie geht es weiter?"-Block.
   if (name === 'home') { refreshDashboard(); refreshTourHint(); }
   else { const dash = document.getElementById('dashboard'); if (dash) dash.classList.add('hidden'); }
   window.scrollTo({ top: 0 });

@@ -47,6 +47,19 @@ test.describe('Statische Wissensseiten', () => {
       // Seiten aus wie ein angehängtes Dokument statt wie dasselbe Produkt.
       await expect(page.locator('.static-hero h1')).toHaveCount(1);
       await expect(page.locator('.static-hero .static-crumbs')).toBeVisible();
+      // Regression v66: der Generator schrieb `class="footer"`, wofür es gar
+      // keine Regel gibt – die Linkzeile stand ungestylt und ohne Grund am
+      // unteren Rand. Es ist dieselbe Leiste wie in der App, also dieselbe Klasse.
+      const fuss = await page.evaluate(() => {
+        const f = document.querySelector('footer.site-footer');
+        if (!f) return null;
+        const cs = getComputedStyle(f);
+        return { grund: cs.backgroundColor, rahmen: cs.borderTopWidth, marke: !!f.querySelector('.footer-brand') };
+      });
+      expect(fuss).not.toBeNull();
+      expect(fuss.grund).toBe('rgb(255, 255, 255)');
+      expect(fuss.rahmen).not.toBe('0px');
+      expect(fuss.marke).toBe(true);
       expect(fehler).toEqual([]);
     });
   }

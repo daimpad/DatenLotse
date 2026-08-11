@@ -156,6 +156,67 @@ test.describe('Onboarding-Rundgang', () => {
     expect(befunde).toEqual([]);
   });
 
+  // Regression v66: `.tour-highlight` lag auf z-index 1201, die Karte steckte in
+  // `#tour-layer` (position: fixed = eigener Stapelkontext) auf 1200. Das
+  // Zielelement zeichnete dadurch IN die Karte hinein – bei Schritt 3 stand der
+  // Fragebogentext über Titel und Knöpfen, und Klicks dort trafen den Fragebogen.
+  test('kein Seiteninhalt zeichnet in die Rundgang-Karte hinein', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => startTour());
+
+    const gesamt = await page.evaluate(() => TOUR_STEPS.length);
+    const verdeckt = [];
+    for (let i = 0; i < gesamt; i++) {
+      await page.evaluate(n => { tour.i = n; renderTour(); }, i);
+      await page.waitForTimeout(450);   // scrollIntoView ist smooth
+      const treffer = await page.evaluate(() => {
+        const card = document.getElementById('tour-card');
+        const b = card.getBoundingClientRect();
+        const raus = [];
+        for (const dx of [0.1, 0.3, 0.5, 0.7, 0.9]) {
+          for (const dy of [0.06, 0.2, 0.5, 0.8, 0.94]) {
+            const x = b.left + b.width * dx, y = b.top + b.height * dy;
+            const oben = document.elementFromPoint(x, y);
+            if (!card.contains(oben)) {
+              raus.push(`Schritt ${tour.i + 1}: ${oben ? (oben.id || oben.className || oben.tagName) : 'nichts'}`);
+            }
+          }
+        }
+        return raus;
+      });
+      verdeckt.push(...treffer);
+    }
+    expect(verdeckt).toEqual([]);
+  });
+
+  test('das Abdunkeln liegt unter der hervorgehobenen Stelle und geht wieder weg', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => { startTour(); tour.i = 2; renderTour(); });
+    await page.waitForTimeout(450);
+
+    const an = await page.evaluate(() => {
+      const hl = document.querySelector('.tour-highlight');
+      const b = hl.getBoundingClientRect();
+      const oben = document.elementFromPoint(b.left + 20, b.top + 12);
+      return {
+        klasse: document.body.classList.contains('tour-on'),
+        grund: getComputedStyle(document.body, '::before').backgroundColor,
+        // die hervorgehobene Stelle bleibt bedienbar, das Abdunkeln liegt darunter
+        erreichbar: hl.contains(oben) || oben === hl,
+      };
+    });
+    expect(an.klasse).toBe(true);
+    expect(an.grund).not.toBe('rgba(0, 0, 0, 0)');
+    expect(an.erreichbar).toBe(true);
+
+    // Ohne das Entfernen bliebe die Seite nach dem Rundgang dauerhaft abgedunkelt
+    await page.evaluate(() => endTour());
+    expect(await page.evaluate(() => document.body.classList.contains('tour-on'))).toBe(false);
+    expect(await page.evaluate(() =>
+      getComputedStyle(document.body, '::before').backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+  });
+
   test('Rundgang-Text wird escaped in die Karte geschrieben', async ({ page }) => {
     await openApp(page);
     await page.evaluate(() => {
