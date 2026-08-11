@@ -495,12 +495,26 @@ test.describe('Beispieldaten, Verlauf & Prüfwerkzeuge', () => {
     // Die Grenze der eigenen Prüfung wird benannt, nicht verschwiegen
     await expect(page.locator('#wissen-sec-tools')).toContainText('keine vollständige SHACL-Validierung');
 
+    // Die Regel ist nicht „nur amtliche Hosts", sondern: jede Adresse zeigt
+    // auf die Stelle, die das Werkzeug bzw. den Normtext SELBST herausgibt –
+    // nie auf eine Sekundärquelle. Deshalb hier ein Eintrag je Werkzeug
+    // statt einer Host-Liste: ein neues Werkzeug erzwingt eine Entscheidung.
+    const HERKUNFT = {
+      'SHACL-Validator der EU (DCAT-AP)': 'itb.ec.europa.eu',
+      'DCAT-AP.de-Spezifikation': 'dcat-ap.de',
+      'DCAT-AP.de-Konventionenhandbuch (2.0)': 'dcat-ap.de',
+      'GovData: Metadaten-Struktur': 'govdata.de',
+      'Musterdatenkatalog': 'govdata.de',
+      'ARX Data Anonymization Tool': 'arx.deidentifier.org',
+      'OParl 1.1': 'oparl.org',
+    };
+    const eintraege = await page.evaluate(() => PRUEF_WERKZEUGE.map(w => ({ n: w.name, u: w.url })));
+    expect(eintraege.map(e => e.n).sort()).toEqual(Object.keys(HERKUNFT).sort());
+    for (const e of eintraege) expect(e.u, e.n).toContain(HERKUNFT[e.n]);
+
     const links = await page.locator('#wissen-tools a').evaluateAll(as =>
       as.map(a => ({ href: a.href, rel: a.rel })));
-    for (const l of links) {
-      expect(l.href).toMatch(/itb\.ec\.europa\.eu|dcat-ap\.de|govdata\.de/);
-      expect(l.rel).toContain('noopener');
-    }
+    for (const l of links) expect(l.rel).toContain('noopener');
     expect(errors).toEqual([]);
   });
 });
@@ -1061,5 +1075,72 @@ test.describe('Rechtsgrundlagen: Data Act und Data Governance Act (v62)', () => 
     const konv = r.find(w => /Konventionenhandbuch/.test(w.n));
     expect(konv.n).toContain('2.0');
     expect(konv.s).toMatch(/bleibt bei Version 2\.0/i);
+  });
+});
+
+/* v64: NGO-Anker aus dem Recherchebericht des Nutzers. Enthalten sind
+   genau die Quellen, die der Bericht trägt – die Initiative Transparente
+   Zivilgesellschaft steht bewusst NICHT darin, weil sie aus einer
+   eigenen Suche stammte und nicht aus dem Bericht. */
+test.describe('Zivilgesellschaftliche Anknüpfungspunkte (v64)', () => {
+  test('die Landesgesetze bekommen die zweite Leserichtung', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => navTo('wissen'));
+    const box = page.locator('#wissen-sec-laender');
+    await expect(box).toContainText('Zwei Leserichtungen');
+    // Wer nicht informationspflichtig ist, nutzt dieselben Gesetze zum Anfragen
+    await expect(box).toContainText('fragt danach an');
+    await expect(box.locator('a[href="https://fragdenstaat.de/"]')).toBeVisible();
+  });
+
+  test('die Werkzeugliste nennt Musterdatenkatalog, ARX und OParl', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => PRUEF_WERKZEUGE.map(w => ({ n: w.name, s: w.summary, u: w.url })));
+    const namen = r.map(w => w.n);
+    expect(namen).toContain('Musterdatenkatalog');
+    expect(namen).toContain('ARX Data Anonymization Tool');
+    expect(namen).toContain('OParl 1.1');
+    for (const w of r) expect(w.u, w.n).toMatch(/^https:\/\//);
+  });
+
+  test('ARX wird als das benannt, was DatenLotse bewusst nicht tut', async ({ page }) => {
+    await openApp(page);
+    const s = await page.evaluate(() => PRUEF_WERKZEUGE.find(w => /ARX/.test(w.name)).summary);
+    // Der Risiko-Tab misst nur; ARX kann die Daten auch verändern.
+    expect(s).toMatch(/generalisieren|unterdrücken/i);
+    expect(s).toMatch(/k-Anonymität/);
+  });
+
+  test('OParl nennt die Open Knowledge Foundation und die Lizenz', async ({ page }) => {
+    await openApp(page);
+    const s = await page.evaluate(() => PRUEF_WERKZEUGE.find(w => /OParl/.test(w.name)).summary);
+    expect(s).toMatch(/Open Knowledge Foundation/);
+    expect(s).toMatch(/CC BY 3\.0 DE/);
+  });
+
+  test('DigComp ergänzt Data Orchard, ersetzt es nicht', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => METHOD_MODELS.map(m => ({ n: m.name, by: m.by, d: m.desc })));
+    const dig = r.find(m => /DigComp/.test(m.n));
+    expect(dig, 'DigComp').toBeTruthy();
+    expect(dig.by).toMatch(/CC BY 4\.0/);
+    // „ergänzt" allein genügt nicht – der Satz muss sagen, dass es NICHT
+    // ersetzt. Sonst bliebe der Test grün, wenn genau diese Aussage wegfiele.
+    expect(dig.d).toMatch(/statt sie zu ersetzen/);
+    // Und der Grund dafür: DigComp beschreibt Personen, die Dimension
+    // fragt nach der Organisation.
+    expect(dig.d).toMatch(/einzelne Personen/i);
+    // Data Orchard bleibt in der Liste
+    expect(r.some(m => /Data Maturity Framework/.test(m.n))).toBe(true);
+    expect(r.length).toBe(7);
+  });
+
+  test('die neuen Einträge sind über die Volltextsuche auffindbar', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => navTo('wissen'));
+    await page.fill('#wissen-search', 'anonymis');
+    await expect(page.locator('#wissen-tools')).toContainText('ARX');
+    await page.fill('#wissen-search', 'digcomp');
+    await expect(page.locator('#wissen-models')).toContainText('DigComp');
   });
 });

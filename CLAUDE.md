@@ -11,7 +11,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und wichtige Implementierun
 - **Einstiegspunkt:** `index.html`
 - **Styles:** `css/styles.css` (Layout & Komponenten) + `css/tokens.css` (Design-Tokens)
 - **Logik:** `js/app.js` (eine einzige Datei)
-- **Aktuelle Version:** `v63` (Script-Tag: `<script src="js/app.js?v=63">`)
+- **Aktuelle Version:** `v64` (Script-Tag: `<script src="js/app.js?v=64">`)
 
 ---
 
@@ -26,7 +26,7 @@ python3 -m http.server 8080
 
 **Cache-Busting:** Nach Änderungen an `app.js` die Versionsnummer im Script-Tag in `index.html` erhöhen und die sichtbare `v{N}` im Footer mitziehen. **Auch die CSS-Links (`css/tokens.css?v=N`, `css/styles.css?v=N`) tragen denselben `?v=N`** – bei reinen CSS-/Layout-Änderungen unbedingt mitziehen, sonst liefert GitHub Pages das alte Stylesheet:
 ```html
-<script src="js/app.js?v=63"></script>
+<script src="js/app.js?v=64"></script>
 ```
 
 ### Externe Aufrufe
@@ -66,7 +66,7 @@ Die App hat keinen Build-Schritt – getestet wird **die ausgelieferte App**, al
 ```bash
 npm install                      # nur Dev: @playwright/test (exakt gepinnt)
 npx playwright install chromium  # einmalig
-npm test                         # 361 Tests, ~145 s
+npm test                         # 367 Tests, ~145 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -448,6 +448,23 @@ Geführter Durchlauf durch die Bausteine (`TOUR_STEPS`, `tour = { i, active }`).
 
 Schritte mit `needsData` brauchen ein Inventar. Statt still Beispieldaten zu laden – eine Nebenwirkung, die niemand bestellt hat – bietet der Schritt den Import an (`#tour-sample`) und lässt die Entscheidung beim Menschen. Ein Test prüft, dass jedes `target` in der jeweiligen View wirklich existiert; sonst zeigt der Rundgang ins Leere, sobald sich Markup ändert.
 
+### Zivilgesellschaftliche Anknüpfungspunkte
+
+Die Landesgesetze standen bis v63 nur in **einer** Leserichtung da: als Pflicht der informationspflichtigen Stelle. Für alle anderen – Verein, Stiftung, Initiative – sind dieselben Gesetze das **Werkzeug, um an Daten zu kommen**, die noch nicht offen liegen. Der Lead der Länder-Sektion benennt jetzt beide Richtungen und verweist auf FragDenStaat; die Liste selbst bleibt unverändert.
+
+Dazu drei Einträge in `PRUEF_WERKZEUGE` und einer in `METHOD_MODELS`:
+
+| Eintrag | Warum |
+|---|---|
+| **Musterdatenkatalog** (FITKO/GovData) | ~36.000 Datensätze aus 500+ Kommunen – die schnellste Antwort auf „was veröffentlichen andere?". Hilft beim Zuschnitt des eigenen Inventars, gerade ohne Vorlage |
+| **ARX** (Apache 2.0) | die fachliche Referenz für Anonymisierung – und **das, was DatenLotse bewusst nicht tut**: ARX kann generalisieren und unterdrücken, der Risiko-Tab misst nur |
+| **OParl 1.1** (OKF Deutschland, CC BY 3.0 DE) | Schnittstelle für kommunale Ratsinformationssysteme; relevant, wenn Gremiendaten nachgenutzt oder beschrieben werden |
+| **DigComp** (EU JRC, CC BY 4.0) | **Ergänzung, kein Ersatz** für Data Orchard: DigComp beschreibt die Kompetenzen einzelner Personen, die Dimension „Können & Kapazität" fragt nach der Organisation. Frei lizenziert, anders als CC BY-NC-SA |
+
+> ⚠️ **Herkunft und Grenze.** Alle Angaben stammen aus dem Recherchebericht des Nutzers. **Nicht** enthalten ist die Initiative Transparente Zivilgesellschaft – sie stammte aus einer eigenen Suche, nicht aus dem Bericht, und der Wortlaut ihrer zehn Punkte ließ sich nicht am Original prüfen. Ebenfalls **nicht** übernommen: die im Bericht erwähnte geplante IFG-Einschränkung. Sie beruht dort ausdrücklich nur auf zivilgesellschaftlichen Quellen, ein amtlicher Entwurf lag nicht vor – ein Werkzeug, das bewusst keine Jahreszahlen führt, darf erst recht keinen Gesetzentwurf behaupten, den es nicht gibt.
+
+⚠️ **Regel für `PRUEF_WERKZEUGE`:** jede Adresse zeigt auf die Stelle, die das Werkzeug bzw. den Normtext **selbst** herausgibt – nie auf eine Sekundärquelle. Der Test führt dafür seit v64 eine Zuordnung Name → Host statt einer Host-Liste: ein neuer Eintrag erzwingt eine bewusste Entscheidung.
+
 ### Kommunale Informationsfreiheitssatzungen
 
 `KOMMUNAL_SATZUNGEN` + Sektion `#wissen-sec-kommunal`. Wo ein Landesgesetz fehlt (Bayern, Niedersachsen), können Kommunen Informationsfreiheit über ihre Satzungsautonomie einführen.
@@ -657,6 +674,7 @@ Nach Änderungen an `app.js` `?v=N` im Script-Tag **und** die `v{N}` im Footer e
 | v16 | Daten-Kompass (Herzstück) – eigene View + Hero-Haupt-CTA (Topbar-„Loslegen" zeigt ebenfalls darauf): ausführliche Open-Data-Reifegrad-Checkliste nach ODRA / EU Open Data Maturity / 5-Sterne / DCAT-AP.de / DSGVO·FAIR (7 Dimensionen, Quellenangaben), Status je Item mit Score & Ampel, Vorbelegung aus dem App-Stand, adaptive Sprünge in die passenden Bausteine, Persistenz (`datenlotse_kompass`) und PDF-Export; leeres „Loslegen"-Platzhalter-Modal entfernt |
 | v17 | Weiterer Ausbau (1/4) – Inventar Suche, Filter & Sortierung: `renderInventory()` in `renderInventory()` + `renderInventoryBody()` aufgeteilt; `.inv-controls` (Volltextsuche + Schutzbedarf-/Clearing-Ampel-Filter + Sortierung Titel/Vollständigkeit) über `invFilter`-State und `filteredInventory()`; der echte `idx` wird durch den Filter mitgeführt, sodass Editieren über gefilterten Teilmengen weiterhin den richtigen Datensatz trifft; Live-Meta „X von Y" + Empty-State |
 | v18 | Weiterer Ausbau (2/4) – Pseudonymisierung erweitert: drei neue Muster (Sozialversicherungsnummer, Steuer-ID *kontextgetriggert*, Kfz-Kennzeichen), Aktenzeichen um Geschäftszeichen/„Gz." und buchstabenhaltige Kerne erweitert, zusätzliche Geburtsdatum-Trigger („Geburtsdatum"/„Geburtstag"); Mapping-Export als CSV (`buildPseudoMappingCSV` + Button im Mapping-Kopf); Demo-Text und Grenzen-Liste aktualisiert; verifiziert auf Determinismus, Platzhalter-Konsistenz und Null-Falschtreffer auf neutralem Verwaltungstext |
+| v64 | **Der zivilgesellschaftliche Anknüpfungspunkt – aus den Quellen, die wirklich vorlagen.** Die auffälligste Lücke war keine fehlende Liste, sondern eine fehlende Leserichtung: die 16 Landesgesetze standen nur als Pflicht der informationspflichtigen Stelle da. Für einen Verein sind dieselben Gesetze das Werkzeug, um an Daten zu kommen – der Lead benennt jetzt beide Richtungen und verweist auf FragDenStaat. Dazu drei Werkzeuge aus dem Bericht: der **Musterdatenkatalog** als Antwort auf „was veröffentlichen andere?", **ARX** als das, was DatenLotse bewusst nicht tut (generalisieren und unterdrücken statt nur messen), und **OParl 1.1** für Ratsinformationen. **DigComp** kommt als frei lizenzierte Ergänzung zu Data Orchard dazu – ausdrücklich nicht als Ersatz, denn es beschreibt einzelne Personen, während die Dimension nach der Organisation fragt. Nicht übernommen: die geplante IFG-Einschränkung (im Bericht selbst nur advocacy-belegt, kein amtlicher Entwurf) und die Initiative Transparente Zivilgesellschaft (stammte aus einer eigenen Suche, nicht aus dem Bericht). Beim Einfügen fiel auf, dass der Bestandstest für die Werkzeugliste eine **Host-Liste** kodierte; die eigentliche Regel ist „jede Adresse zeigt auf die herausgebende Stelle selbst" – der Test führt jetzt eine Zuordnung Name → Host, sodass ein neuer Eintrag eine Entscheidung erzwingt. 6 neue Tests. Ein Mutationslauf lief zunächst wirkungslos durch, weil das deutsche Schlusszeichen den Python-String beendete, ein zweiter blieb grün, weil mein Test auf „ergänzt" prüfte – das steht auch im mutierten Text. Erst die Prüfung auf „statt sie zu ersetzen" machte ihn rot. |
 | v63 | **Die Vollständigkeits-Zahl war zu freundlich.** `completeness()` zählte gefüllte Pflichtfelder – ein Datensatz mit allen Pflichtangaben stand auf 100 %, auch ohne Schlagwörter, ohne Zeitraum und nur als PDF. Genau dagegen richtet sich der Leitgedanke der Metadata Quality Assurance von data.europa.eu. Die Zahl folgt jetzt deren Schema: fünf FAIR-Dimensionen, 405 Punkte, 18 Einzelprüfungen. **Ersatz statt drittes Maß** – der Funktionsname bleibt, damit Badge, Durchschnitt, Sortierung, Dashboard und Bericht weiter an genau einer graduellen Zahl hängen. Ein frischer Import fällt damit von ~83 % auf ~46 %; das ist der Zweck. Sauber getrennt ist, was übernommen wurde: die **Dimensionsgewichte** stammen aus der Methodik, die **Zuordnung der Einzelprüfungen** ist eigene Zutat – ein Test pinnt die Gewichte wörtlich und prüft, dass jede Dimension ihr Maximum ausschöpft. Ausdrücklich benannt ist auch, was der Wert **nicht** ist: die MQA ruft URLs ab, DatenLotse macht keine Netzaufrufe und prüft nur Vorhandensein und Wohlgeformtheit. Der stärkste Test geht die 18 Prüfungen einzeln durch und misst, ob jede ihre vollen Punkte ausmacht – eine wirkungslose Prüfung fällt sofort auf. Beim Bauen zeigte sich nebenbei, dass `empty()` zweimal wortgleich als lokale Hilfe existierte; jetzt einmal modulweit. 8 neue Tests, drei bestehende auf die neue Semantik umgeschrieben statt gelockert. Ein erster Mutationsversuch war zu schwach gewählt und lief grün durch – erst die schärfere Fassung (Positivliste akzeptiert alles) machte ihn rot. |
 | v62 | **Rechtslage nachgezogen – mit offengelegter Herkunft.** `LEGAL_BASIS` kannte weder den **Data Act** noch den **Data Governance Act**, obwohl beide inzwischen anwendbar sind, und der Eintrag zu § 12a EGovG stand noch auf dem Stand vor dem OZG-Änderungsgesetz (Ausweitung auf die „Behörden des Bundes", Open-Data-Koordinatoren, Berichtspflicht). Der interessanteste Zugewinn ist **DGG Kapitel II**: das Statistische Bundesamt ist dort zentrale Informationsstelle für die Weiterverwendung geschützter Verwaltungsdaten und unterstützt ausdrücklich bei Anonymisierung und Pseudonymisierung – das ist der amtliche Anknüpfungspunkt zu Modul 3a und 3b. Beim Data Act war die Formulierung heikel: Kapitel V verpflichtet nur bei **außergewöhnlicher Notwendigkeit**, und ein Eintrag, der das verschweigt, weckt die Erwartung eines allgemeinen Datenzugangs; ein Test hält den Vorbehalt fest. **Zur Herkunft:** die Angaben stammen aus einem Recherchebericht des Nutzers, nicht aus eigener Prüfung an der amtlichen Quelle – die Netzwerkrichtlinie sperrt EUR-Lex und gesetze-im-internet.de. Verlinkt wurde deshalb nur, was sich aus dem dokumentierten CELEX-Schema sicher bilden lässt; DADG und DGG stehen im Text, aber ohne Link, damit keine geratene Fundstelle als amtliche Quelle erscheint. Dazu: die Prüfwerkzeuge nannten die **DCAT-AP.de-Spezifikation 2.0**, aktuell ist 3.0 – das Konventionenhandbuch bleibt dagegen ausdrücklich bei 2.0. 6 neue Tests, drei Mutationen geprüft. |
 | v61 | **Derselbe Fehler, zwei Tabs weiter.** Nachdem v57 im Risiko-Tab drei Fehlerklassen behoben hatte, lag die Frage nahe, ob die Schwester-Tabs sie auch tragen. Eine gezielte Probe sagte: ja, alle drei. Am schwersten wiegt die Spaltenbereinigung, weil dort ein **Download** daran hängt: wer nach dem Bereinigen eine zweite Spalte auf „ganze Spalte ersetzen" stellt, sah weiterhin das alte Ergebnis – und der Knopf „Bereinigte CSV" lieferte eine Datei, in der der Wert noch im Klartext stand, obwohl die Konfiguration daneben etwas anderes behauptete. Nachgemessen: Konfiguration `{0: ganz, 1: ganz}`, Datei `Name,Ort\n[PERSON_1],Leipzig`. Im Freitext-Tab dasselbe Muster – die bereinigte Fassung blieb nach einer Textänderung stehen, samt Download. Dazu der Fokusverlust beim Umschalten einer Spaltenbehandlung, weil `renderPseudoCsv()` die ganze Box neu baute. Alle drei behoben; die Regel steht jetzt als Konvention in der Doku, weil sie zum dritten Mal aufgetreten ist. 5 neue Tests, drei Mutationen einzeln geprüft. |

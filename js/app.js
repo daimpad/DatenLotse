@@ -515,7 +515,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v63';
+const APP_VERSION = 'v64';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -3248,6 +3248,15 @@ const PRUEF_WERKZEUGE = [
   { name: 'GovData: Metadaten-Struktur',
     summary: 'Portalseitige Beschreibung des Metadatenschemas – nützlich für die Abstimmung mit der eigenen Datenbereitstellung.',
     url: 'https://www.govdata.de/metadatenschema' },
+  { name: 'Musterdatenkatalog',
+    summary: 'Rund 36.000 Datensätze aus über 500 Kommunen, thematisch sortiert – die schnellste Antwort auf die Frage „was veröffentlichen andere eigentlich?". Hilfreich beim Zuschnitt des eigenen Inventars, gerade ohne Vorlage. 2025 von der Bertelsmann Stiftung an FITKO/GovData übergeben.',
+    url: 'https://www.govdata.de/' },
+  { name: 'ARX Data Anonymization Tool',
+    summary: 'Die fachliche Referenz für Anonymisierung (Apache 2.0, Java-Desktop): k-Anonymität, l-Diversität, t-Closeness, Differential Privacy – und anders als DatenLotse kann ARX die Daten auch verändern (generalisieren, unterdrücken). Wenn die Messung im Risiko-Tab nicht reicht, geht es hier weiter.',
+    url: 'https://arx.deidentifier.org/' },
+  { name: 'OParl 1.1',
+    summary: 'Einheitliche Schnittstelle für kommunale Ratsinformationssysteme (REST/JSON-LD, Objekttypen wie Body, Meeting, Paper, File). Getragen von der Open Knowledge Foundation Deutschland, lizenziert unter CC BY 3.0 DE. Relevant, wenn Rats- und Gremiendaten nachgenutzt oder als Open Data beschrieben werden sollen.',
+    url: 'https://oparl.org/' },
 ];
 
 const LAENDER_KIND = {
@@ -3263,6 +3272,11 @@ const METHOD_MODELS = [
   { name: 'DCAT-AP.de', by: 'GovData / IT-Planungsrat', desc: 'Metadaten-Anwendungsprofil für einheitliche, harvestbare Datensatzbeschreibungen.' },
   { name: 'DSGVO & FAIR', by: 'EU', desc: 'Rechtliche Leitplanken (Datenschutz) und Nachnutzbarkeits-Prinzipien (Findable, Accessible, Interoperable, Reusable).' },
   { name: 'Data Maturity Framework', by: 'Data Orchard CIC (CC BY-NC-SA 4.0)', desc: 'Sieben Themen (Nutzung, Daten, Analyse, Führung, Kultur, Werkzeuge, Können) über fünf Reifestufen. Angeregt die Dimension „Können & Kapazität" – die Prüfpunkte hier sind eigene Formulierungen, kein übernommener Text.' },
+  /* Ergänzung, kein Ersatz: DigComp beschreibt die Kompetenzen EINZELNER
+     Personen, die Dimension „Können & Kapazität" fragt dagegen nach der
+     Organisation (ist benannt, wer es beherrscht? ist die Pflege gesichert?).
+     Als frei lizenzierte Vertiefung zum Thema gehört es trotzdem hierher. */
+  { name: 'DigComp – Rahmen für digitale Kompetenzen', by: 'EU-Kommission, Joint Research Centre (CC BY 4.0)', desc: 'Fünf Kompetenzbereiche, 21 Kompetenzen, acht Niveaustufen – der maßgebliche EU-Rahmen, wenn es um die Kompetenzen der Beteiligten geht. Beschreibt einzelne Personen und nicht die Organisation, ergänzt die Dimension „Können & Kapazität" also, statt sie zu ersetzen. Anders als das Data-Orchard-Modell frei lizenziert (CC BY 4.0).' },
 ];
 
 const wissenFilter = { q: '', land: '' };
