@@ -192,3 +192,96 @@ test.describe('Barrierefreiheit der neuen Bereiche', () => {
     expect(karten.every(l => l > 10)).toBe(true);
   });
 });
+
+/* v60: Kontrast der Ampel und die [hidden]-Falle.
+   Beides sind Befunde aus v57/v58, die dort bewusst nicht mitgezogen wurden. */
+test.describe('Ampelfarben tragen Text lesbar (v60)', () => {
+  test('die Text-Token erfüllen WCAG AA in beiden Mustern', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      const parse = t => { t = t.trim();
+        if (t.startsWith('#')) { const h = t.slice(1); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); }
+        return (t.match(/[\d.]+/g) || []).slice(0, 3).map(Number); };
+      const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+      const L = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+      const K = (a, b) => { const la = L(a), lb = L(b); return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05); };
+      const tok = n => parse(getComputedStyle(document.documentElement).getPropertyValue(n));
+      const out = {};
+      ['gelb', 'gruen', 'rot'].forEach(f => {
+        const voll = tok(`--ampel-${f}`), txt = tok(`--ampel-${f}-text`);
+        out[f] = {
+          // Muster A: Ampeltext auf der 12-%-Tönung derselben Farbe
+          toenung: K(txt, voll.map(v => Math.round(0.12 * v + 0.88 * 255))),
+          // Muster B: weiße Schrift auf dem Vollton
+          vollton: K([255, 255, 255], txt),
+        };
+      });
+      return out;
+    });
+    for (const f of ['gelb', 'gruen', 'rot']) {
+      expect(r[f].toenung, `${f} auf Tönung`).toBeGreaterThanOrEqual(4.5);
+      expect(r[f].vollton, `weiß auf ${f}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  test('keine Textfarbe greift mehr auf den Vollton zurück', async ({ page }) => {
+    await openApp(page);
+    // Die Regel ist mechanisch: color: → Text-Token, background/border → Vollton.
+    // Vorher lagen --ampel-gelb bei 2,66 : 1 und --ampel-gruen bei 2,98 : 1.
+    const css = await (await page.request.get('/css/styles.css')).text();
+    const treffer = css.match(/(?<!-)color: var\(--ampel-(gruen|gelb|rot)\)(?!-)/g) || [];
+    expect(treffer).toEqual([]);
+  });
+
+  test('die Governance-Ampel ist in allen drei Stufen lesbar', async ({ page }) => {
+    await openApp(page);
+    for (const [antwort, stufe] of [['ja', 'gruen'], ['teilweise', 'gelb'], ['nein', 'rot']]) {
+      await page.evaluate(a => {
+        governanceAnswers = {}; GOV_QUESTIONS.forEach(q => { governanceAnswers[q.id] = a; });
+        navTo('governance'); renderGovernance();
+      }, antwort);
+      const f = await page.locator('#gov-score-badge').evaluate(el => {
+        const s = getComputedStyle(el);
+        const z = t => (t.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+        const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+        const L = a => 0.2126 * lin(a[0]) + 0.7152 * lin(a[1]) + 0.0722 * lin(a[2]);
+        const a = L(z(s.color)), b = L(z(s.backgroundColor));
+        return { cls: el.className, r: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) };
+      });
+      expect(f.cls, antwort).toContain(`gov-score-badge--${stufe}`);
+      expect(f.r, `${stufe}-Badge`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});
+
+/* v60: dritter Fund derselben Art nach .quality-panel (v28) und
+   .pseudo-mini-btn (v29) – deshalb jetzt ein Test über ALLE Klassen
+   statt eines weiteren Einzelfalls. */
+test.describe('Das hidden-Attribut wird von keiner eigenen display-Regel ausgehebelt (v60)', () => {
+  test('jede Klasse mit eigenem display respektiert [hidden]', async ({ page }) => {
+    await openApp(page);
+    const css = await (await page.request.get('/css/styles.css')).text();
+    // Klassen sammeln, die selbst ein display setzen (außer display:none)
+    const klassen = new Set();
+    for (const block of css.split('}')) {
+      const [sel, body] = block.split('{');
+      if (!sel || !body) continue;
+      if (!/display:\s*(?!none)/.test(body)) continue;
+      for (const m of sel.matchAll(/\.([a-zA-Z][\w-]*)/g)) klassen.add(m[1]);
+    }
+    const kaputt = await page.evaluate(liste => {
+      const raus = [];
+      liste.forEach(k => {
+        const probe = document.createElement('div');
+        probe.className = k;
+        probe.hidden = true;
+        probe.textContent = 'x';
+        document.body.appendChild(probe);
+        if (getComputedStyle(probe).display !== 'none') raus.push(k);
+        probe.remove();
+      });
+      return raus;
+    }, [...klassen]);
+    expect(kaputt, 'Klassen ohne [hidden]-Regel').toEqual([]);
+  });
+});

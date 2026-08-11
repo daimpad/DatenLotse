@@ -21,10 +21,22 @@
   --c-success:   #2e9e60;
   --c-warn:      #d4820a;
 
-  /* Clearing-Ampel (Phase 3) */
+  /* Clearing-Ampel (Phase 3) – Flächen, Balken, Punkte */
   --ampel-rot:   #c0392b;
   --ampel-gelb:  #d4820a;
   --ampel-gruen: #2e9e60;
+
+  /* Dieselbe Ampel, aber für TEXT und bedeutungstragende Icons.
+     Gemessen (v60): --ampel-gelb erreicht als Text auf der 12-%-Tönung nur
+     2,66 : 1 und als Grund unter weißer Schrift 3,00 : 1; --ampel-gruen
+     2,98 bzw. 3,40. WCAG AA verlangt 4,5 : 1 für Text und 3 : 1 für
+     bedeutungstragende Grafik. Die Volltöne bleiben unverändert – bei
+     Balken und Punkten trägt die Farbe keine Schrift. --ampel-rot-text
+     ist wertgleich zu --ampel-rot (4,54 bzw. 5,44) und steht nur hier,
+     damit alle drei Textnutzungen durch dieselbe Tür gehen. */
+  --ampel-rot-text:   #c0392b;
+  --ampel-gelb-text:  #8f5600;
+  --ampel-gruen-text: #1f7145;
 
   --radius:    10px;
   --shadow-sm: 0 2px 8px rgba(66, 0, 147, 0.06);
