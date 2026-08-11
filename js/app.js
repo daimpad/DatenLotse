@@ -515,7 +515,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v66';
+const APP_VERSION = 'v67';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -2718,6 +2718,10 @@ document.getElementById('faq-btn')?.addEventListener('click', () => showModal('f
 document.getElementById('faq-close-btn')?.addEventListener('click', () => showModal('faq-backdrop', false));
 document.getElementById('cta-btn')?.addEventListener('click', () => navTo('kompass'));
 document.getElementById('hero-kompass-btn')?.addEventListener('click', () => navTo('kompass'));
+document.getElementById('hero-tour-btn')?.addEventListener('click', startTour);
+// Die DatenGraf-Brücke führt direkt in den Dateidialog: wer schon kartiert hat,
+// braucht das Erklär-Modal nicht mehr, das `open-inventory-btn` davorschaltet.
+document.getElementById('graf-bridge-import')?.addEventListener('click', pickAndImport);
 document.getElementById('open-phase45-btn')?.addEventListener('click', () => showModal('phase45-backdrop', true));
 document.getElementById('phase45-close-btn')?.addEventListener('click', () => showModal('phase45-backdrop', false));
 

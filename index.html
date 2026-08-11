@@ -125,10 +125,10 @@
   <link rel="stylesheet" href="assets/fonts/inter/inter.css">
   <!-- Zugeschnitten auf die verwendeten Icons (tools/build-icons.py) – das
        vollstaendige all.min.css bleibt als Quelle im Repo, wird aber nicht geladen. -->
-  <link rel="stylesheet" href="assets/fonts/fa/icons.min.css?v=66">
+  <link rel="stylesheet" href="assets/fonts/fa/icons.min.css?v=67">
 
-  <link rel="stylesheet" href="css/tokens.css?v=66">
-  <link rel="stylesheet" href="css/styles.css?v=66">
+  <link rel="stylesheet" href="css/tokens.css?v=67">
+  <link rel="stylesheet" href="css/styles.css?v=67">
 </head>
 <body>
 
@@ -184,14 +184,16 @@
   <section class="hero home-only" id="hero">
     <div class="hero-panel">
     <img src="logo.svg" alt="DatenLotse" class="hero-logo">
-    <h1 class="hero-headline">DatenLotse: Daten verstehen, ordnen und als Open Data ver&ouml;ffentlichen</h1>
+    <h1 class="hero-headline">
+      <span class="hero-brand">DatenLotse</span>
+      <span class="hero-claim">Daten verstehen, ordnen und als Open Data ver&ouml;ffentlichen</span>
+    </h1>
     <p class="hero-sub">Vom <strong>Ist-Zustand</strong> Ihrer Datenlandschaft bis zur Ver&ouml;ffentlichung als <strong>Open Data</strong>: Welche Best&auml;nde lassen sich <strong>&ouml;ffnen</strong>, wie werden sie nach dem Standard <strong>DCAT-AP.de</strong> beschrieben &ndash; und was muss vorher gekl&auml;rt oder gesch&uuml;tzt werden?</p>
 
-    <button class="btn btn-primary hero-cta" id="hero-kompass-btn"><i class="fas fa-compass"></i> Daten-Kompass starten</button>
-    <p class="hero-from-graf">
-      <i class="fas fa-file-csv"></i>
-      Schon kartiert? <a href="#modul-inventar">DatenGraf-CSV importieren</a> und direkt mit dem Inventar starten.
-    </p>
+    <div class="hero-actions">
+      <button class="btn btn-primary hero-cta" id="hero-kompass-btn"><i class="fas fa-compass"></i> Sofort loslegen</button>
+      <button class="btn btn-secondary hero-cta" id="hero-tour-btn"><i class="fas fa-route"></i> Rundgang starten</button>
+    </div>
     </div>
   </section>
 
@@ -322,6 +324,25 @@
       <button class="btn btn-primary" id="open-phase3-btn"><i class="fas fa-shield-halved"></i> Phase 3 starten</button>
     </article>
 
+  </section>
+
+  <!-- ── Die DatenGraf-Brücke ───────────────────────────────────
+       Stand bis v66 als graue Zeile unter dem Hero-Button und richtete sich
+       an eine Minderheit: wer schon kartiert hat, sucht nicht mehr nach dem
+       Einstieg. Als eigener Abschnitt weiter unten trifft sie die Leute an
+       der Stelle, an der sie die Module ohnehin überflogen haben. -->
+  <section class="graf-bridge home-only" id="graf-bridge" aria-labelledby="graf-bridge-title">
+    <div class="graf-bridge-panel">
+      <div class="graf-bridge-icon"><i class="fas fa-file-csv"></i></div>
+      <div class="graf-bridge-body">
+        <h2 class="graf-bridge-title" id="graf-bridge-title">Schon mit DatenGraf kartiert?</h2>
+        <p class="graf-bridge-text">Dann brauchen Sie hier nicht von vorn anzufangen. DatenLotse liest <strong>genau das CSV-Schema</strong>, das DatenGraf exportiert: Aus jeder Kombination aus Quelle und Datentyp wird ein Datensatz-Kandidat nach DCAT-AP.de &ndash; samt Vorbelegung von Zugriffsrechten und Aktualisierungszyklus aus Ihrer Kartierung. Sie erg&auml;nzen nur noch, was DatenGraf nicht kennt: Lizenz, Schlagw&ouml;rter und die Adresse, unter der die Daten liegen.</p>
+        <div class="graf-bridge-actions">
+          <button class="btn btn-primary" id="graf-bridge-import"><i class="fas fa-file-import"></i> DatenGraf-CSV importieren</button>
+          <a class="btn btn-secondary" href="https://datengraf.nozilla.net/" target="_blank" rel="noopener"><i class="fas fa-diagram-project"></i> Noch nicht kartiert? Zu DatenGraf</a>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ── Inventar-View (Modul 2, erscheint nach Import) ────────── -->
@@ -902,7 +923,7 @@
            Brands-Familie und h&auml;tte daf&uuml;r 116 KB Schrift nachgeladen. -->
       <a href="https://github.com/daimpad/datenlotse" target="_blank" rel="noopener" title="GitHub Repository" aria-label="DatenLotse auf GitHub"><svg class="footer-github" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
     </nav>
-    <span class="footer-version">v66</span>
+    <span class="footer-version">v67</span>
   </footer>
 
   <!-- ── FAQ-Modal ─────────────────────────────────────────────── -->
@@ -1118,7 +1139,7 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=66"></script>
+  <script src="js/app.js?v=67"></script>
 
   <!-- Anonyme Seitenzählung (GoatCounter). Der EINZIGE externe Aufruf der
        Seite: keine Cookies, kein LocalStorage, keine Kennung, kein

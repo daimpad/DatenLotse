@@ -21,6 +21,63 @@ test.describe('Grundgerüst & Navigation', () => {
     expect(sub).toMatch(/öffnen/i);
   });
 
+  /* v67: „DatenLotse: Daten verstehen …" stand als ein Satz mit Doppelpunkt in
+     einer Farbe und einer Größe – die Marke ging darin unter. Marke und Aussage
+     sind jetzt getrennt ausgezeichnet; der Test misst den Unterschied, statt ihn
+     zu behaupten (eine reine Klassen-Prüfung bliebe grün, wenn beide gleich aussähen). */
+  test('Marke und Aussage im Hero sind sichtbar voneinander abgesetzt', async ({ page }) => {
+    await openApp(page);
+    const h1 = page.locator('#hero h1');
+    await expect(h1.locator('.hero-brand')).toHaveText('DatenLotse');
+    await expect(h1.locator('.hero-claim')).toContainText(/Open Data/i);
+    // kein Doppelpunkt mehr hinter der Marke
+    expect(await h1.locator('.hero-brand').innerText()).not.toContain(':');
+
+    const stil = await page.evaluate(() => {
+      const g = el => { const c = getComputedStyle(document.querySelector(el)); return { size: parseFloat(c.fontSize), color: c.color }; };
+      return { marke: g('.hero-brand'), claim: g('.hero-claim') };
+    });
+    expect(stil.marke.size).toBeGreaterThan(stil.claim.size + 8);
+    expect(stil.marke.color).not.toBe(stil.claim.color);
+  });
+
+  /* v67: Der Hero bot nur „Daten-Kompass starten". Wer sich erst orientieren
+     will, hatte im Hero keinen Weg dorthin – der Rundgang lag im wegklickbaren
+     Hinweis und in der Seitenleiste. */
+  test('der Hero bietet beide Einstiege an – sofort loslegen und Rundgang', async ({ page }) => {
+    await openApp(page);
+    await expect(page.locator('#hero-kompass-btn')).toContainText('Sofort loslegen');
+    await expect(page.locator('#hero-tour-btn')).toContainText('Rundgang');
+
+    await page.locator('#hero-tour-btn').click();
+    await expect(page.locator('#tour-layer')).toBeVisible();
+    await expect(page.locator('#tour-card')).toContainText('Schritt 1');
+    await page.locator('#tour-skip').click();
+
+    await page.locator('#hero-kompass-btn').click();
+    await expect(page.locator('#kompass-view')).toBeVisible();
+  });
+
+  /* v67: Die DatenGraf-Brücke stand als graue Zeile unter dem Hero-Button und
+     richtete sich an eine Minderheit. Jetzt ein eigener Abschnitt weiter unten –
+     unterhalb der Modul-Karten, mit eigener Erklärung. */
+  test('die DatenGraf-Brücke ist ein eigener Abschnitt unterhalb der Module', async ({ page }) => {
+    await openApp(page);
+    const bridge = page.locator('#graf-bridge');
+    await expect(bridge).toBeVisible();
+    await expect(bridge.locator('h2')).toBeVisible();
+    // Erklärung, nicht nur ein Link
+    expect((await bridge.locator('.graf-bridge-text').innerText()).length).toBeGreaterThan(120);
+    // …und sie steht wirklich weiter unten als die Modul-Karten
+    const [module, bruecke] = await page.evaluate(() => [
+      document.getElementById('module-grid').getBoundingClientRect().top,
+      document.getElementById('graf-bridge').getBoundingClientRect().top,
+    ]);
+    expect(bruecke).toBeGreaterThan(module);
+    // im Hero steht sie nicht mehr
+    expect(await page.locator('#hero .graf-bridge, #hero .hero-from-graf').count()).toBe(0);
+  });
+
   /* v66: Der Hero trug sieben Bausteine (Logo, Titel, Einleitung, Chips,
      Zusage, Aktion, Import-Zeile). Die vier Schritte stehen jetzt in einem
      eigenen Abschnitt – mit `<h2>`, denn je Ansicht bleibt genau eine `<h1>`. */
