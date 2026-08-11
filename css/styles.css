@@ -11,6 +11,16 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Das HTML-Attribut `hidden` heißt „nicht relevant" – keine eigene
+   display-Regel darf das aushebeln. Die UA-Regel [hidden]{display:none}
+   hat Specificity 0-0-1 und verliert gegen jede Klasse mit `display`;
+   genau daran ist es dreimal gescheitert: .quality-panel (v28),
+   .pseudo-mini-btn (v29) und .sample-card (v58). Eine Regel statt
+   weiterer Einzelfälle. Nicht zu verwechseln mit der Konvention
+   „kein globales .hidden" – die betrifft die KLASSE, mit der Komponenten
+   ihr eigenes Ein-/Ausblenden regeln, nicht das Standard-Attribut. */
+[hidden] { display: none !important; }
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 14px;
@@ -255,15 +265,15 @@ a { color: var(--c-accent); }
 .dash-phase { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--c-accent); }
 .dash-card-title { font-size: 14px; font-weight: 800; color: var(--c-text); }
 .dash-metric { font-size: 30px; font-weight: 800; color: var(--c-text); line-height: 1; display: flex; align-items: baseline; gap: 7px; }
-.dash-metric.dash-gruen { color: var(--ampel-gruen); }
-.dash-metric.dash-gelb { color: var(--ampel-gelb); }
-.dash-metric.dash-rot { color: var(--ampel-rot); }
+.dash-metric.dash-gruen { color: var(--ampel-gruen-text); }
+.dash-metric.dash-gelb { color: var(--ampel-gelb-text); }
+.dash-metric.dash-rot { color: var(--ampel-rot-text); }
 .dash-unit { font-size: 13px; font-weight: 600; color: var(--c-muted); }
 .dash-clearing { display: flex; gap: 7px; }
 .dash-amp { font-size: 18px; font-weight: 800; border-radius: 8px; padding: 4px 0; min-width: 42px; text-align: center; }
-.dash-amp--gruen { color: var(--ampel-gruen); background: rgba(46,158,96,0.12); }
-.dash-amp--gelb { color: var(--ampel-gelb); background: rgba(212,130,10,0.12); }
-.dash-amp--rot { color: var(--ampel-rot); background: rgba(192,57,43,0.12); }
+.dash-amp--gruen { color: var(--ampel-gruen-text); background: rgba(46,158,96,0.12); }
+.dash-amp--gelb { color: var(--ampel-gelb-text); background: rgba(212,130,10,0.12); }
+.dash-amp--rot { color: var(--ampel-rot-text); background: rgba(192,57,43,0.12); }
 .dash-sub { font-size: 12.5px; color: var(--c-muted); line-height: 1.45; }
 .dash-go { font-size: 12px; font-weight: 700; color: var(--c-accent); display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; transition: transform 0.18s; }
 .dash-card:hover .dash-go { transform: translateX(3px); }
@@ -756,9 +766,9 @@ a { color: var(--c-accent); }
   background: #fff;
   border: 1px solid var(--c-border-s);
 }
-.clear-stat--gruen { color: var(--ampel-gruen); }
-.clear-stat--gelb  { color: var(--ampel-gelb); }
-.clear-stat--rot   { color: var(--ampel-rot); }
+.clear-stat--gruen { color: var(--ampel-gruen-text); }
+.clear-stat--gelb  { color: var(--ampel-gelb-text); }
+.clear-stat--rot   { color: var(--ampel-rot-text); }
 .clear-dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
 .clearing-body {
@@ -800,9 +810,9 @@ a { color: var(--c-accent); }
   white-space: nowrap;
   flex-shrink: 0;
 }
-.clear-ampel--gruen { color: var(--ampel-gruen); background: rgba(46,158,96,0.12); }
-.clear-ampel--gelb  { color: var(--ampel-gelb);  background: rgba(212,130,10,0.12); }
-.clear-ampel--rot   { color: var(--ampel-rot);   background: rgba(192,57,43,0.12); }
+.clear-ampel--gruen { color: var(--ampel-gruen-text); background: rgba(46,158,96,0.12); }
+.clear-ampel--gelb  { color: var(--ampel-gelb-text);  background: rgba(212,130,10,0.12); }
+.clear-ampel--rot   { color: var(--ampel-rot-text);   background: rgba(192,57,43,0.12); }
 .clear-questions { display: flex; flex-direction: column; gap: 11px; }
 .clear-q { display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
 .clear-q-label { font-weight: 600; color: var(--c-text); line-height: 1.4; }
@@ -854,18 +864,18 @@ a { color: var(--c-accent); }
   white-space: nowrap;
   flex-shrink: 0;
 }
-.qual-badge--gruen { color: var(--ampel-gruen); background: rgba(46,158,96,0.12); }
-.qual-badge--gelb  { color: var(--ampel-gelb);  background: rgba(212,130,10,0.12); }
-.qual-badge--rot   { color: var(--ampel-rot);   background: rgba(192,57,43,0.12); }
+.qual-badge--gruen { color: var(--ampel-gruen-text); background: rgba(46,158,96,0.12); }
+.qual-badge--gelb  { color: var(--ampel-gelb-text);  background: rgba(212,130,10,0.12); }
+.qual-badge--rot   { color: var(--ampel-rot-text);   background: rgba(192,57,43,0.12); }
 .qual-issues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .qual-issue { font-size: 13px; line-height: 1.5; color: var(--c-text); display: flex; align-items: flex-start; gap: 8px; }
 .qual-issue i { margin-top: 2px; flex-shrink: 0; }
-.qual-issue--error i { color: var(--ampel-rot); }
-.qual-issue--warn i { color: var(--ampel-gelb); }
+.qual-issue--error i { color: var(--ampel-rot-text); }
+.qual-issue--warn i { color: var(--ampel-gelb-text); }
 /* Vorschlag, kein Befund – deshalb bewusst in der Akzentfarbe statt in einer
    Ampelfarbe: eine Vermutung soll nicht wie ein Fehler aussehen. */
 .qual-issue--hint i { color: var(--c-accent); }
-.qual-ok { font-size: 13px; color: var(--ampel-gruen); font-weight: 600; display: flex; align-items: center; gap: 8px; margin: 0; }
+.qual-ok { font-size: 13px; color: var(--ampel-gruen-text); font-weight: 600; display: flex; align-items: center; gap: 8px; margin: 0; }
 .qual-fix {
   align-self: flex-start;
   font-family: inherit;
@@ -1138,7 +1148,7 @@ a { color: var(--c-accent); }
   font-size: 13px;
   color: var(--c-text);
 }
-.qual-cross--ok i { color: var(--ampel-gruen); }
+.qual-cross--ok i { color: var(--ampel-gruen-text); }
 .qual-cross-title { margin: 0 0 4px; font-size: 14px; color: var(--c-accent); display: flex; align-items: center; gap: 8px; }
 .qual-cross-lead { margin: 0 0 10px; font-size: 12.5px; line-height: 1.55; color: var(--c-muted); }
 .qual-cross-jumps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
@@ -1282,8 +1292,8 @@ a { color: var(--c-accent); }
 .khist-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .khist-empty, .khist-trend { margin: 10px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--c-muted); }
 .khist-trend { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-.khist-trend--up   { color: var(--ampel-gruen); }
-.khist-trend--down { color: var(--ampel-rot); }
+.khist-trend--up   { color: var(--ampel-gruen-text); }
+.khist-trend--down { color: var(--ampel-rot-text); }
 .khist-chart {
   display: flex;
   align-items: flex-end;
@@ -1342,10 +1352,6 @@ a { color: var(--c-accent); }
   transition: transform 0.15s var(--ease-fluid), box-shadow 0.15s var(--ease-fluid), border-color 0.15s;
   min-width: 0;
 }
-/* Wie bei .pseudo-mini-btn: das display:flex oben gewinnt gegen die
-   UA-Regel [hidden] – ohne diese Zeile bliebe eine ausgeblendete Karte
-   sichtbar. Aufgefallen beim Mutationstest zu v58. */
-.sample-card[hidden] { display: none; }
 .sample-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: rgba(66, 0, 147, 0.3); }
 .sample-card:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
 .sample-card-name { font-size: 13.5px; font-weight: 700; color: var(--c-accent); display: flex; align-items: center; gap: 8px; }
@@ -1478,9 +1484,9 @@ a { color: var(--c-accent); }
   border-left: 4px solid var(--c-muted);
 }
 .risk-summary i { color: var(--ampel-color, var(--c-muted)); }
-.risk-summary--gruen { border-left-color: var(--ampel-gruen); --ampel-color: var(--ampel-gruen); }
-.risk-summary--gelb  { border-left-color: var(--ampel-gelb);  --ampel-color: var(--ampel-gelb); }
-.risk-summary--rot   { border-left-color: var(--ampel-rot);   --ampel-color: var(--ampel-rot); }
+.risk-summary--gruen { border-left-color: var(--ampel-gruen); --ampel-color: var(--ampel-gruen-text); }
+.risk-summary--gelb  { border-left-color: var(--ampel-gelb);  --ampel-color: var(--ampel-gelb-text); }
+.risk-summary--rot   { border-left-color: var(--ampel-rot);   --ampel-color: var(--ampel-rot-text); }
 .risk-kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
@@ -1858,7 +1864,7 @@ a { color: var(--c-accent); }
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
-  color: var(--ampel-rot);
+  color: var(--ampel-rot-text);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2025,9 +2031,9 @@ details[open] > .faq-q::after { transform: rotate(180deg); }
   border: 1px solid var(--c-border-s); border-left: 4px solid var(--c-muted);
 }
 .lic-compat-verdict i { color: var(--lic-amp, var(--c-muted)); }
-.lic-compat-verdict--ok          { border-left-color: var(--ampel-gruen); --lic-amp: var(--ampel-gruen); }
-.lic-compat-verdict--achtung     { border-left-color: var(--ampel-gelb);  --lic-amp: var(--ampel-gelb); }
-.lic-compat-verdict--unvereinbar { border-left-color: var(--ampel-rot);   --lic-amp: var(--ampel-rot); }
+.lic-compat-verdict--ok          { border-left-color: var(--ampel-gruen); --lic-amp: var(--ampel-gruen-text); }
+.lic-compat-verdict--achtung     { border-left-color: var(--ampel-gelb);  --lic-amp: var(--ampel-gelb-text); }
+.lic-compat-verdict--unvereinbar { border-left-color: var(--ampel-rot);   --lic-amp: var(--ampel-rot-text); }
 .lic-compat-verdict--unklar      { border-left-color: var(--c-muted);     --lic-amp: var(--c-muted); }
 .lic-compat-list { margin: 10px 0 0 18px; font-size: 13px; display: flex; flex-direction: column; gap: 5px; }
 .lic-compat-note { font-size: 12px; color: var(--c-muted); margin-top: 10px; }
@@ -2232,9 +2238,6 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
   gap: 6px;
 }
 .pseudo-mini-btn:hover { border-color: var(--c-accent); background: rgba(66,0,147,0.05); }
-/* Ohne diese Regel gewinnt display:inline-flex gegen die UA-Regel [hidden],
-   der Download-Button war dauerhaft sichtbar und ohne Wirkung. */
-.pseudo-mini-btn[hidden] { display: none; }
 .pseudo-mapping { margin-top: 22px; }
 .pseudo-map-head {
   font-size: 13px;
@@ -2248,7 +2251,7 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
 }
 .pseudo-map-head > span { display: inline-flex; align-items: center; gap: 8px; }
 .pseudo-map-empty { color: var(--c-muted); font-weight: 600; }
-.pseudo-map-empty i { color: var(--ampel-gruen); }
+.pseudo-map-empty i { color: var(--ampel-gruen-text); }
 .pseudo-map {
   width: 100%;
   border-collapse: collapse;
@@ -2349,9 +2352,9 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
   color: #fff;
   margin-bottom: 16px;
 }
-.gov-score-badge--gruen { background: var(--ampel-gruen); }
-.gov-score-badge--gelb  { background: var(--ampel-gelb); }
-.gov-score-badge--rot   { background: var(--ampel-rot); }
+.gov-score-badge--gruen { background: var(--ampel-gruen-text); }
+.gov-score-badge--gelb  { background: var(--ampel-gelb-text); }
+.gov-score-badge--rot   { background: var(--ampel-rot-text); }
 /* Kein Ampelwert, weil nichts bewertet wurde. Ohne eigenen Hintergrund
    stünde die weiße Schrift aus .gov-score-badge auf dem hellen Panel und
    wäre unsichtbar (Kontrast 1:1). */
@@ -2379,11 +2382,11 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
 .gov-matrix tr:last-child td { border-bottom: none; }
 .gov-dom { font-weight: 600; color: var(--c-text); }
 .gov-dom-n { display: inline-block; font-size: 11px; font-weight: 600; color: var(--c-muted); background: rgba(122,117,145,0.12); border-radius: 20px; padding: 1px 7px; }
-.gov-dsgvo { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; color: var(--ampel-rot); background: rgba(192,57,43,0.12); border-radius: 20px; padding: 1px 7px; }
+.gov-dsgvo { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; color: var(--ampel-rot-text); background: rgba(192,57,43,0.12); border-radius: 20px; padding: 1px 7px; }
 .raci { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; font-size: 12px; font-weight: 800; }
 .raci--A { color: #fff; background: var(--c-accent); }
-.raci--R { color: var(--ampel-gruen); background: rgba(46,158,96,0.14); }
-.raci--C { color: var(--ampel-gelb);  background: rgba(212,130,10,0.14); }
+.raci--R { color: var(--ampel-gruen-text); background: rgba(46,158,96,0.14); }
+.raci--C { color: var(--ampel-gelb-text);  background: rgba(212,130,10,0.14); }
 .raci--I { color: var(--c-muted);     background: rgba(122,117,145,0.14); }
 .gov-gap-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ampel-gelb); margin-left: 5px; vertical-align: middle; }
 .gov-note { font-size: 12px; color: var(--c-muted); line-height: 1.6; margin-top: 12px; }
@@ -2441,9 +2444,9 @@ details[open] > .about-summary .about-caret { transform: rotate(180deg); }
 .kompass-dim-title h3 { font-size: 15px; font-weight: 800; color: var(--c-accent); letter-spacing: -0.2px; }
 .kompass-dim-src { font-size: 11px; color: var(--c-muted); }
 .kompass-dim-score { font-size: 13px; font-weight: 800; padding: 4px 11px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
-.kompass-dim-score--gruen { color: var(--ampel-gruen); background: rgba(46,158,96,0.12); }
-.kompass-dim-score--gelb  { color: var(--ampel-gelb);  background: rgba(212,130,10,0.12); }
-.kompass-dim-score--rot   { color: var(--ampel-rot);   background: rgba(192,57,43,0.12); }
+.kompass-dim-score--gruen { color: var(--ampel-gruen-text); background: rgba(46,158,96,0.12); }
+.kompass-dim-score--gelb  { color: var(--ampel-gelb-text);  background: rgba(212,130,10,0.12); }
+.kompass-dim-score--rot   { color: var(--ampel-rot-text);   background: rgba(192,57,43,0.12); }
 .kompass-dim-score--na    { color: var(--c-muted);     background: rgba(122,117,145,0.12); }
 /* Angabe zur Rechtspflicht – steht unter dem Score, weil sie optional ist
    und niemanden aufhalten soll, der einfach loslegen will. */
