@@ -362,12 +362,28 @@ let inventory = [];     // abgeleitete DCAT-AP.de-Inventar-Einträge
 const LS_INVENTORY = 'datenlotse_inventory';
 const LS_GOVERNANCE = 'datenlotse_governance';
 const LS_KOMPASS = 'datenlotse_kompass';
+const LS_KOMPASS_PROFIL = 'datenlotse_kompass_profil';
+
+/* Eine einzige Angabe zur Organisation, und zwar die, auf die es ankommt:
+   Gilt eine Rechtspflicht zur Offenlegung? Bewusst NICHT die Frage
+   „Behoerde oder NGO" – dazwischen liegen Stadtwerke, Verkehrsbetriebe,
+   Hochschulen und Belehnte, die ein Zwei-Wege-Schalter falsch einsortiert.
+   Und bewusst optional: das Werkzeug startet ohne Einrichtung, eine
+   Pflichtfrage davor erzwaenge eine Entscheidung vor dem Verstehen. */
+let kompassProfil = { rechtspflicht: '' };   // '' | 'ja' | 'nein' | 'unklar'
+const RECHTSPFLICHT_OPTIONS = [
+  ['',       '— keine Angabe —'],
+  ['ja',     'Ja – wir sind eine öffentliche Stelle'],
+  ['nein',   'Nein – freiwillige Öffnung (z. B. Verein, Stiftung, gGmbH)'],
+  ['unklar', 'Unklar / noch zu prüfen'],
+];
 
 function saveState() {
   try {
     localStorage.setItem(LS_INVENTORY, JSON.stringify(inventory));
     localStorage.setItem(LS_GOVERNANCE, JSON.stringify(governanceAnswers));
     localStorage.setItem(LS_KOMPASS, JSON.stringify(kompassState));
+    localStorage.setItem(LS_KOMPASS_PROFIL, JSON.stringify(kompassProfil));
   } catch (e) { /* Speicher nicht verfügbar/voll – still ignorieren */ }
 }
 
@@ -385,6 +401,8 @@ function loadState() {
     loadKompassHistory();
     const k = localStorage.getItem(LS_KOMPASS);
     if (k) { const parsed = JSON.parse(k); if (parsed && typeof parsed === 'object') kompassState = parsed; }
+    const prof = localStorage.getItem(LS_KOMPASS_PROFIL);
+    if (prof) { const parsed = JSON.parse(prof); if (parsed && typeof parsed === 'object') kompassProfil = { rechtspflicht: parsed.rechtspflicht || '' }; }
   } catch (e) { /* defekte Kompass-Daten ignorieren */ }
 }
 
@@ -392,12 +410,14 @@ function clearState() {
   try {
     localStorage.removeItem(LS_INVENTORY); localStorage.removeItem(LS_GOVERNANCE);
     localStorage.removeItem(LS_KOMPASS); localStorage.removeItem(LS_KOMPASS_HIST);
+    localStorage.removeItem(LS_KOMPASS_PROFIL);
   } catch (e) { /* ignorieren */ }
   kompassHistory = [];
   grafRows = [];
   inventory = [];
   governanceAnswers = {};
   kompassState = {};
+  kompassProfil = { rechtspflicht: '' };
 }
 
 /* ── Projekt-Export/-Import (kompletter Stand als .json) ──────────
@@ -407,7 +427,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v54';
+const APP_VERSION = 'v55';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -415,7 +435,7 @@ function buildProjectJSON() {
     schema: PROJECT_SCHEMA,
     version: APP_VERSION,
     exportedAt: new Date().toISOString(),
-    data: { grafRows, inventory, governanceAnswers, kompassState, kompassHistory }
+    data: { grafRows, inventory, governanceAnswers, kompassState, kompassHistory, kompassProfil }
   }, null, 2);
 }
 
@@ -454,6 +474,8 @@ function importProject(text) {
   migrateInventory();   // Projektdateien vor v39 kennen keine Verteilungen
   governanceAnswers = (d.governanceAnswers && typeof d.governanceAnswers === 'object') ? d.governanceAnswers : {};
   kompassState      = (d.kompassState && typeof d.kompassState === 'object') ? d.kompassState : {};
+  kompassProfil     = (d.kompassProfil && typeof d.kompassProfil === 'object')
+    ? { rechtspflicht: d.kompassProfil.rechtspflicht || '' } : { rechtspflicht: '' };
   // Additiv ergänzt (kein Schema-Bump): ältere Projektdateien haben ihn nicht
   kompassHistory    = Array.isArray(d.kompassHistory)
     ? d.kompassHistory.filter(e => e && typeof e.date === 'string' && Number.isFinite(e.score))
@@ -1602,6 +1624,10 @@ function hvdIssues(d) {
    aber noch nicht eingestuft sind. Bewusst getrennt von `validateDataset()`:
    ein Vorschlag ist kein Befund, und eine Vermutung darf keine Ampel färben. */
 function hvdVorschlaege() {
+  // Die Durchfuehrungsverordnung bindet oeffentliche Stellen. Wer angegeben
+  // hat, keiner Pflicht zu unterliegen, bekommt keine Vorschlaege – sie
+  // waeren nicht nur ueberfluessig, sondern irrefuehrend.
+  if (kompassProfil.rechtspflicht === 'nein') return [];
   return inventory
     .map((d, idx) => ({ d, idx, cat: d.hvd ? '' : guessHvd(d) }))
     .filter(x => x.cat);
@@ -4070,6 +4096,12 @@ function kompassDerived(dimId, itemId) {
     case 'inventar.identifier':     return has ? 'erfuellt' : 'offen';
     case 'datenschutz.pb':          return allClassified ? 'erfuellt' : someClassified ? 'teilweise' : 'offen';
     case 'organisation.reifegrad':  return govAnswered ? 'teilweise' : 'offen';
+    /* Ohne Rechtspflicht gibt es keine Rechtsgrundlage zu klaeren. Der Punkt
+       bliebe sonst dauerhaft offen und zoege den Reifegrad einer Organisation
+       herunter, die gar nichts falsch macht. `na` faellt aus der Wertung.
+       Es ist der EINZIGE Pruefpunkt, der strikt an der Pflicht haengt –
+       Portal, Harvesting, DCAT-AP.de und Datenschutz gelten unveraendert. */
+    case 'strategie.recht':         return kompassProfil.rechtspflicht === 'nein' ? 'na' : 'offen';
     // Wer Stände festhält, hinterfragt seinen Stand – ab dem zweiten belegbar
     case 'wirkung.selbstpruefung':  return kompassHistory.length > 1 ? 'erfuellt'
                                          : kompassHistory.length === 1 ? 'teilweise' : 'offen';
@@ -4210,6 +4242,31 @@ function renderKompassScore() {
     `<div class="kompass-score-num">${score}<span> / 100</span></div>
      <div class="kompass-score-meta"><strong>${amp.label}</strong><span>Open-Data-Reifegrad</span></div>
      <div class="kompass-score-bar"><span style="width:${score}%"></span></div>`;
+  renderKompassProfil();
+}
+
+/* Die Angabe steht unter dem Score, nicht davor: sie ist optional und soll
+   niemanden aufhalten, der einfach loslegen will. */
+function renderKompassProfil() {
+  const box = document.getElementById('kompass-profil');
+  if (!box) return;
+  const frei = kompassProfil.rechtspflicht === 'nein';
+  box.innerHTML =
+    `<label class="kompass-profil-label" for="kompass-rechtspflicht">
+       <i class="fas fa-scale-balanced"></i>
+       Unterliegt Ihre Organisation einem Informationsfreiheits- oder Open-Data-Gesetz?
+     </label>
+     <select id="kompass-rechtspflicht" class="kompass-profil-sel"
+             aria-label="Rechtspflicht zur Offenlegung">${optionsHTML(RECHTSPFLICHT_OPTIONS, kompassProfil.rechtspflicht)}</select>
+     <p class="kompass-profil-hint">${frei
+        ? 'Ohne Rechtspflicht entfällt der Prüfpunkt „Rechtsgrundlagen sind geklärt" (als <em>nicht relevant</em> vorbelegt, zählt nicht in den Reifegrad), und die Qualitätsprüfung schlägt keine hochwertigen Datensätze mehr vor – die Verordnung (EU) 2023/138 bindet öffentliche Stellen. Alles Übrige gilt unverändert.'
+        : 'Optional. Die Angabe blendet nichts aus – sie belegt nur den Prüfpunkt zu den Rechtsgrundlagen vor und steuert, ob die Pflichten für hochwertige Datensätze vorgeschlagen werden.'}</p>`;
+  box.querySelector('#kompass-rechtspflicht').addEventListener('change', e => {
+    kompassProfil.rechtspflicht = e.target.value;
+    saveState();
+    renderKompass();
+    if (typeof renderQuality === 'function' && document.getElementById('quality-hvd')) renderHvdHinweise();
+  });
 }
 
 function renderKompassDims() {

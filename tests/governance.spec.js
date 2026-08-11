@@ -581,3 +581,80 @@ test.describe('Status-Einseiter', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe('Kompass – Rechtspflicht der Organisation', () => {
+  /* Eine einzige Angabe zur Organisation – und sie darf genau zwei Dinge
+     bewirken, nicht mehr. Bewusst NICHT „Behörde oder NGO": dazwischen liegen
+     Stadtwerke, Hochschulen und Beliehene, die ein Zwei-Wege-Schalter falsch
+     einsortiert. */
+  test('Rechtspflicht: „nein" nimmt genau einen Prüfpunkt aus der Wertung', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      const alle = () => KOMPASS_DIMENSIONS.flatMap(d =>
+        d.items.map(i => [`${d.id}.${i.id}`, kompassStatus(d.id, i.id)]));
+      kompassProfil = { rechtspflicht: '' };
+      const vorher = alle();
+      kompassProfil = { rechtspflicht: 'nein' };
+      const nachher = alle();
+      const geaendert = nachher.filter(([k, v], i) => v !== vorher[i][1]).map(([k, v]) => `${k}=${v}`);
+      kompassProfil = { rechtspflicht: '' };
+      return geaendert;
+    });
+    expect(r).toEqual(['strategie.recht=na']);
+  });
+
+  test('Rechtspflicht: „ja" und „unklar" ändern nichts', async ({ page }) => {
+    await openApp(page);
+    for (const wert of ['ja', 'unklar']) {
+      const status = await page.evaluate(w => {
+        kompassProfil = { rechtspflicht: w };
+        const s = kompassStatus('strategie', 'recht');
+        kompassProfil = { rechtspflicht: '' };
+        return s;
+      }, wert);
+      expect(status, wert).toBe('offen');
+    }
+  });
+
+  test('ohne Rechtspflicht schlägt die Prüfung keine hochwertigen Datensätze vor', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const r = await page.evaluate(() => {
+      kompassProfil = { rechtspflicht: '' };
+      const mit = hvdVorschlaege().length;
+      kompassProfil = { rechtspflicht: 'nein' };
+      const ohne = hvdVorschlaege().length;
+      kompassProfil = { rechtspflicht: '' };
+      return { mit, ohne };
+    });
+    // Die DVO (EU) 2023/138 bindet oeffentliche Stellen – Vorschlaege waeren irrefuehrend
+    expect(r.mit).toBeGreaterThan(0);
+    expect(r.ohne).toBe(0);
+  });
+
+  test('die Angabe überlebt Reload und Projektdatei', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => { kompassProfil = { rechtspflicht: 'nein' }; saveState(); });
+    await page.reload();
+    await page.waitForFunction(() => typeof pseudonymize === 'function');
+    expect(await page.evaluate(() => kompassProfil.rechtspflicht)).toBe('nein');
+
+    const r = await page.evaluate(() => {
+      const json = buildProjectJSON();
+      kompassProfil = { rechtspflicht: '' };
+      importProject(json);
+      return kompassProfil.rechtspflicht;
+    });
+    expect(r).toBe('nein');
+  });
+
+  test('„Gespeicherte Daten löschen" setzt die Angabe zurück', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate(() => {
+      kompassProfil = { rechtspflicht: 'nein' }; saveState();
+      clearState();
+      return kompassProfil.rechtspflicht;
+    });
+    expect(r).toBe('');
+  });
+});
