@@ -29,19 +29,22 @@ test.describe('Onboarding-Rundgang', () => {
     await page.evaluate(() => navTo('home'));
     await page.locator('#hero-tour-btn').click();
 
-    const gesamt = await page.evaluate(() => TOUR_STEPS.length);
+    const gesamt = await page.evaluate(() => tourSteps().length);
     await expect(page.locator('#tour-card')).toContainText(`Schritt 1 von ${gesamt}`);
     await expect(page.locator('#tour-prev')).toBeDisabled();
 
-    await page.locator('#tour-next').click();
-    await expect(page.locator('#kompass-view')).toBeVisible();
-    await expect(page.locator('#tour-card')).toContainText('Daten-Kompass');
-    await expect(page.locator('#tour-prev')).toBeEnabled();
-
-    await page.locator('#tour-next').click();
-    await expect(page.locator('#governance-view')).toBeVisible();
+    // Jeder Schritt landet in der Ansicht, die er erklärt
+    const views = { home: '#hero', kompass: '#kompass-view', governance: '#governance-view',
+      inventory: '#inventory-view', pseudo: '#pseudo-view', wissen: '#wissen-view', vorlagen: '#vorlagen-view' };
+    for (let i = 0; i < gesamt; i++) {
+      const view = await page.evaluate(() => tourSteps()[tour.i].view);
+      await expect(page.locator(views[view]), `Schritt ${i + 1}`).toBeVisible();
+      if (i < gesamt - 1) await page.locator('#tour-next').click();
+    }
 
     // Zurück führt wieder in die vorherige Ansicht
+    await page.evaluate(() => tourKapitel('governance'));
+    await expect(page.locator('#governance-view')).toBeVisible();
     await page.locator('#tour-prev').click();
     await expect(page.locator('#kompass-view')).toBeVisible();
     expect(errors).toEqual([]);
@@ -50,13 +53,13 @@ test.describe('Onboarding-Rundgang', () => {
   test('letzter Schritt schließt den Rundgang ab', async ({ page }) => {
     await openApp(page);
     await loadSample(page);
-    const gesamt = await page.evaluate(() => TOUR_STEPS.length);
+    const gesamt = await page.evaluate(() => tourSteps().length);
     await page.evaluate(() => startTour());
     for (let i = 0; i < gesamt; i++) await page.locator('#tour-next').click();
     await expect(page.locator('#tour-layer')).toBeHidden();
   });
 
-  test('Escape und „Überspringen“ beenden den Rundgang', async ({ page }) => {
+  test('Escape und das Schließen-Kreuz beenden den Rundgang', async ({ page }) => {
     await openApp(page);
     await page.evaluate(() => startTour());
     await expect(page.locator('#tour-layer')).toBeVisible();
@@ -64,7 +67,7 @@ test.describe('Onboarding-Rundgang', () => {
     await expect(page.locator('#tour-layer')).toBeHidden();
 
     await page.evaluate(() => startTour());
-    await page.locator('#tour-skip').click();
+    await page.locator('#tour-close').click();
     await expect(page.locator('#tour-layer')).toBeHidden();
   });
 
@@ -82,30 +85,37 @@ test.describe('Onboarding-Rundgang', () => {
 
   test('Schritte ohne Daten bieten den Import an, statt still zu laden', async ({ page }) => {
     const errors = await openApp(page);
-    const idx = await page.evaluate(() => TOUR_STEPS.findIndex(s => s.needsData));
-    await page.evaluate(i => { startTour(); tour.i = i; renderTour(); }, idx);
+    await page.evaluate(() => { startTour(); tourKapitel('inventar'); });
 
     await expect(page.locator('#tour-sample')).toBeVisible();
     expect(await page.evaluate(() => inventory.length)).toBe(0);
-    await expect(page.locator('.tour-highlight')).toHaveCount(0);
+    // Von den datenabhängigen Schritten bleibt ohne Daten nur das eine Angebot –
+    // sonst stünde siebenmal hintereinander derselbe Hinweis da
+    expect(await page.evaluate(() => tourSteps().filter(s => s.needsData).map(s => s.id))).toEqual(['i-karte']);
+    // Gezeigt wird, wo das Inventar beginnt – und kein Erklär-Modal hinter der Karte
+    // (navTo('inventory') öffnet es ohne Daten; bis v69 lag es dann hinter dem Rundgang)
+    await expect(page.locator('#modul-inventar.tour-highlight')).toHaveCount(1);
+    await expect(page.locator('#inventory-backdrop')).toBeHidden();
 
+    const vorher = await page.evaluate(() => tourSteps()[tour.i].id);
     await page.locator('#tour-sample').click();
     await expect(page.locator('#tour-sample')).toHaveCount(0);
     expect(await page.evaluate(() => inventory.length)).toBe(12);
-    await expect(page.locator('.inv-card.tour-highlight')).toHaveCount(1);
+    // Die Liste wächst, der Rundgang bleibt auf demselben Schritt
+    expect(await page.evaluate(() => tourSteps()[tour.i].id)).toBe(vorher);
+    await expect(page.locator('.inv-card .inv-card-head.tour-highlight')).toHaveCount(1);
     expect(errors).toEqual([]);
   });
 
   test('Hervorhebung wandert mit und bleibt am Ende nicht zurück', async ({ page }) => {
     await openApp(page);
     await loadSample(page);
-    await page.evaluate(() => startTour());
-    await page.locator('#tour-next').click();
+    await page.evaluate(() => { startTour(); tourKapitel('kompass'); });
     await expect(page.locator('#kompass-score.tour-highlight')).toHaveCount(1);
     await page.locator('#tour-next').click();
     // Nur genau ein Element ist gleichzeitig hervorgehoben
     await expect(page.locator('.tour-highlight')).toHaveCount(1);
-    await expect(page.locator('#gov-questions.tour-highlight')).toHaveCount(1);
+    await expect(page.locator('#kompass-dims .kompass-dim.tour-highlight')).toHaveCount(1);
 
     await page.keyboard.press('Escape');
     await expect(page.locator('.tour-highlight')).toHaveCount(0);
@@ -113,9 +123,9 @@ test.describe('Onboarding-Rundgang', () => {
 
   test('Seitenleisten-Schritt öffnet die Leiste und schließt sie danach wieder', async ({ page }) => {
     await openApp(page);
-    const idx = await page.evaluate(() => TOUR_STEPS.findIndex(s => s.openSidebar));
+    const idx = await page.evaluate(() => tourSteps().findIndex(s => s.openSidebar));
     await page.evaluate(i => { startTour(); tour.i = i; renderTour(); }, idx);
-    await expect(page.locator('#project-save-btn.tour-highlight')).toBeVisible();
+    await expect(page.locator('.sidebar-project.tour-highlight')).toBeVisible();
 
     await page.locator('#tour-next').click();
     expect(await page.evaluate(() =>
@@ -224,5 +234,168 @@ test.describe('Onboarding-Rundgang', () => {
     });
     expect(await page.evaluate(() => window.__xss)).toBeUndefined();
     expect(await page.locator('#tour-card img').count()).toBe(0);
+  });
+});
+
+/* ── v70: vollständiger Rundgang in Kapiteln ─────────────────────────
+   Vorher elf Stichproben mit der Karte immer unten mittig – sie verdeckte
+   bei großen Zielen genau das, was sie erklären sollte, und Ziele in Topbar
+   oder Seitenleiste blieben mit abgedunkelt. */
+test.describe('Rundgang in Kapiteln (v70)', () => {
+  // Alle Schritte so durchgehen, wie der Rundgang sie zeigt
+  async function jederSchritt(page, fn) {
+    const n = await page.evaluate(() => tourSteps().length);
+    const raus = [];
+    for (let i = 0; i < n; i++) {
+      await page.evaluate(k => { tour.i = k; renderTour(); }, i);
+      // Übergänge (Seitenleiste) abwarten, dann einen Frame für das Nachführen
+      await page.evaluate(async () => {
+        await Promise.all(document.getAnimations().map(a => a.finished.catch(() => {})));
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      });
+      const r = await page.evaluate(fn);
+      if (r) raus.push(r);
+    }
+    return raus;
+  }
+
+  test('Kapitel: jedes hat Schritte, Sprung und Markierung stimmen', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const struktur = await page.evaluate(() => ({
+      kapitel: TOUR_KAPITEL.map(k => k.id),
+      leer: TOUR_KAPITEL.filter(k => !TOUR_STEPS.some(s => s.kap === k.id)).map(k => k.id),
+      fremd: TOUR_STEPS.filter(s => !TOUR_KAPITEL.some(k => k.id === s.kap)).map(s => s.id),
+      doppelt: TOUR_STEPS.map(s => s.id).filter((id, i, a) => a.indexOf(id) !== i),
+      // Kapitel stehen zusammenhängend – sonst sprängen die Punkte hin und her
+      zerrissen: TOUR_KAPITEL.filter(k => {
+        const idx = TOUR_STEPS.map((s, i) => s.kap === k.id ? i : -1).filter(i => i >= 0);
+        return idx.length && idx[idx.length - 1] - idx[0] + 1 !== idx.length;
+      }).map(k => k.id),
+    }));
+    expect(struktur.kapitel.length).toBe(7);
+    expect(struktur.leer).toEqual([]);
+    expect(struktur.fremd).toEqual([]);
+    expect(struktur.doppelt).toEqual([]);
+    expect(struktur.zerrissen).toEqual([]);
+
+    // Der erste Schritt bietet alle Kapitel zur Auswahl an
+    await page.evaluate(() => startTour());
+    await expect(page.locator('#tour-card .tour-chapter')).toHaveCount(7);
+    await page.locator('#tour-card .tour-chapter[data-tour-kap="schutz"]').click();
+    const nach = await page.evaluate(() => ({
+      kap: tourSteps()[tour.i].kap,
+      erster: tourSteps().findIndex(s => s.kap === 'schutz') === tour.i,
+    }));
+    expect(nach).toEqual({ kap: 'schutz', erster: true });
+    // Der Kapitelpunkt markiert, wo man ist – für Screenreader per aria-current
+    await expect(page.locator('.tour-dot[aria-current="step"]')).toHaveAttribute('data-tour-kap', 'schutz');
+    await page.locator('.tour-dot[data-tour-kap="wissen"]').click();
+    expect(await page.evaluate(() => tourSteps()[tour.i].kap)).toBe('wissen');
+  });
+
+  test('jeder Bereich und jeder Tab wird gezeigt – und ist dann auch sichtbar', async ({ page }) => {
+    await openApp(page);
+    await loadSample(page);
+    const abdeckung = await page.evaluate(() => ({
+      views: [...new Set(TOUR_STEPS.map(s => s.view))].sort(),
+      invTabs: [...new Set(TOUR_STEPS.map(s => s.invTab).filter(Boolean))].sort(),
+      pseudoTabs: [...new Set(TOUR_STEPS.map(s => s.pseudoTab).filter(Boolean))].sort(),
+    }));
+    expect(abdeckung.views).toEqual(['governance', 'home', 'inventory', 'kompass', 'pseudo', 'vorlagen', 'wissen']);
+    expect(abdeckung.invTabs).toEqual(['clearing', 'inventar', 'quality']);
+    expect(abdeckung.pseudoTabs).toEqual(['csv', 'risiko', 'text']);
+
+    await page.evaluate(() => startTour());
+    const falsch = await jederSchritt(page, () => {
+      const s = tourSteps()[tour.i];
+      const panel = s.invTab ? { inventar: 'inventar-panel', clearing: 'clearing-panel', quality: 'quality-panel' }[s.invTab]
+        : s.pseudoTab ? `pseudo-${s.pseudoTab}-panel` : null;
+      if (panel && document.getElementById(panel).classList.contains('hidden')) return `${s.id}: ${panel} verborgen`;
+      if (!s.target) return null;
+      const hl = [...document.querySelectorAll('.tour-highlight')];
+      if (hl.length !== 1) return `${s.id}: ${hl.length} Hervorhebungen`;
+      if (!hl[0].matches(s.target)) return `${s.id}: falsches Element`;
+      const r = hl[0].getBoundingClientRect();
+      if (!r.width || !r.height) return `${s.id}: Ziel unsichtbar`;
+      if (r.top < 0 || r.top > innerHeight) return `${s.id}: Ziel außer Sicht`;
+      return null;
+    });
+    expect(falsch).toEqual([]);
+  });
+
+  test('die Karte steht neben dem Ziel und verdeckt es nicht (Desktop)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => { navTo('home'); startTour(); });
+    const befunde = await jederSchritt(page, () => {
+      const card = document.getElementById('tour-card'), c = card.getBoundingClientRect();
+      const s = tourSteps()[tour.i];
+      if (c.top < 0 || c.left < 0 || c.bottom > innerHeight + 1 || c.right > innerWidth + 1) return `${s.id}: Karte ragt hinaus`;
+      const z = document.querySelector('.tour-highlight');
+      if (!z) return null;
+      const t = z.getBoundingClientRect();
+      const ix = Math.max(0, Math.min(c.right, t.right) - Math.max(c.left, t.left));
+      const iy = Math.max(0, Math.min(c.bottom, t.bottom) - Math.max(c.top, t.top));
+      if (ix * iy > 0) return `${s.id}: verdeckt ${Math.round(ix * iy / (t.width * t.height) * 100)} % (${card.dataset.place})`;
+      if (!['unten', 'oben', 'links', 'rechts'].includes(card.dataset.place)) return `${s.id}: angedockt statt am Ziel`;
+      return null;
+    });
+    expect(befunde).toEqual([]);
+  });
+
+  test('auf dem Telefon dockt die Karte an, der Anfang des Ziels bleibt frei', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openApp(page);
+    await loadSample(page);
+    await page.evaluate(() => { navTo('home'); startTour(); });
+    const befunde = await jederSchritt(page, () => {
+      const card = document.getElementById('tour-card'), c = card.getBoundingClientRect();
+      const s = tourSteps()[tour.i];
+      if (c.top < -1 || c.left < -1 || c.bottom > innerHeight + 1 || c.right > innerWidth + 1) return `${s.id}: Karte ragt hinaus`;
+      const z = document.querySelector('.tour-highlight');
+      if (!z) return null;
+      const t = z.getBoundingClientRect();
+      // die erste Zeile des Ziels: darf weder unter der Karte noch außer Sicht liegen
+      const y = t.top + 6;
+      if (y < 0 || y > innerHeight) return `${s.id}: Anfang außer Sicht`;
+      if (y >= c.top && y <= c.bottom && t.left < c.right && t.right > c.left) return `${s.id}: Anfang verdeckt`;
+      return null;
+    });
+    expect(befunde).toEqual([]);
+  });
+
+  /* Gemessen, nicht über Klassen behauptet: das Abdunkeln (body::before) wird
+     klickbar gemacht, dann zeigt elementFromPoint, was OBEN liegt. Läge das
+     Ziel darunter, träfe der Punkt das body-Element. Bis v69 war das beim
+     Seitenleisten-Schritt so – die fixierte Leiste (z-index 300) bildet einen
+     eigenen Stapelkontext, das Ziel darin kam nie über 1200 hinaus. */
+  test('hervorgehobene Stellen liegen über dem Abdunkeln – auch in Topbar und Seitenleiste', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openApp(page);
+    await loadSample(page);
+    await page.addStyleTag({ content: 'body.tour-on::before { pointer-events: auto !important; }' });
+    await page.evaluate(() => { navTo('home'); startTour(); });
+    const verdeckt = await jederSchritt(page, () => {
+      const z = document.querySelector('.tour-highlight');
+      if (!z) return null;
+      const t = z.getBoundingClientRect();
+      const oben = document.elementFromPoint(t.left + Math.min(12, t.width / 2), t.top + Math.min(8, t.height / 2));
+      return z.contains(oben) ? null : `${tourSteps()[tour.i].id}: oben liegt ${oben ? (oben.id || oben.tagName) : 'nichts'}`;
+    });
+    expect(verdeckt).toEqual([]);
+    // Danach ist nichts mehr angehoben
+    await page.evaluate(() => endTour());
+    expect(await page.locator('.tour-lift, .tour-highlight, .tour-pos').count()).toBe(0);
+  });
+
+  test('kein Rundgangstext verspricht „keine Übertragung"', async ({ page }) => {
+    await openApp(page);
+    // Regression v70: der Willkommensschritt versprach „keine Übertragung" –
+    // seit v48 gibt es die anonyme Zählung, die Zusage gilt für die INHALTE
+    const texte = await page.evaluate(() => TOUR_STEPS.map(s => s.text).join(' '));
+    expect(texte).not.toMatch(/keine (Daten)?übertragung|kein Datentransfer/i);
+    expect(await page.evaluate(() => TOUR_STEPS[0].text)).toMatch(/Inhalte bleiben/);
   });
 });

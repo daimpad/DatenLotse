@@ -515,7 +515,7 @@ function clearState() {
    Teile defensiv. grafRows wird mitgesichert (anders als im
    LocalStorage), damit der Import-Kontext vollständig ist. */
 const PROJECT_SCHEMA = 1;
-const APP_VERSION = 'v69';
+const APP_VERSION = 'v70';
 
 function buildProjectJSON() {
   return JSON.stringify({
@@ -971,106 +971,345 @@ function mqaScore(d) {
 function completeness(d) { return mqaScore(d).prozent; }
 
 /* ── Onboarding-Rundgang ──────────────────────────────────────────
-   Geführter Durchlauf durch die Bausteine. Bewusst KEIN Auto-Start als
-   Modal beim ersten Laden – das nimmt Erstnutzern die Kontrolle. Stattdessen
-   ein wegklickbarer Hinweis auf der Startseite plus ein Einstieg in der
-   Seitenleiste; der Rundgang lässt sich jederzeit wiederholen.
+   Geführter Durchlauf durch alle Bereiche, in Kapiteln. Bewusst KEIN
+   Auto-Start als Modal beim ersten Laden – das nimmt Erstnutzern die
+   Kontrolle. Angeboten wird er im Hero (`#hero-tour-btn`) und dauerhaft in
+   der Seitenleiste (`#sidebar-tour`).
+
+   Seit v70 ein vollständiger Rundgang statt elf Stichproben:
+   - Kapitel (`TOUR_KAPITEL`), zwischen denen sich springen lässt – wer nur
+     wissen will, wie die Textbereinigung geht, muss nicht durch das Inventar.
+   - Die Karte steht NEBEN dem Ziel (`placeTourCard`), nicht unten mittig;
+     dort verdeckte sie bei großen Zielen genau das, was sie erklären sollte.
+   - Schritte wechseln selbst in den passenden Tab (`invTab`, `pseudoTab`).
 
    Schritte mit `needsData` brauchen ein Inventar. Statt still Beispieldaten
-   zu laden (Nebenwirkung, die niemand bestellt hat), bietet der Schritt den
-   Import an und lässt die Entscheidung beim Menschen.
+   zu laden (Nebenwirkung, die niemand bestellt hat), bietet der Schritt mit
+   `angebot` den Import an; die übrigen datenabhängigen Schritte fallen ohne
+   Daten aus der Liste (`tourSteps()`), statt siebenmal dasselbe Angebot zu
+   zeigen.
    ────────────────────────────────────────────────────────────── */
+const TOUR_KAPITEL = [
+  { id: 'start',      label: 'Orientierung',               icon: 'fa-house' },
+  { id: 'kompass',    label: 'Daten-Kompass',              icon: 'fa-compass' },
+  { id: 'governance', label: 'Phase 1 · Governance',       icon: 'fa-users-gear' },
+  { id: 'inventar',   label: 'Phase 2 · Dateninventar',    icon: 'fa-boxes-stacked' },
+  { id: 'schutz',     label: 'Phase 3 · Risiko & Schutz',  icon: 'fa-shield-halved' },
+  { id: 'wissen',     label: 'Wissen & Vorlagen',          icon: 'fa-book-open' },
+  { id: 'abschluss',  label: 'Sichern & loslegen',         icon: 'fa-flag-checkered' },
+];
+
 const TOUR_STEPS = [
-  { view: 'home', title: 'Willkommen beim DatenLotsen',
-    text: 'Dieser Rundgang zeigt in wenigen Schritten, wofür die Bausteine da sind und in welcher Reihenfolge sie sinnvoll sind. Alles läuft lokal in Ihrem Browser – es gibt keinen Server, keinen Account und keine Übertragung.' },
-  { view: 'kompass', target: '#kompass-score', title: 'Überblick: Daten-Kompass',
-    text: 'Der Einstieg. Eine Reifegrad-Checkliste nach anerkannten Modellen (ODRA, EU Open Data Maturity, 5-Sterne, DCAT-AP.de, DSGVO/FAIR) sagt Ihnen, wo Sie stehen – und empfiehlt den nächsten sinnvollen Schritt.' },
-  { view: 'governance', target: '#gov-questions', title: 'Phase 1: Governance & Rollen',
-    text: 'Acht gewichtete Fragen ergeben einen Reifegrad. Die RACI-Matrix leitet sich später aus dem Inventar ab und markiert Rollen, die noch nicht besetzt sind. Der Fragebogen funktioniert auch ohne importierte Daten.' },
-  { view: 'inventory', target: '.inv-card', needsData: true, title: 'Phase 2: Dateninventar',
-    text: 'Aus jedem kartierten Datenfluss wird ein DCAT-AP.de-Datensatz. Die Felder ergänzen Sie direkt in der Karte; die Prozentzahl zeigt live, wie vollständig der Datensatz für eine Veröffentlichung ist.' },
-  { view: 'inventory', target: '#tab-quality', needsData: true, title: 'Publikationsreife prüfen',
-    text: 'Die Qualitätsprüfung trennt echte Fehler (fehlende Pflichtfelder, ungültige Werte) von Warnungen – damit Sie vor dem Harvesting wissen, was ein Portal ablehnen würde.' },
-  { view: 'inventory', target: '#tab-clearing', needsData: true, title: 'Phase 3: Risiko-Clearing',
-    text: 'Ein transparenter Entscheidungsbaum je Datensatz: Grün ist unstrittig, Rot gesperrt, und Ihre Prüfkapazität konzentriert sich auf das Gelb. Kein maschinelles Lernen – jedes Ergebnis ist begründet und nachvollziehbar.' },
-  { view: 'pseudo', target: '.pseudo-tabs', title: 'Phase 3: Textbereinigung',
-    text: 'Freitexte und CSV-Spalten von personenbezogenen Angaben befreien – strukturerhaltend, mit konsistenten Platzhaltern und einer Zuordnungstabelle für die Dokumentation. Die manuelle Nachkontrolle bleibt Pflicht.' },
-  { view: 'wissen', target: '#wissen-search', title: 'Nachschlagen statt raten',
-    text: 'Glossar, Rechtsgrundlagen des Bundes und aller 16 Länder sowie die Modelle hinter dem Kompass – durchsuchbar an der Stelle, an der Sie arbeiten. Ausdrücklich keine Rechtsberatung.' },
-  { view: 'vorlagen', target: '.vorlage-card', title: 'Fertige Dokumente',
-    text: 'Richtlinie, DSFA-Checkliste, Freigabeformulare und VVT-Auszug entstehen aus dem Stand, den Sie ohnehin erfasst haben – als PDF, Markdown oder CSV.' },
-  { view: 'home', target: '#project-save-btn', openSidebar: true, title: 'Arbeitsstand sichern',
-    text: 'Alles bleibt im Browser. Damit nichts verloren geht, sichert „Projekt speichern" den kompletten Stand als eine Datei – für Backup, Gerätewechsel oder zum Teilen im Team.' },
-  { view: 'home', title: 'Los geht es',
-    text: 'Am besten starten Sie mit dem Daten-Kompass: Er sagt Ihnen in zehn Minuten, wo Sie stehen und was als Nächstes dran ist. Diesen Rundgang finden Sie jederzeit in der Seitenleiste.' },
+  // ── Orientierung ────────────────────────────────────────────────
+  { id: 'willkommen', kap: 'start', view: 'home', title: 'Willkommen beim DatenLotsen',
+    text: 'Dieser Rundgang führt Sie in sieben Kapiteln durch alles, was das Werkzeug kann – von der Standortbestimmung bis zur fertigen Veröffentlichung. Sie können jederzeit ein Kapitel überspringen oder direkt anwählen. Ihre Inhalte bleiben dabei im Browser.' },
+  { id: 'hero', kap: 'start', view: 'home', target: '#hero .hero-actions', title: 'Zwei Wege hinein',
+    text: '„Sofort loslegen" öffnet den Daten-Kompass – die Standortbestimmung, mit der die meisten beginnen. „Rundgang starten" bringt Sie jederzeit hierher zurück.' },
+  { id: 'schritte', kap: 'start', view: 'home', target: '#hero-steps .steps-panel', title: 'Der Weg in vier Schritten',
+    text: 'Überblick, Inventar, Risiko-Clearing und Pseudonymisierung – in dieser Reihenfolge kommen Sie zu offenen Daten. Jeder Schritt ist für sich nutzbar; ein Klick springt direkt hinein.' },
+  { id: 'module', kap: 'start', view: 'home', target: '#module-grid', title: 'Die drei Phasen',
+    text: 'Zuständigkeiten klären, Bestände nach DCAT-AP.de beschreiben, Risiken prüfen. „Beispiel laden" füllt alles mit einer fiktiven Organisation zum Ausprobieren.' },
+  { id: 'bruecke', kap: 'start', view: 'home', target: '#graf-bridge .graf-bridge-panel', title: 'Schon mit DatenGraf kartiert?',
+    text: 'Dann lesen Sie die exportierte CSV hier direkt ein. Aus jeder Kombination aus Quelle und Datentyp wird ein Datensatz-Kandidat – Zugriffsrechte und Aktualisierungszyklus sind schon vorbelegt.' },
+
+  // ── Daten-Kompass ───────────────────────────────────────────────
+  { id: 'k-score', kap: 'kompass', view: 'kompass', target: '#kompass-score', title: 'Wo stehen Sie?',
+    text: 'Der Reifegrad über alle Prüfpunkte, mit Ampel. Einige Punkte füllt das Werkzeug selbst aus dem aktuellen Stand vor – Ihre eigene Einschätzung hat aber immer Vorrang.' },
+  { id: 'k-dim', kap: 'kompass', view: 'kompass', target: '#kompass-dims .kompass-dim', title: 'Acht Dimensionen, 33 Prüfpunkte',
+    text: 'Jeder Punkt stammt aus einem anerkannten Modell (ODRA, EU Open Data Maturity, 5-Sterne, DCAT-AP.de, DSGVO/FAIR, Data Orchard). Unvollständige Dimensionen führen direkt in den Baustein, der hilft.' },
+  { id: 'k-profil', kap: 'kompass', view: 'kompass', target: '#kompass-profil', title: 'Gilt für Sie eine Rechtspflicht?',
+    text: 'Eine einzige, freiwillige Angabe. Wer keinem Informationsfreiheits- oder Open-Data-Gesetz unterliegt – etwa ein Verein –, bekommt Punkte, die nur Behörden erreichen können, nicht als Lücke angerechnet.' },
+  { id: 'k-verlauf', kap: 'kompass', view: 'kompass', target: '#kompass-history', title: 'Fortschritt festhalten',
+    text: 'Halten Sie Ihren Stand auf Knopfdruck fest und sehen Sie die Entwicklung als Verlauf – belegbarer Fortschritt für Leitung oder Gremium. Aufgezeichnet wird nur, was Sie selbst festhalten.' },
+
+  // ── Phase 1 · Governance ────────────────────────────────────────
+  { id: 'g-fragen', kap: 'governance', view: 'governance', target: '#gov-questions .gov-q', title: 'Acht Fragen zu Zuständigkeiten',
+    text: 'Gibt es Data Owner, Stewards, einen Freigabeprozess? Jede Frage ist gewichtet. Was für Ihre Organisation nicht zutrifft, wählen Sie als „nicht relevant" ab – es zählt dann nicht gegen Sie.' },
+  { id: 'g-score', kap: 'governance', view: 'governance', target: '.gov-score', title: 'Der Reifegrad',
+    text: 'Aus den Antworten entsteht ein Wert von 0 bis 100 mit Ampel, darunter der Beitrag jeder Frage. Der Fragebogen funktioniert auch ganz ohne Inventar.' },
+  { id: 'g-raci', kap: 'governance', view: 'governance', target: '#gov-raci .gov-h3', needsData: true, title: 'Wer ist wofür zuständig?',
+    text: 'Die RACI-Matrix leitet Ihre Datendomänen aus dem Inventar ab und ordnet ihnen Rollen zu. Wo der Fragebogen eine Rolle als unbesetzt ausweist, markiert die Matrix die Lücke.' },
+
+  // ── Phase 2 · Dateninventar ─────────────────────────────────────
+  { id: 'i-karte', kap: 'inventar', view: 'inventory', invTab: 'inventar', target: '.inv-card .inv-card-head', needsData: true, angebot: true,
+    title: 'Ein Datensatz, eine Karte',
+    text: 'Aus jedem kartierten Datenfluss wird ein Datensatz nach DCAT-AP.de. Die Felder füllen Sie direkt in der Karte; die Prozentzahl misst nach dem Schema der EU-Metadatenqualität, wie gut der Datensatz beschrieben ist.' },
+  { id: 'i-verteilung', kap: 'inventar', view: 'inventory', invTab: 'inventar', target: '.inv-card .inv-dists', needsData: true,
+    title: 'Formate und Lizenzen je Verteilung',
+    text: 'Derselbe Datensatz liegt oft als CSV und als JSON vor – je mit eigener Adresse und Lizenz. Genau so verlangt es DCAT-AP.de: eine Lizenz je Verteilung, nicht eine für alles.' },
+  { id: 'i-filter', kap: 'inventar', view: 'inventory', invTab: 'inventar', target: '#inventar-panel .inv-controls', needsData: true,
+    title: 'Suchen, filtern, mehrere auf einmal',
+    text: 'Grenzen Sie nach Schutzbedarf, Clearing-Ampel oder Veröffentlichungsreife ein und sortieren Sie nach dem, was am dringendsten ist. Markierte Datensätze lassen sich in einem Zug bearbeiten.' },
+  { id: 'i-lizenz', kap: 'inventar', view: 'inventory', invTab: 'inventar', target: '#btn-license-wizard', needsData: true,
+    title: 'Welche Lizenz passt?',
+    text: 'Zwei Fragen führen zur passenden offenen Lizenz. Darunter prüft der Wegweiser, ob sich zwei Lizenzen beim Zusammenführen von Beständen vertragen – ein Hinweis aus den Lizenztexten, keine Rechtsberatung.' },
+  { id: 'i-qualitaet', kap: 'inventar', view: 'inventory', invTab: 'quality', target: '#quality-summary', needsData: true,
+    title: 'Was würde ein Portal ablehnen?',
+    text: 'Die Qualitätsprüfung trennt echte Fehler – fehlende Pflichtfelder, ungültige Werte – von Warnungen. Sie findet auch, was einzeln korrekt aussieht: doppelte Kennungen, Titel oder Adressen im Bestand.' },
+  { id: 'i-mqa', kap: 'inventar', view: 'inventory', invTab: 'quality', target: '#quality-mqa', needsData: true,
+    title: 'Wo ist der Bestand schwach?',
+    text: 'Die Metadaten-Güte über den ganzen Bestand, nach den fünf Dimensionen der EU-Qualitätsprüfung. „Auffindbarkeit 20 %" ist ein Arbeitsauftrag – hier steht, wo er beginnt.' },
+  { id: 'i-export', kap: 'inventar', view: 'inventory', invTab: 'inventar', target: '.inventory-actions', needsData: true,
+    title: 'Ein- und Ausgänge',
+    text: 'Der Katalog geht als DCAT-AP.de-JSON-LD, als RDF/Turtle oder als CSV hinaus – zum Harvesting durch GovData und andere Portale. Eine bearbeitete CSV oder einen vorhandenen Katalog lesen Sie über „Datei einlesen" wieder ein.' },
+
+  // ── Phase 3 · Risiko & Schutz ───────────────────────────────────
+  { id: 's-clearing', kap: 'schutz', view: 'inventory', invTab: 'clearing', target: '#clearing-summary', needsData: true,
+    title: 'Darf das veröffentlicht werden?',
+    text: 'Ein offengelegter Entscheidungsbaum je Datensatz: Grün ist unstrittig, Rot gesperrt, Gelb braucht einen Blick. Kein maschinelles Lernen – jede Ampel ist begründet und lässt sich gegenüber dem Datenschutz vertreten.' },
+  { id: 's-text', kap: 'schutz', view: 'pseudo', pseudoTab: 'text', target: '#pseudo-tab-text', title: 'Freitexte bereinigen',
+    text: 'Namen, Adressen, IBAN, Aktenzeichen und weitere Angaben werden durch gleichbleibende Platzhalter ersetzt – rein über Muster, nichts verlässt den Browser. Die Nachkontrolle bleibt Ihre Aufgabe.' },
+  { id: 's-csv', kap: 'schutz', view: 'pseudo', pseudoTab: 'csv', target: '#pseudo-tab-csv', title: 'Tabellen spaltenweise bereinigen',
+    text: 'In einer Tabelle steht der Name ohne Anrede – kein Muster würde ihn finden. Deshalb entscheiden Sie je Spalte: unverändert, nach Mustern oder ganz ersetzen.' },
+  { id: 's-risiko', kap: 'schutz', view: 'pseudo', pseudoTab: 'risiko', target: '#pseudo-tab-risiko', title: 'Hat die Bereinigung getragen?',
+    text: 'Bereinigte Spalten sagen, was ersetzt wurde – nicht, ob eine Zeile noch auf eine Person zurückführt. Diese Prüfung misst k-Anonymität und l-Diversität; verändert wird dabei nichts.' },
+
+  // ── Wissen & Vorlagen ───────────────────────────────────────────
+  { id: 'w-suche', kap: 'wissen', view: 'wissen', target: '#wissen-view .inv-controls', title: 'Nachschlagen statt raten',
+    text: 'Glossar, Rechtsgrundlagen von Bund und EU, alle 16 Landesgesetze, kommunale Satzungen, Prüfwerkzeuge und die Modelle hinter dem Kompass – durchsuchbar und nach Bundesland filterbar. Keine Rechtsberatung.' },
+  { id: 'w-laender', kap: 'wissen', view: 'wissen', target: '#wissen-sec-laender .know-lead--alt', title: 'Zwei Leserichtungen',
+    text: 'Für eine Behörde sind die Landesgesetze eine Pflicht zur Veröffentlichung. Für einen Verein oder eine Initiative sind dieselben Gesetze das Werkzeug, um an Daten zu kommen.' },
+  { id: 'v-vorlagen', kap: 'wissen', view: 'vorlagen', target: '.vorlage-card', title: 'Fertige Dokumente',
+    text: 'Fünf Vorlagen: dieser Status-Einseiter für Leitungsrunden, eine Open-Data-Richtlinie, eine DSFA-Checkliste, Freigabeformulare und ein VVT-Auszug – erzeugt aus dem Stand, den Sie ohnehin erfasst haben.' },
+
+  // ── Sichern & loslegen ──────────────────────────────────────────
+  { id: 'a-projekt', kap: 'abschluss', view: 'home', target: '.sidebar-project', openSidebar: true, title: 'Arbeitsstand sichern',
+    text: 'Alles liegt in diesem Browser. „Projekt speichern" sichert den kompletten Stand als eine Datei – für Backup, Gerätewechsel oder zum Weitergeben im Team.' },
+  { id: 'a-hilfe', kap: 'abschluss', view: 'home', target: '.topbar', title: 'Immer erreichbar',
+    text: 'Oben finden Sie den Daten-Kompass, den Weg zu DatenGraf, die häufigen Fragen (?) und das Menü mit allen Bereichen – auch mit diesem Rundgang.' },
+  { id: 'a-ende', kap: 'abschluss', view: 'home', title: 'Bereit',
+    text: 'Am besten beginnen Sie mit dem Daten-Kompass: Er sagt Ihnen in wenigen Minuten, wo Sie stehen und was als Nächstes dran ist.' },
 ];
 const tour = { i: 0, active: false };
 
-function startTour() {
-  tour.i = 0;
+/* Die Schritte, die gerade gezeigt werden. Ohne Inventar bleibt von den
+   datenabhängigen nur der mit `angebot` – er bietet das Beispiel an. */
+function tourSteps() {
+  return inventory.length ? TOUR_STEPS : TOUR_STEPS.filter(s => !s.needsData || s.angebot);
+}
+
+function startTour(kapitel) {
+  const steps = tourSteps();
+  const ab = kapitel ? steps.findIndex(s => s.kap === kapitel) : 0;
+  tour.i = ab < 0 ? 0 : ab;
   tour.active = true;
   document.getElementById('tour-layer')?.classList.remove('hidden');
   document.body.classList.add('tour-on');
   renderTour();
 }
+function tourCleanup() {
+  document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight', 'tour-pos'));
+  document.querySelectorAll('.tour-lift').forEach(el => el.classList.remove('tour-lift', 'tour-lift-pos'));
+}
 function endTour() {
   tour.active = false;
   document.getElementById('tour-layer')?.classList.add('hidden');
   document.body.classList.remove('tour-on');
-  document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+  tourCleanup();
   closeSidebar();
 }
 function tourGo(delta) {
   const next = tour.i + delta;
   if (next < 0) return;
-  if (next >= TOUR_STEPS.length) { endTour(); return; }
+  if (next >= tourSteps().length) { endTour(); return; }
   tour.i = next;
   renderTour();
+}
+function tourKapitel(id) {
+  const i = tourSteps().findIndex(s => s.kap === id);
+  if (i < 0) return;
+  tour.i = i;
+  renderTour();
+}
+
+/* ⚠️ Ein Element über dem Abdunkeln (1200) zu zeigen genügt nicht immer:
+   liegt es in einem Vorfahren, der einen eigenen Stapelkontext bildet –
+   die sticky Topbar (z-index 10), die fixierte Seitenleiste (300) –, kann
+   es dessen Wert nie überbieten und bleibt mit abgedunkelt. Bis v69 war
+   genau das beim Schritt „Arbeitsstand sichern" so. Gehoben wird deshalb der
+   ÄUSSERSTE solche Vorfahr. */
+function bildetStapelkontext(el) {
+  const cs = getComputedStyle(el);
+  return cs.position === 'fixed' || cs.position === 'sticky'
+    || (cs.position !== 'static' && cs.zIndex !== 'auto')
+    || cs.transform !== 'none' || cs.filter !== 'none'
+    || (cs.backdropFilter && cs.backdropFilter !== 'none')
+    || Number(cs.opacity) < 1 || cs.isolation === 'isolate';
+}
+function tourLift(ziel) {
+  let aeusserster = null;
+  for (let el = ziel.parentElement; el && el !== document.body; el = el.parentElement) {
+    if (bildetStapelkontext(el)) aeusserster = el;
+  }
+  if (!aeusserster) return;
+  aeusserster.classList.add('tour-lift');
+  if (getComputedStyle(aeusserster).position === 'static') aeusserster.classList.add('tour-lift-pos');
+}
+
+/* Die Karte steht neben dem Ziel: bevorzugt darunter, sonst darüber, links
+   oder rechts – je nachdem, wo sie ganz in den Sichtbereich passt. Passt sie
+   nirgends (schmale Bildschirme, Ziel außer Sicht), dockt sie unten an. */
+const TOUR_ABSTAND = 14, TOUR_RAND = 12, TOUR_SCHMAL = 720;
+// Angedockt wird gegenüber dem Ziel: steht es in der unteren Hälfte (etwa die
+// Projekt-Knöpfe in der Seitenleiste, die sich nicht scrollen lassen), oben.
+function dockSeite(ziel) {
+  if (!ziel) return 'dock';
+  const r = ziel.getBoundingClientRect();
+  // Maßgeblich ist der Anfang des Ziels: ein hohes Ziel, das oben beginnt, soll
+  // man lesen können – die Karte gehört dann nach unten.
+  return r.top > window.innerHeight / 2 ? 'dock-oben' : 'dock';
+}
+function placeTourCard(card, ziel) {
+  card.style.top = card.style.left = '';
+  const vw = window.innerWidth, vh = window.innerHeight;
+  if (!ziel) { card.dataset.place = vw < TOUR_SCHMAL ? 'dock' : 'mitte'; return; }
+  if (vw < TOUR_SCHMAL) { card.dataset.place = dockSeite(ziel); return; }
+  card.dataset.place = 'frei';
+  const r = ziel.getBoundingClientRect();
+  const w = card.offsetWidth, h = card.offsetHeight;
+  const klemmX = x => Math.min(Math.max(x, TOUR_RAND), vw - w - TOUR_RAND);
+  const klemmY = y => Math.min(Math.max(y, TOUR_RAND), vh - h - TOUR_RAND);
+  const passt = (top, left) => top >= TOUR_RAND && top + h <= vh - TOUR_RAND
+    && left >= TOUR_RAND && left + w <= vw - TOUR_RAND;
+  const mitteX = klemmX(r.left + r.width / 2 - w / 2);
+  const mitteY = klemmY(r.top + r.height / 2 - h / 2);
+  const wahl = [
+    ['unten',  r.bottom + TOUR_ABSTAND,  mitteX],
+    ['oben',   r.top - TOUR_ABSTAND - h, mitteX],
+    ['links',  mitteY, r.left - TOUR_ABSTAND - w],
+    ['rechts', mitteY, r.right + TOUR_ABSTAND],
+  ].find(([, top, left]) => passt(top, left));
+  if (!wahl) { card.dataset.place = dockSeite(ziel); return; }
+  card.dataset.place = wahl[0];
+  card.style.top = Math.round(wahl[1]) + 'px';
+  card.style.left = Math.round(wahl[2]) + 'px';
+}
+
+/* Ziel in den Blick holen – so, dass Ziel UND Karte zusammen Platz haben.
+   Stur zentrieren reichte nicht: bei einem 300 px hohen Ziel blieb darunter
+   kein Raum mehr für die Karte, und sie dockte unten an. Auf schmalen
+   Bildschirmen dockt die Karte immer an; das Ziel gehört dann direkt unter
+   die Topbar. */
+function scrollTourZiel(ziel, kartenHoehe) {
+  if (ziel.closest('.app-sidebar, .topbar')) return;   // fixiert bzw. sticky – immer sichtbar
+  const vh = window.innerHeight;
+  const oben = (document.querySelector('.topbar')?.offsetHeight || 0) + TOUR_RAND;
+  const r = ziel.getBoundingClientRect();
+  let soll = oben;
+  if (window.innerWidth >= TOUR_SCHMAL) {
+    const platz = vh - oben - TOUR_RAND;
+    const bedarf = r.height + TOUR_ABSTAND + kartenHoehe;
+    if (bedarf <= platz) soll = oben + (platz - bedarf) / 2;          // Karte passt darunter
+    else if (r.height <= platz) soll = oben + (platz - r.height) / 2;  // Karte daneben
+  }
+  window.scrollBy(0, Math.round(r.top - soll));
+}
+
+function tourZiel() {
+  const step = tourSteps()[tour.i];
+  if (!step) return null;
+  if (step.needsData && !inventory.length) return document.getElementById('modul-inventar');
+  return step.target ? document.querySelector(step.target) : null;
 }
 
 function renderTour() {
   const layer = document.getElementById('tour-layer');
   const card = document.getElementById('tour-card');
   if (!layer || !card || !tour.active) return;
-  const step = TOUR_STEPS[tour.i];
+  const steps = tourSteps();
+  tour.i = Math.min(tour.i, steps.length - 1);
+  const step = steps[tour.i];
+  const ohneDaten = step.needsData && !inventory.length;
 
-  document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
-  if (step.view) navTo(step.view);
+  tourCleanup();
+  // Ohne Daten öffnete navTo('inventory') das Erklär-Modal – hinter der Karte.
+  navTo(ohneDaten ? 'home' : (step.view || 'home'));
+  if (!ohneDaten && step.invTab) showInventoryTab(step.invTab);
+  if (step.pseudoTab) showPseudoTab(step.pseudoTab);
   if (step.openSidebar) openSidebar(); else closeSidebar();
 
-  const fehlt = step.needsData && !inventory.length;
-  const ziel = fehlt || !step.target ? null : document.querySelector(step.target);
+  const ziel = tourZiel();
   if (ziel) {
     ziel.classList.add('tour-highlight');
-    ziel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (getComputedStyle(ziel).position === 'static') ziel.classList.add('tour-pos');
+    tourLift(ziel);
   }
+
+  const kapIdx = TOUR_KAPITEL.findIndex(k => k.id === step.kap);
+  const kap = TOUR_KAPITEL[kapIdx];
+  const istErster = tour.i === 0, istLetzter = tour.i === steps.length - 1;
+  const kapitelMitSchritten = TOUR_KAPITEL.filter(k => steps.some(s => s.kap === k.id));
 
   card.innerHTML =
     `<div class="tour-head">
-       <span class="tour-count">Schritt ${tour.i + 1} von ${TOUR_STEPS.length}</span>
+       <span class="tour-kapitel" title="Kapitel ${kapIdx + 1} von ${TOUR_KAPITEL.length}"><i class="fas ${kap.icon}"></i> ${esc(kap.label)}</span>
+       <span class="tour-count">Schritt ${tour.i + 1} von ${steps.length}</span>
        <button class="icon-close" id="tour-close" aria-label="Rundgang beenden"><i class="fas fa-xmark"></i></button>
      </div>
-     <h2 class="tour-title" id="tour-title">${esc(step.title)}</h2>
-     <p class="tour-text">${esc(step.text)}</p>
-     ${fehlt ? `<p class="tour-note"><i class="fas fa-circle-info"></i> Dieser Baustein braucht Daten. Laden Sie den Beispieldatensatz, um ihn im Einsatz zu sehen.</p>
-       <button class="btn btn-secondary tour-sample" id="tour-sample"><i class="fas fa-flask"></i> Beispiel laden</button>` : ''}
+     <div class="tour-progress" role="progressbar" aria-label="Fortschritt im Rundgang"
+          aria-valuemin="1" aria-valuemax="${steps.length}" aria-valuenow="${tour.i + 1}">
+       <span style="width:${Math.round((tour.i + 1) / steps.length * 100)}%"></span>
+     </div>
+     <h2 class="tour-title" id="tour-title">${esc(ohneDaten ? 'Hier beginnt das Inventar' : step.title)}</h2>
+     <p class="tour-text">${esc(ohneDaten
+       ? 'Dieses Kapitel zeigt, wie aus Ihren Datenflüssen ein Katalog nach DCAT-AP.de wird – dafür braucht es Daten. Laden Sie das Beispiel einer fiktiven Stadtverwaltung, um es im Einsatz zu sehen, oder gehen Sie weiter.'
+       : step.text)}</p>
+     ${ohneDaten ? `<button class="btn btn-secondary tour-sample" id="tour-sample"><i class="fas fa-flask"></i> Beispiel laden</button>` : ''}
+     ${istErster ? `<ol class="tour-chapters" aria-label="Kapitel des Rundgangs">${kapitelMitSchritten.map(k =>
+         `<li><button type="button" class="tour-chapter" data-tour-kap="${k.id}"><i class="fas ${k.icon}"></i> ${esc(k.label)}</button></li>`).join('')}</ol>` : ''}
+     ${istLetzter ? `<div class="tour-finale">
+         <button class="btn btn-primary" id="tour-go-kompass"><i class="fas fa-compass"></i> Daten-Kompass starten</button>
+         ${inventory.length ? '' : '<button class="btn btn-secondary" id="tour-go-sample"><i class="fas fa-flask"></i> Mit Beispieldaten erkunden</button>'}
+       </div>` : ''}
      <div class="tour-actions">
-       <button class="btn btn-secondary" id="tour-prev"${tour.i === 0 ? ' disabled' : ''}><i class="fas fa-arrow-left"></i> Zurück</button>
-       <button class="btn btn-secondary" id="tour-skip">Überspringen</button>
-       <button class="btn btn-primary" id="tour-next">${tour.i === TOUR_STEPS.length - 1 ? 'Fertig' : 'Weiter'} <i class="fas fa-arrow-right"></i></button>
+       <button class="btn btn-secondary" id="tour-prev"${istErster ? ' disabled' : ''}><i class="fas fa-arrow-left"></i> Zurück</button>
+       <nav class="tour-dots" aria-label="Kapitel">${kapitelMitSchritten.map(k =>
+         `<button type="button" class="tour-dot${k.id === step.kap ? ' is-active' : ''}" data-tour-kap="${k.id}"
+            aria-label="Kapitel: ${esc(k.label)}" title="${esc(k.label)}"${k.id === step.kap ? ' aria-current="step"' : ''}></button>`).join('')}</nav>
+       <button class="btn btn-primary" id="tour-next">${istLetzter ? 'Fertig' : 'Weiter'} <i class="fas fa-arrow-right"></i></button>
      </div>`;
 
   document.getElementById('tour-close')?.addEventListener('click', endTour);
-  document.getElementById('tour-skip')?.addEventListener('click', endTour);
   document.getElementById('tour-prev')?.addEventListener('click', () => tourGo(-1));
   document.getElementById('tour-next')?.addEventListener('click', () => tourGo(1));
-  document.getElementById('tour-sample')?.addEventListener('click', () => {
+  card.querySelectorAll('[data-tour-kap]').forEach(b =>
+    b.addEventListener('click', () => tourKapitel(b.dataset.tourKap)));
+  const mitBeispiel = () => {
+    const id = step.id;
+    loadSampleData().then(() => {
+      if (!tour.active) return;
+      // Mit Daten wächst die Liste – auf demselben Schritt bleiben
+      tour.i = Math.max(0, tourSteps().findIndex(s => s.id === id));
+      renderTour();
+    });
+  };
+  document.getElementById('tour-sample')?.addEventListener('click', mitBeispiel);
+  document.getElementById('tour-go-sample')?.addEventListener('click', () => {
+    endTour();
     loadSampleData();
-    // renderInventory() wechselt die Ansicht – den Schritt danach neu aufbauen
-    setTimeout(() => { if (tour.active) renderTour(); }, 150);
   });
-  card.focus();
+  document.getElementById('tour-go-kompass')?.addEventListener('click', () => { endTour(); navTo('kompass'); });
+
+  // Erst messen (in der freien Breite), dann scrollen, dann platzieren
+  card.dataset.place = 'frei';
+  card.style.top = card.style.left = '';
+  if (ziel) scrollTourZiel(ziel, card.offsetHeight);
+  placeTourCard(card, ziel);
+  card.focus({ preventScroll: true });
 }
+
+// Beim Scrollen und bei Größenänderung folgt die Karte ihrem Ziel
+let tourPlatzFrame = 0;
+function tourNachfuehren() {
+  if (!tour.active || tourPlatzFrame) return;
+  tourPlatzFrame = requestAnimationFrame(() => {
+    tourPlatzFrame = 0;
+    const card = document.getElementById('tour-card');
+    if (tour.active && card) placeTourCard(card, document.querySelector('.tour-highlight'));
+  });
+}
+window.addEventListener('scroll', tourNachfuehren, { passive: true });
+window.addEventListener('resize', tourNachfuehren);
 
 document.getElementById('sidebar-tour')?.addEventListener('click', e => {
   e.preventDefault();
@@ -2609,8 +2848,9 @@ function pickAndImport() {
 }
 
 // Beispieldaten laden (via fetch → benötigt HTTP, nicht file://)
+// Gibt das Promise zurück, damit der Rundgang nach dem Laden weitermachen kann
 function loadSampleData(file) {
-  fetch(file || 'data/sample-kommune.csv')
+  return fetch(file || 'data/sample-kommune.csv')
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
     .then(text => importGrafCSV(text))
     .catch(() => alert('Beispieldaten konnten nicht geladen werden.\nBitte die App über http:// (python3 -m http.server) öffnen, nicht über file://.'));
@@ -2700,6 +2940,23 @@ document.getElementById('faq-close-btn')?.addEventListener('click', () => showMo
 document.getElementById('cta-btn')?.addEventListener('click', () => navTo('kompass'));
 document.getElementById('hero-kompass-btn')?.addEventListener('click', () => navTo('kompass'));
 document.getElementById('hero-tour-btn')?.addEventListener('click', startTour);
+
+/* Das DatenGraf-Logo steht weit unter dem Falz. `loading="lazy"` allein half
+   nicht: Chrome lädt Bilder schon in 1.250–2.500 px Abstand vor, das Logo kam
+   also bei jedem Aufruf mit (21 KB). Geladen wird es jetzt erst, wenn der
+   Abschnitt in die Nähe des Sichtbereichs kommt. */
+(function () {
+  const img = document.querySelector('img.graf-bridge-icon[data-src]');
+  if (!img) return;
+  const laden = () => { img.src = img.dataset.src; img.removeAttribute('data-src'); };
+  if (!('IntersectionObserver' in window)) { laden(); return; }
+  const io = new IntersectionObserver(eintraege => {
+    if (!eintraege.some(e => e.isIntersecting)) return;
+    io.disconnect();
+    laden();
+  }, { rootMargin: '400px 0px' });
+  io.observe(img);
+})();
 // Die DatenGraf-Brücke führt direkt in den Dateidialog: wer schon kartiert hat,
 // braucht das Erklär-Modal nicht mehr, das `open-inventory-btn` davorschaltet.
 document.getElementById('graf-bridge-import')?.addEventListener('click', pickAndImport);
