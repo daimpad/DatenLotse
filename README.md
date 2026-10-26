@@ -26,7 +26,7 @@
 
 | | Feature | Beschreibung |
 |---|---|---|
-| 🗺️ | **Onboarding-Rundgang** | Elf Schritte durch alle Bausteine – der Rundgang wechselt selbst in die passende Ansicht und hebt hervor, worum es gerade geht. Wird **angeboten statt aufgedrängt** – kein Auto-Start, sondern zwei dauerhafte Einstiege (Hero und Seitenleiste); Schritte, die Daten brauchen, bieten den Beispielimport an, statt ihn heimlich auszuführen |
+| 🗺️ | **Geführter Rundgang** | **Sieben Kapitel, 29 Schritte** durch alles, was das Werkzeug kann – von der Startseite über Kompass, Governance, Inventar, Risiko und Textbereinigung bis zu Wissen, Vorlagen und dem Sichern des Arbeitsstands. Der Rundgang wechselt selbst in die passende Ansicht und den passenden Tab, hebt hervor, worum es geht, und stellt seine Erklärung **direkt daneben** statt darüber. Kapitel lassen sich direkt anspringen. Wird **angeboten statt aufgedrängt** – kein Auto-Start, sondern zwei dauerhafte Einstiege (Hero und Seitenleiste); ohne eigene Daten bietet er das Beispiel an, statt es heimlich zu laden |
 | 📈 | **Kompass-Verlauf** | Reifegrad-Stände auf Knopfdruck festhalten und die Entwicklung als Balken samt Trend sehen – belegbarer Fortschritt gegenüber Leitung oder Gremium. Bewusst **kein automatischer Mitschnitt**: festgehalten wird, was man festhalten will |
 | 🧭 | **Daten-Kompass** | Open-Data-Reifegrad-Checkliste nach anerkannten Modellen (ODRA, EU Open Data Maturity, 5-Sterne-Open-Data, DCAT-AP.de, DSGVO/FAIR, Data Orchard Data Maturity): **8 Dimensionen mit 33 Prüfpunkten**, Score + Ampel, Vorbelegung aus dem aktuellen Stand, adaptive Empfehlungen der nächsten Bausteine und PDF-Export – der Haupteinstieg |
 | ⚖️ | **Rechtspflicht der Organisation** | Eine einzige, **optionale** Angabe: Unterliegt Ihre Organisation einem Informationsfreiheits- oder Open-Data-Gesetz? Wer *nein* wählt (Verein, Stiftung, gGmbH), bekommt den Prüfpunkt zu den Rechtsgrundlagen als *nicht relevant* vorbelegt – er zählt dann nicht in den Reifegrad –, keine Vorschläge zu hochwertigen Datensätzen, weil die EU-Verordnung dazu öffentliche Stellen bindet, und einen Fehler bei der Lizenz „Amtliches Werk nach § 5 UrhG", deren Lizenzfreiheit an der amtlichen Herkunft hängt und nicht an einer Entscheidung des Herausgebers. Bewusst **nicht** die Frage „Behörde oder NGO": dazwischen liegen Stadtwerke, Hochschulen und Belehnte, die ein Zwei-Wege-Schalter falsch einsortiert. Alles Übrige gilt unverändert |
@@ -116,7 +116,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 380 Tests, ~150 s
+npm test                         # 386 Tests, ~180 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -309,7 +309,7 @@ datenlotse/
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   ├── sample-verein.csv       # Beispiel: fiktiver gemeinnütziger Träger (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (380 Tests in 14 Dateien)
+├── tests/                      # Playwright-End-to-End-Tests (386 Tests in 14 Dateien)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität, Anrede
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection
@@ -322,7 +322,7 @@ datenlotse/
 │   ├── export.spec.js          # DCAT-URIs, Downloads, Persistenz
 │   ├── a11y.spec.js            # Fokus, ARIA, Kontrast, Responsive
 │   ├── hvd.spec.js             # hochwertige Datensätze (DVO (EU) 2023/138)
-│   ├── tour.spec.js            # Onboarding-Rundgang, Schritt-Ziele
+│   ├── tour.spec.js            # Rundgang: Kapitel, Platzierung, Abdunkeln, Schritt-Ziele
 │   ├── seo.spec.js             # statische Wissensseiten, Metadaten, Sitemap
 │   └── assets.spec.js          # Icon-Zuschnitt, Ladegewicht der Startseite
 ├── playwright.config.js        # Testkonfiguration (startet den Webserver selbst)

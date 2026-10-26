@@ -52,7 +52,7 @@ test.describe('Grundgerüst & Navigation', () => {
     await page.locator('#hero-tour-btn').click();
     await expect(page.locator('#tour-layer')).toBeVisible();
     await expect(page.locator('#tour-card')).toContainText('Schritt 1');
-    await page.locator('#tour-skip').click();
+    await page.locator('#tour-close').click();
 
     await page.locator('#hero-kompass-btn').click();
     await expect(page.locator('#kompass-view')).toBeVisible();
@@ -85,10 +85,14 @@ test.describe('Grundgerüst & Navigation', () => {
   test('die DatenGraf-Brücke trägt das echte Logo, lokal ausgeliefert', async ({ page }) => {
     await openApp(page);
     const logo = page.locator('img.graf-bridge-icon');
-    // `loading="lazy"`: der Abschnitt steht weit unter dem Falz, das Bild wird
-    // beim ersten Laden bewusst nicht mitgeholt (siehe Ladegewicht-Budget).
+    // Der Abschnitt steht weit unter dem Falz – das Bild wird beim ersten Laden
+    // bewusst NICHT mitgeholt, sondern erst in der Nähe des Sichtbereichs (v70).
+    expect(await logo.getAttribute('src')).toBeNull();
     await logo.scrollIntoViewIfNeeded();
     await expect(logo).toBeVisible();
+    // Laden abwarten statt sofort zu messen – ohne das war der Test ein Wettlauf
+    // gegen das Netz und in der vollen Suite gelegentlich rot
+    await expect.poll(() => logo.evaluate(el => el.complete && el.naturalWidth > 0)).toBe(true);
     const bild = await logo.evaluate(el => ({
       quelle: el.getAttribute('src'),
       alt: el.getAttribute('alt'),
