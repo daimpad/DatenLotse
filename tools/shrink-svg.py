@@ -25,9 +25,10 @@ viewBox entsprechend verkleinert). Es sparte nur 4–8 KB, kippte bei 180 px
 aber einzelne Pixel um bis zu 200/255 – feine Linien veränderten sich.
 
 Prüfen: das Ergebnis per Pixelvergleich gegen das Original halten
-(siehe `tests/assets.spec.js`).
+(siehe `tests/assets.spec.js`; Favicon bei 180 px, Logo bei 344 px).
 
     python3 tools/shrink-svg.py favicon.svg favicon.svg --genau 0
+    python3 tools/shrink-svg.py logo.svg logo.svg --genau 0     # v71: 108 → 64 KB
 """
 import argparse
 import re
