@@ -188,3 +188,48 @@ test.describe('Ladegewicht', () => {
     expect(fehlend, 'Icons ohne Glyph in der zugeschnittenen Schrift').toEqual([]);
   });
 });
+
+/* ── v71: Favicon verkleinert ─────────────────────────────────────────
+   `favicon.svg` war das vollständige Logo mit zwei Nachkommastellen in einem
+   2.835er-Raster, im Rahmen eines Favicon-Generators: 126 KB für 16–64 px.
+   `tools/shrink-svg.py` rundet die Koordinaten absolut auf ganze Einheiten und
+   schreibt sie relativ – 65 KB. */
+test.describe('Favicon', () => {
+  test('bleibt klein', () => {
+    const groesse = fs.statSync(path.join(ROOT, 'favicon.svg')).size;
+    // Regression v71: vorher 126.507 Bytes. Wer das Original zurückkopiert
+    // oder neu aus einem Generator zieht, ohne zu verkleinern, wird hier rot.
+    expect(groesse).toBeLessThan(70 * 1024);
+  });
+
+  /* Gemessen wird gegen ein Referenzbild des ORIGINALS bei 180 px – nicht
+     gegen sich selbst. Die Schwellen trennen Kantenrauschen von Struktur:
+     ganzzahlige Rundung ergab Ø 0,35 und höchstens 67/255 an einzelnen
+     Kantenpixeln; ein gröberes Raster (halbierte Koordinaten) kippte Pixel
+     um bis zu 200/255, weil sich feine Linien verschoben. Schon der reine
+     Umbau ohne Rundung erzeugt bis 13/255 – der Browser summiert relative
+     Koordinaten in einfacher Gleitkommagenauigkeit. */
+  test('sieht aus wie das Original (Pixelvergleich bei 180 px)', async ({ page }) => {
+    await page.goto('/index.html');
+    const r = await page.evaluate(async () => {
+      const lade = src => new Promise((ok, err) => {
+        const i = new Image(); i.onload = () => ok(i); i.onerror = () => err(new Error(src)); i.src = src;
+      });
+      const pixel = img => {
+        const c = document.createElement('canvas'); c.width = c.height = 180;
+        const g = c.getContext('2d'); g.drawImage(img, 0, 0, 180, 180);
+        return g.getImageData(0, 0, 180, 180).data;
+      };
+      const ref = pixel(await lade('/tests/fixtures/favicon-referenz-180.png'));
+      const neu = pixel(await lade('/favicon.svg?' + Date.now()));
+      let max = 0, summe = 0, kippt = 0;
+      for (let i = 0; i < ref.length; i++) {
+        const d = Math.abs(ref[i] - neu[i]);
+        summe += d; if (d > max) max = d; if (d > 120) kippt++;
+      }
+      return { mittel: summe / ref.length, max, kippt };
+    });
+    expect(r.mittel).toBeLessThan(1);
+    expect(r.kippt, `Kanäle mit Abweichung > 120: ${r.kippt} (max ${r.max})`).toBe(0);
+  });
+});
