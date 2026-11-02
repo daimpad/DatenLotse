@@ -98,6 +98,8 @@ npm run icons         # Font Awesome auf die verwendeten Icons zuschneiden
 
 **Icons:** Font Awesome bringt rund 1.900 Icons und 300 KB Schrift mit; DatenLotse benutzt knapp 80 davon. Ausgeliefert wird deshalb nur die Teilmenge (`assets/fonts/fa/icons.min.css`, `fa-*.subset.woff2`). Nach jedem neuen Icon im Markup neu bauen, sonst erscheint an seiner Stelle ein leeres Kästchen. Das Zuschneiden braucht einmalig `pip install fonttools brotli` – die App und die Tests nicht.
 
+**Favicon und Logo:** `favicon.svg` und `logo.svg` sind dasselbe Logo und wurden mit `tools/shrink-svg.py` verkleinert – das Favicon von 126 auf 65 KB, das Logo von 108 auf 64 KB. Koordinaten werden absolut auf ganze Rastereinheiten gerundet, dann relativ geschrieben. Sichtbar ist der Unterschied nicht; Tests vergleichen die Grafiken mit Referenzbildern der Originale (Favicon bei 180 px, Logo bei 344 px – der Hero bei doppelter Pixeldichte). Wer eine der Dateien neu aus einem Grafikprogramm oder Generator zieht, verkleinert sie danach wieder (`python3 tools/shrink-svg.py logo.svg logo.svg`) – sonst wird der Größentest rot.
+
 ### Option C – eigene DatenGraf-CSV verwenden
 
 DatenLotse liest exakt das Schema, das DatenGraf via Export erzeugt:
@@ -116,7 +118,7 @@ Die App selbst bleibt abhängigkeitsfrei; für die Tests wird einmalig Playwrigh
 ```bash
 npm install                      # nur Dev: @playwright/test
 npx playwright install chromium
-npm test                         # 386 Tests, ~180 s
+npm test                         # 390 Tests, ~180 s
 npm run test:ui                  # interaktiver Modus
 ```
 
@@ -309,7 +311,7 @@ datenlotse/
 │   ├── sample-landesbehoerde.csv # Beispiel: fiktive Landesebene (12 Datensätze)
 │   ├── sample-verein.csv       # Beispiel: fiktiver gemeinnütziger Träger (12 Datensätze)
 │   └── template.csv            # Leere Vorlage zum eigenen Befüllen
-├── tests/                      # Playwright-End-to-End-Tests (386 Tests in 14 Dateien)
+├── tests/                      # Playwright-End-to-End-Tests (390 Tests in 14 Dateien)
 │   ├── helpers.js              # openApp/loadSample/Download-Helfer
 │   ├── smoke.spec.js           # Views, Routing, Dashboard, HTML-Validität, Anrede
 │   ├── import.spec.js          # CSV-Parser, Ableitung, Formel-Injection
@@ -324,11 +326,13 @@ datenlotse/
 │   ├── hvd.spec.js             # hochwertige Datensätze (DVO (EU) 2023/138)
 │   ├── tour.spec.js            # Rundgang: Kapitel, Platzierung, Abdunkeln, Schritt-Ziele
 │   ├── seo.spec.js             # statische Wissensseiten, Metadaten, Sitemap
-│   └── assets.spec.js          # Icon-Zuschnitt, Ladegewicht der Startseite
+│   ├── assets.spec.js          # Icon-Zuschnitt, Ladegewicht, Favicon und Logo (Größe + Pixelvergleich)
+│   └── fixtures/               # Referenzbilder der Originale (Favicon 180 px, Logo 344 px)
 ├── playwright.config.js        # Testkonfiguration (startet den Webserver selbst)
 ├── tools/
 │   ├── generate-wissen.js      # erzeugt /wissen/ + sitemap.xml aus den App-Daten
-│   └── build-icons.py          # schneidet Font Awesome auf die verwendeten Icons zu
+│   ├── build-icons.py          # schneidet Font Awesome auf die verwendeten Icons zu
+│   └── shrink-svg.py           # verkleinert SVG-Grafiken verlustarm (Favicon, Logo)
 ├── wissen/                     # statische, crawlbare Wissensseiten (erzeugt)
 ├── datenschutz/                # eigene Datenschutzerklärung (erzeugt)
 ├── assets/

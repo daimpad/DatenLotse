@@ -188,3 +188,75 @@ test.describe('Ladegewicht', () => {
     expect(fehlend, 'Icons ohne Glyph in der zugeschnittenen Schrift').toEqual([]);
   });
 });
+
+/* ── v71: Favicon und Logo verkleinert ─────────────────────────────────
+   `favicon.svg` und `logo.svg` sind dasselbe Logo (252 Pfade) im Raster von
+   2.835 Einheiten. Das Favicon trug zwei Nachkommastellen (126 KB), das Logo
+   seit v45 eine (108 KB). `tools/shrink-svg.py` rundet die Koordinaten absolut
+   auf ganze Einheiten und schreibt sie relativ – 65 bzw. 64 KB. */
+
+/** Vergleicht eine SVG pixelweise mit dem Referenzbild ihres ORIGINALS. */
+async function pixelVergleich(page, svg, referenz, n) {
+  await page.goto('/index.html');
+  return page.evaluate(async ([svg, referenz, n]) => {
+    const lade = src => new Promise((ok, err) => {
+      const i = new Image(); i.onload = () => ok(i); i.onerror = () => err(new Error(src)); i.src = src;
+    });
+    const pixel = img => {
+      const c = document.createElement('canvas'); c.width = c.height = n;
+      const g = c.getContext('2d'); g.drawImage(img, 0, 0, n, n);
+      return g.getImageData(0, 0, n, n).data;
+    };
+    const ref = pixel(await lade(referenz));
+    const neu = pixel(await lade(svg + '?' + Date.now()));
+    let max = 0, summe = 0, kippt = 0;
+    for (let i = 0; i < ref.length; i++) {
+      const d = Math.abs(ref[i] - neu[i]);
+      summe += d; if (d > max) max = d; if (d > 120) kippt++;
+    }
+    return { mittel: summe / ref.length, max, kippt };
+  }, [svg, referenz, n]);
+}
+
+test.describe('Favicon', () => {
+  test('bleibt klein', () => {
+    const groesse = fs.statSync(path.join(ROOT, 'favicon.svg')).size;
+    // Regression v71: vorher 126.507 Bytes. Wer das Original zurückkopiert
+    // oder neu aus einem Generator zieht, ohne zu verkleinern, wird hier rot.
+    expect(groesse).toBeLessThan(70 * 1024);
+  });
+
+  /* Gemessen wird gegen ein Referenzbild des ORIGINALS bei 180 px – nicht
+     gegen sich selbst. Die Schwellen trennen Kantenrauschen von Struktur:
+     ganzzahlige Rundung ergab Ø 0,35 und höchstens 67/255 an einzelnen
+     Kantenpixeln; ein gröberes Raster (halbierte Koordinaten) kippte Pixel
+     um bis zu 200/255, weil sich feine Linien verschoben. Schon der reine
+     Umbau ohne Rundung erzeugt bis 13/255 – der Browser summiert relative
+     Koordinaten in einfacher Gleitkommagenauigkeit. */
+  test('sieht aus wie das Original (Pixelvergleich bei 180 px)', async ({ page }) => {
+    const r = await pixelVergleich(page, '/favicon.svg', '/tests/fixtures/favicon-referenz-180.png', 180);
+    expect(r.mittel).toBeLessThan(1);
+    expect(r.kippt, `Kanäle mit Abweichung > 120: ${r.kippt} (max ${r.max})`).toBe(0);
+  });
+});
+
+test.describe('Logo', () => {
+  test('bleibt klein', () => {
+    const groesse = fs.statSync(path.join(ROOT, 'logo.svg')).size;
+    // Regression v71: vorher 108.433 Bytes – die größte Einzeldatei der
+    // Startseite, geladen von jedem Besucher (Topbar und Hero).
+    expect(groesse).toBeLessThan(70 * 1024);
+  });
+
+  /* 344 px ist der Hero (172 px) auf einem Bildschirm mit doppelter
+     Pixeldichte – die größte Darstellung, die in der App vorkommt. Gemessen
+     wurden Ø 0,37 und höchstens 88/255; bei 44, 88, 172 und 516 px lag das
+     Maximum zwischen 58 und 81. Erst bei 1024 px – größer, als das Logo
+     irgendwo gezeigt wird – erreichten zwei einzelne Kantenpixel 124/255,
+     zehnfach vergrößert nicht vom Original zu unterscheiden. */
+  test('sieht aus wie das Original (Pixelvergleich bei 344 px)', async ({ page }) => {
+    const r = await pixelVergleich(page, '/logo.svg', '/tests/fixtures/logo-referenz-344.png', 344);
+    expect(r.mittel).toBeLessThan(1);
+    expect(r.kippt, `Kanäle mit Abweichung > 120: ${r.kippt} (max ${r.max})`).toBe(0);
+  });
+});
